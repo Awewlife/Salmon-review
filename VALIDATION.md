@@ -10,6 +10,7 @@
 - Container restart and image recreation retained all 50 records. A 51-document backup merged through the browser with zero duplicates.
 - Public nxapi adapter fetched the live history list and one detail using the existing unexpired local SplatNet cache; Simplified Chinese stage name matched the earlier export. This did not test a new login or expired-token refresh.
 - Automated tests cover persistence, deduplication, atomic account validation, unsupported/incomplete records, special attribution, backup/restore, credential encryption, request-origin protection, sync locking, progress retention, backoff, pause states and authorization state validation.
+- External Edge was also exercised. Its requests in the tested configuration contained `Sec-Fetch-Site: same-origin` with an `Origin` missing the port. The server now trusts the browser-controlled same-origin classification, while retaining exact Origin checks otherwise, host validation, cross-site rejection and CSRF checks. Regression tests cover both compatibility and rejected cross-site/cross-port requests (14 tests pass).
 
 ## Still requires validation before a general release
 

@@ -40,7 +40,13 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
     try{
       const host=req.headers.host??'',url=new URL(req.url,'http://'+host);
-      if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||req.headers['sec-fetch-site']==='cross-site'||(req.headers.origin&&req.headers.origin!=='http://'+host))return send(res,403,publicError(new Error('forbidden')));
+      // Fetch Metadata is browser-controlled and cannot be set by page JavaScript.
+      // Some browser configurations rewrite Origin without the local port; an
+      // explicit same-origin classification still identifies a local request.
+      // Without that classification, retain the exact Origin check. Cross-site
+      // requests and unrecognized hosts are always rejected; writes also need CSRF.
+      const site=req.headers['sec-fetch-site'];
+      if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||site==='cross-site'||(site!=='same-origin'&&req.headers.origin&&req.headers.origin!=='http://'+host))return send(res,403,publicError(new Error('forbidden')));
       const mutation=req.method!=='GET'&&req.method!=='HEAD';
       if(mutation){const value=Buffer.from(String(req.headers['x-salmon-csrf']??'')),expected=Buffer.from(csrf);if(value.length!==expected.length||!timingSafeEqual(value,expected))return send(res,403,publicError(new Error('forbidden')))}
       if(req.method==='GET'&&url.pathname==='/api/status')return send(res,200,state());

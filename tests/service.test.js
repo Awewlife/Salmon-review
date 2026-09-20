@@ -31,6 +31,20 @@ test('synchronization saves completed records on failure, deduplicates on retry,
   assert.equal(store.snapshot().jobs.length,1);assert.equal(tasks.status().last.state,'failed');assert(tasks.status().nextAttempt>Date.now());assert.throws(()=>tasks.start(),/cooldown/);
   store.set('nextAttempt',0);tasks.runner=async(input,emit)=>{assert(input.known.includes(f.record.result.id));await emit('summary',f.summary);await emit('record',f.record);await emit('progress',{done:1,total:1})};tasks.start();await tasks.completion;assert.equal(tasks.status().last.state,'success');assert.equal(tasks.status().last.added,0);assert.equal(store.snapshot().jobs.length,1);
 });
+test('browser same-origin metadata tolerates rewritten Origin, while cross-site and cross-port requests remain blocked',async t=>{
+  const {base,csrf}=await setup(t),headers={Origin:'http://127.0.0.1','Sec-Fetch-Site':'same-origin'};
+  for(const route of ['/style.css','/manage.css','/data.js','/app.js','/api/status']){
+    // Use HTTP directly: Fetch synthesizes Sec-Fetch-* headers itself.
+    const status=await new Promise((resolve,reject)=>{http.get(base+route,{headers},res=>{res.resume();resolve(res.statusCode)}).on('error',reject)});
+    assert.equal(status,200,route);
+  }
+  const raw=(site,origin,token)=>new Promise((resolve,reject)=>{const req=http.request(base+'/api/settings',{method:'POST',headers:{'Content-Type':'application/json',Origin:origin,'Sec-Fetch-Site':site,...(token?{'X-Salmon-CSRF':token}:{})}},res=>{res.resume();resolve(res.statusCode)});req.on('error',reject);req.end(JSON.stringify({autoMinutes:0}))});
+  assert.equal(await raw('same-origin','http://127.0.0.1',csrf),200);
+  assert.equal(await raw('same-origin','http://127.0.0.1',null),403);
+  assert.equal(await raw('cross-site',base,csrf),403);
+  assert.equal(await raw('same-site','http://127.0.0.1:9999',csrf),403);
+  assert.equal((await fetch(base+'/api/status',{headers:{Origin:'http://127.0.0.1:9999'}})).status,403);
+});
 test('authentication failures pause automation; rate limits preserve Retry-After; error text is sanitized',async t=>{
   const {store,vault}=await setup(t);vault.save({sessionToken:'test-only'});const old=process.env.NXAPI_AUTH_CLIENT_ID;process.env.NXAPI_AUTH_CLIENT_ID='test-client';t.after(()=>{if(old===undefined)delete process.env.NXAPI_AUTH_CLIENT_ID;else process.env.NXAPI_AUTH_CLIENT_ID=old});
   const tasks=new Tasks(store,vault,async()=>{throw new Error('Remote configuration prevents Coral authentication')});tasks.start();await tasks.completion;assert.equal(tasks.status().paused,'upstream_disabled');
