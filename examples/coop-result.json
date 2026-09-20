@@ -1,0 +1,168 @@
+{
+  "result": {
+    "id": "match-1",
+    "playedTime": "2026-09-19T01:00:00Z",
+    "resultWave": 0,
+    "myResult": {
+      "player": {
+        "id": "Q29vcFBsYXllcjpzZXNzaW9uOnNlbGY=",
+        "name": "测试玩家"
+      },
+      "weapons": [
+        {
+          "name": "示例武器"
+        }
+      ],
+      "specialWeapon": {
+        "name": "示例大招",
+        "weaponId": 20001
+      },
+      "goldenDeliverCount": 20,
+      "goldenAssistCount": 0,
+      "deliverCount": 500,
+      "defeatEnemyCount": 10,
+      "rescueCount": 0,
+      "rescuedCount": 0
+    },
+    "memberResults": [
+      {
+        "player": {
+          "id": "Q29vcFBsYXllcjpzZXNzaW9uOnRlYW0tMQ==",
+          "name": "队友1"
+        },
+        "weapons": [
+          {
+            "name": "示例武器"
+          }
+        ],
+        "specialWeapon": {
+          "name": "示例大招",
+          "weaponId": 20002
+        },
+        "goldenDeliverCount": 21,
+        "goldenAssistCount": 1,
+        "deliverCount": 500,
+        "defeatEnemyCount": 11,
+        "rescueCount": 1,
+        "rescuedCount": 1
+      },
+      {
+        "player": {
+          "id": "Q29vcFBsYXllcjpzZXNzaW9uOnRlYW0tMg==",
+          "name": "队友2"
+        },
+        "weapons": [
+          {
+            "name": "示例武器"
+          }
+        ],
+        "specialWeapon": {
+          "name": "示例大招",
+          "weaponId": 20003
+        },
+        "goldenDeliverCount": 22,
+        "goldenAssistCount": 2,
+        "deliverCount": 500,
+        "defeatEnemyCount": 12,
+        "rescueCount": 2,
+        "rescuedCount": 0
+      },
+      {
+        "player": {
+          "id": "Q29vcFBsYXllcjpzZXNzaW9uOnRlYW0tMw==",
+          "name": "队友3"
+        },
+        "weapons": [
+          {
+            "name": "示例武器"
+          }
+        ],
+        "specialWeapon": {
+          "name": "示例大招",
+          "weaponId": 20004
+        },
+        "goldenDeliverCount": 23,
+        "goldenAssistCount": 3,
+        "deliverCount": 500,
+        "defeatEnemyCount": 13,
+        "rescueCount": 3,
+        "rescuedCount": 1
+      }
+    ],
+    "dangerRate": 1.5,
+    "coopStage": {
+      "name": "示例场地"
+    },
+    "weapons": [
+      {
+        "name": "示例武器"
+      }
+    ],
+    "afterGrade": {
+      "name": "传说"
+    },
+    "afterGradePoint": 200,
+    "waveResults": [
+      {
+        "waveNumber": 1,
+        "waterLevel": 1,
+        "deliverNorm": 20,
+        "teamDeliverCount": 30,
+        "goldenPopCount": 50,
+        "eventWave": null,
+        "specialWeapons": [
+          {
+            "id": "U3BlY2lhbFdlYXBvbi0yMDAwMQ==",
+            "name": "示例大招"
+          },
+          {
+            "id": "U3BlY2lhbFdlYXBvbi0yMDAwMg==",
+            "name": "示例大招"
+          },
+          {
+            "id": "U3BlY2lhbFdlYXBvbi0yMDAwMw==",
+            "name": "示例大招"
+          },
+          {
+            "id": "U3BlY2lhbFdlYXBvbi0yMDAwNA==",
+            "name": "示例大招"
+          }
+        ]
+      },
+      {
+        "waveNumber": 2,
+        "waterLevel": 1,
+        "deliverNorm": 20,
+        "teamDeliverCount": 30,
+        "goldenPopCount": 50,
+        "eventWave": null,
+        "specialWeapons": []
+      },
+      {
+        "waveNumber": 3,
+        "waterLevel": 1,
+        "deliverNorm": 20,
+        "teamDeliverCount": 30,
+        "goldenPopCount": 50,
+        "eventWave": null,
+        "specialWeapons": []
+      }
+    ],
+    "enemyResults": [
+      {
+        "enemy": {
+          "name": "示例巨大鲑鱼"
+        },
+        "teamDefeatCount": 46,
+        "defeatCount": 10,
+        "popCount": 50
+      }
+    ],
+    "bossResult": null,
+    "scale": null,
+    "jobPoint": 200,
+    "jobScore": 80,
+    "jobRate": 2.5,
+    "jobBonus": 0
+  }
+}

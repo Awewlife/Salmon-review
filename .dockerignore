@@ -1,0 +1,14 @@
+.git
+node_modules
+data
+private
+backups
+.env
+work
+tests
+scripts
+examples
+*.log
+*.sqlite*
+dist/data.js
+dist/assets

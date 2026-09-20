@@ -7,3 +7,8 @@ backups/
 *.db
 __pycache__/
 private/
+dist/data.js
+dist/assets/
+*.enc
+vault.key
+splatnet3-coop-*.json

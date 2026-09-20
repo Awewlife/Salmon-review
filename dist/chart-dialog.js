@@ -2,7 +2,7 @@
 let trendState;
 const TREND_METRICS={eggs:{label:'搬蛋',short:'搬蛋',unit:'颗'},kills:{label:'巨大鲑鱼击杀',short:'击杀',unit:'只'},deaths:{label:'被救援次数',short:'被救援次数',unit:'次'}};
 function openTrend(){
-  const jobs=matches(),teammates=SalmonStats.suspectedTeammates(jobs);
+  const jobs=matches(),teammates=shift().complete?SalmonStats.suspectedTeammates(jobs):[];
   trendState={jobs,teammates,selected:new Set(),include:false,showNames:true};
   const dialog=document.querySelector('#trend-dialog');
   dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期表现大图</h2><p class="subtext">${esc(shift().stage.name)} · ${jobs.length} 场已记录 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭大图">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>本期连续同队 ≥ 3 场，仅作疑似识别</p></div><div id="trend-people"></div><div id="trend-plots"></div><p class="trend-footnote">同色为同一玩家，从上到下依次为搬蛋、巨大鲑鱼击杀、被救援次数。队友缺席场次留空；点击任一场查看详情。${shift().loaded<shift().total?'本期记录不完整，识别与对比仅覆盖已保存场次。':''}</p></div>`;
@@ -14,6 +14,7 @@ function openTrend(){
   };
   dialog.onclick=e=>{if(e.target===dialog)dialog.close()};
   renderTrend();
+  if(!shift().complete)dialog.querySelector('.trend-toolbar p').textContent='本期记录不完整，暂不推断连续同队关系。';
   if(!dialog.open)dialog.showModal();
 }
 function trendPeople(){

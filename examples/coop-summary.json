@@ -1,0 +1,21 @@
+{
+  "result": {
+    "historyGroups": {
+      "nodes": [
+        {
+          "startTime": "2026-09-19T00:00:00Z",
+          "endTime": "2026-09-20T16:00:00.000Z",
+          "rule": "REGULAR",
+          "playCount": 1,
+          "historyDetails": {
+            "nodes": [
+              {
+                "id": "match-1"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

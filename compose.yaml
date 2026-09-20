@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    image: salmon-review:local
+    init: true
+    ports:
+      - "127.0.0.1:${SALMON_PORT:-8787}:8787"
+    environment:
+      NXAPI_AUTH_CLIENT_ID: ${NXAPI_AUTH_CLIENT_ID:-}
+    volumes:
+      - salmon-data:/data
+    restart: unless-stopped
+    stop_grace_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  salmon-data:
