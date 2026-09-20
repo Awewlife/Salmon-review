@@ -16,11 +16,9 @@
 
 ### 1. 安装并启动 Docker Desktop
 
-从 [Docker 官方 Windows 安装页](https://docs.docker.com/desktop/setup/install/windows-install/)下载安装程序，按页面核对系统要求。使用 **WSL 2 后端和 Linux 容器**；按安装程序提示完成设置，需要重启时先重启电脑。
+从 [Docker 官方 Windows 安装页](https://docs.docker.com/desktop/setup/install/windows-install/)下载安装程序，按页面核对系统要求，**保留默认设置，按照安装程序提示完成安装即可**。如果提示需要补充系统组件或重启电脑，按提示完成。
 
-WSL 2 是 Windows 运行 Linux 环境的组件。你可以一直在 Windows 里操作，不需要进入 Linux 终端，也不用另外手动安装 Ubuntu。
-
-如果 Docker 提示 WSL 未安装或太旧，按 [微软的 WSL 安装说明](https://learn.microsoft.com/windows/wsl/install)处理，再重新打开 Docker Desktop。若提示虚拟化未开启，按 Docker 官方页面排查。
+本项目可以在 Docker Desktop 的默认 Linux 容器模式下运行，无需为它另外安装 Linux 系统或配置开发环境。如果你已经在使用 Docker Desktop，且它能正常运行 Linux 容器，可以直接跳到下一步。
 
 打开 Docker Desktop，等它显示引擎已经运行（通常是 **Engine running**）。只是下载安装完成，还不算启动成功。
 
@@ -163,7 +161,7 @@ docker compose -p salmon-review up -d --build
 | 看到的情况 | 应该怎么做 |
 | --- | --- |
 | 提示找不到 `docker` 命令 | 确认 Docker Desktop 已安装，重新打开终端后再试。 |
-| `Cannot connect to the Docker daemon`、pipe 或 engine 错误 | 打开 Docker Desktop，等待引擎运行；按其提示处理 WSL / 虚拟化问题。 |
+| `Cannot connect to the Docker daemon`、pipe 或 engine 错误 | 打开 Docker Desktop，等待引擎运行；如果 Docker Desktop 自身报错，先按它的提示或官方安装说明完成修复，再运行本项目。 |
 | 提示找不到配置文件 | 终端没有开在项目目录。进入能看到 `compose.yaml` 的文件夹。 |
 | 下载镜像、`npm ci` 超时或连接失败 | 构建需要访问 Docker 镜像仓库和 npm。检查 Docker 的网络 / 代理后重试；不是任天堂登录失败。 |
 | `port is already allocated`、端口被占用 | 可能另一份 Salmon Review 已在运行。先在 Docker Desktop 查看；如需换端口，按下方说明设置。 |
