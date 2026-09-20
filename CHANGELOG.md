@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 — 2026-09-20 (private prerelease)
+
+- Release 提供 Windows x64 预构建镜像 ZIP，双击启动器校验、导入、启动；安装不再访问 Docker Hub / npm。
+- 默认 Compose 禁止拉取镜像并移除 build；开发构建移至 compose.build.yaml，增加 npm 缓存与重试。
+- 新增版本/镜像校验、旧数据卷提醒、健康等待、源码和第三方材料打包，以及手动 Release 工作流。
+- 保持私有仓库、单账号本地运行及原数据卷命名；上游许可缺口和其他玩家验收仍有待办。
+
 ## 0.3.1 — 2026-09-20（私有开发预览）
 
 - 保留 nxapi 1.6.1-next.257 登录流程，升级 undici 至 6.28.1。

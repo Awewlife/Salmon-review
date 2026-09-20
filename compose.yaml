@@ -1,7 +1,8 @@
 services:
   app:
-    build: .
-    image: salmon-review:local
+    image: salmon-review:0.3.2
+    pull_policy: never
+    platform: linux/amd64
     init: true
     ports:
       - "127.0.0.1:${SALMON_PORT:-8787}:8787"

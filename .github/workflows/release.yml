@@ -1,0 +1,66 @@
+name: Package private prerelease
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag, for example v0.3.2
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Check tag, source and dependencies
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          node -e 'if (process.env.RELEASE_TAG !== "v"+JSON.parse(require("fs").readFileSync("package.json")).version) process.exit(1)'
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run check
+          npm run notices:check
+          npm audit --omit=dev --audit-level=low
+          npm test
+      - name: Build and test release image
+        run: |
+          VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
+          docker build --platform linux/amd64 --build-arg VCS_REF="$(git rev-parse HEAD)" -t "salmon-review:$VERSION" .
+          docker run --rm --mount type=bind,source="$PWD/tests",target=/app/tests,readonly "salmon-review:$VERSION" npm test
+      - name: Package image, source and notices
+        run: python scripts/package-release.py --output "$RUNNER_TEMP/salmon-artifacts"
+      - name: Verify empty startup without container network access
+        run: |
+          VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
+          docker run -d --name salmon-release-check --network none --tmpfs /data:uid=1000,gid=1000 "salmon-review:$VERSION"
+          for i in $(seq 1 20); do
+            if docker exec salmon-release-check node -e 'fetch("http://127.0.0.1:8787/api/status").then(r=>r.json()).then(s=>{if(s.records!==0||s.connected)process.exit(1)})'; then
+              docker rm -f salmon-release-check
+              exit 0
+            fi
+            sleep 2
+          done
+          docker rm -f salmon-release-check
+          exit 1
+      - name: Publish prerelease assets to existing private repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/salmon-artifacts/"* --verify-tag --prerelease --latest=false --title "Salmon Review $RELEASE_TAG — Windows 离线安装包" --notes-file release/RELEASE_NOTES.md

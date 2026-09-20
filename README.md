@@ -2,9 +2,9 @@
 
 把自己的 Splatoon 3 打工记录保存到电脑，在浏览器里看搬蛋、巨大鲑鱼击杀、被救援次数和队友表现。
 
-这是一个**本地运行的开发预览版**，不是任天堂官方产品。当前没有 AI 分析，也没有可直接下载的正式发行镜像；下面的步骤会在你的电脑上构建并运行它。首次打开是空的，需要连接自己的账号，或者导入已有记录。
+这是一个**本地运行的预发布版**，不是任天堂官方产品。普通玩家从 Release 下载已构建好的安装包即可，安装过程中不需要连接 Docker Hub 或 npm，也无需编译代码。首次打开是空的，需要连接自己的账号，或者导入已有记录。当前没有 AI 分析。
 
-当前版本 **0.3.1**，项目代码采用 **AGPL-3.0-or-later**。已知限制和试用步骤见 [测试说明](BETA_TESTING.md)，版本变化见 [更新记录](CHANGELOG.md)。仓库仍处于私有准备阶段，尚未公开发行。
+当前版本 **0.3.2**，项目代码采用 **AGPL-3.0-or-later**。已知限制和试用步骤见 [测试说明](BETA_TESTING.md)，版本变化见 [更新记录](CHANGELOG.md)。仓库仍为 Private，Release 附件仅有仓库访问权限的人可下载。
 
 ## 开始前先知道这些
 
@@ -24,38 +24,36 @@
 
 打开 Docker Desktop，等它显示引擎已经运行（通常是 **Engine running**）。只是下载安装完成，还不算启动成功。
 
-### 2. 下载本项目
+### 2. 下载预构建安装包
 
-1. 打开 [Salmon Review 仓库](https://github.com/Awewlife/Salmon-review)。
-2. 点击绿色 **Code** 按钮，再选 **Download ZIP**。
-3. 将 ZIP **全部解压**到一个固定位置，例如 `D:\Games\Salmon-review`。不要直接在压缩包里运行。
-4. 进入能看到 `compose.yaml`、`Dockerfile` 和本 README 的文件夹。如果外面还套了一层文件夹，需要再进去一层。
+1. 打开 [Release 下载页](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.2)。仓库仍为私有，需要先登录有访问权限的 GitHub 账号。
+2. 在 **Assets** 中下载 **`SalmonReview-v0.3.2-windows-x64.zip`**。
+3. 将 ZIP **全部解压**到一个固定位置，例如 `D:\Games\SalmonReview`。不要直接在压缩包里运行。
+4. 进入能看到 `Start.cmd`、`Start.ps1`、`compose.yaml` 和 `salmon-review-image.tar.gz` 的文件夹。
 
-### 3. 打开终端，启动工具
+**不要选页面自动生成的 “Source code (zip)” 或仓库的 Code → Download ZIP。那些是开发源码，不包含镜像，不能按本安装流程直接使用。** 当前安装包适用于 Intel / AMD 64 位 Windows 电脑；ARM 电脑暂未提供对应包。
 
-在这个文件夹的空白处右键，选择“在终端中打开”。也可以在资源管理器地址栏输入 `powershell` 并回车。
+### 3. 双击启动
 
-先检查 Docker 是否可用，复制下面这一行并回车：
+确认 Docker Desktop 已显示引擎运行，然后双击 **`Start.cmd`**。它会：
 
-```powershell
-docker compose version
-```
+1. 检查 Docker 状态和安装包校验值。
+2. 自动导入随包提供的完整镜像，已导入同一版本时跳过。
+3. 启动服务并等待就绪，自动打开浏览器。
 
-显示版本号后，运行：
+整个过程不运行 build，不下载 Node 或 npm 依赖。导入镜像需要一些时间和磁盘空间，请等到“启动成功”。如果失败，窗口会保留错误提示，请按第六部分排查。脚本不需要管理员权限；启动器只为当前 PowerShell 进程设置执行方式，不修改全局执行策略。受组织策略限制时可以使用下面的手动方式。
 
-```powershell
-docker compose -p salmon-review up -d --build
-```
+> **旧版本用户：先备份并沿用原项目名！** 默认项目名为 `salmon-review`。如果原来用 `salmon-review-dev` 等其他名字，请在解压目录的终端执行 `./Start.cmd -ProjectName 原项目名`。脚本检测到其他旧数据卷时会提醒，不会悄悄改用空库。项目名可以在 Docker Desktop 的 Containers 列表查看。
 
-第一次会从网上下载运行环境和依赖，并进行构建，可能需要几分钟。等命令结束且没有报错，再检查：
+不使用启动器时，也可以在本目录终端执行：
 
 ```powershell
+docker load -i salmon-review-image.tar.gz
+docker compose -p salmon-review up -d --no-build --pull never
 docker compose -p salmon-review ps
 ```
 
-看到 `app` 处于 `Up` / `running`，稍后变成 `healthy`，表示服务已经启动。`-p salmon-review` 是给这套程序和数据起一个固定名字，后续命令都要保持一致。
-
-> 已经用旧教程运行过的玩家：沿用你原来的项目名称，不要直接换成 `salmon-review`。在 Docker Desktop 的 Containers 列表中可以查看原名称。换名会创建另一份空数据卷，不会自动带上旧记录。
+看到 `app` 处于 `Up` / `running`，稍后变为 `healthy`，表示服务已经启动。`SHA256SUMS.txt` 可用于手动检查文件完整性；校验值用于发现损坏，不替代从本仓库 Release 下载的来源确认。
 
 ### 4. 在浏览器打开
 
@@ -63,7 +61,7 @@ docker compose -p salmon-review ps
 
 第一次显示“尚未导入记录”是正常的。接下来连接账号，或者跳到“导入已有文件”。
 
-> macOS / Linux：使用各自平台的 [Docker Desktop](https://docs.docker.com/desktop/) 或 [Docker Engine 与 Compose 插件](https://docs.docker.com/compose/install/)，在项目目录运行相同的 Compose 命令即可。本项目目前主要在 Windows + Docker Desktop 的 Linux 容器上验证，其他平台尚需独立安装验收。
+> Linux x86-64：可用 Docker Engine + Compose 插件，在解压目录按上面的手动命令导入并启动。Windows 启动脚本不适用于 Linux。macOS / ARM 平台暂不提供已验证的安装包。
 
 ## 二、连接账号并取得第一批记录
 
@@ -105,7 +103,7 @@ docker compose -p salmon-review stop
 下次先打开 Docker Desktop，再执行：
 
 ```powershell
-docker compose -p salmon-review up -d
+docker compose -p salmon-review up -d --no-build --pull never
 ```
 
 然后打开同一个本机网址。停止或重建容器不会清空已保存记录。
@@ -141,18 +139,11 @@ docker compose -p salmon-review up -d
 
 先下载备份，并记住原来的项目名称和端口。更新时必须继续使用它们。
 
-**通过 ZIP 安装：** 下载新版 ZIP，全部解压到一个新文件夹，在新版中能看到 `compose.yaml` 的目录打开终端，运行下面的构建命令。固定的项目名会继续使用原来的数据卷。如果修改过 `.env` 端口设置，要把该文件也复制到新版目录。
+下载新版 Release 中的 **windows-x64.zip 安装包**，全部解压到新文件夹。复制旧 `.env`（如果有），双击新版 `Start.cmd`；旧项目使用自定义名称时，仍运行 `./Start.cmd -ProjectName 原项目名`。脚本会导入新版镜像并重建应用容器，继续使用同名数据卷，战绩和登录状态保留。
 
-```powershell
-docker compose -p salmon-review up -d --build
-```
+如果以前使用自定义端口，可以复制旧 `.env`，或运行 `./Start.cmd -ProjectName 原项目名 -Port 8788`；`-Port` 只作用于这次启动命令，以后重启继续传同一端口，或在 `.env` 中保存 `SALMON_PORT=8788`。
 
-**通过 Git 安装：** 在原项目目录运行：
-
-```powershell
-git pull
-docker compose -p salmon-review up -d --build
-```
+不要通过改项目名来解决升级问题，也不需要执行 `git pull`、`npm install` 或 `docker compose build`。开发者源码构建见文末。
 
 完成后刷新浏览器；如果仍显示旧界面，按 `Ctrl + F5` 强制刷新。
 
@@ -165,7 +156,10 @@ docker compose -p salmon-review up -d --build
 | 提示找不到 `docker` 命令 | 确认 Docker Desktop 已安装，重新打开终端后再试。 |
 | `Cannot connect to the Docker daemon`、pipe 或 engine 错误 | 打开 Docker Desktop，等待引擎运行；如果 Docker Desktop 自身报错，先按它的提示或官方安装说明完成修复，再运行本项目。 |
 | 提示找不到配置文件 | 终端没有开在项目目录。进入能看到 `compose.yaml` 的文件夹。 |
-| 下载镜像、`npm ci` 超时或连接失败 | 构建需要访问 Docker 镜像仓库和 npm。检查 Docker 的网络 / 代理后重试；不是任天堂登录失败。 |
+| 出现 `npm ci`、Docker Hub 超时或正在 build | 你可能下载了源码包或使用了旧命令。普通玩家应下载 Release 的 windows-x64 安装包并运行 Start.cmd；安装器不会下载这些依赖。 |
+| 找不到镜像包或校验失败 | 重新下载完整 windows-x64.zip 并全部解压，不要混用不同版本的 compose.yaml、release.json 或镜像文件。 |
+| 提示镜像不存在 / pull policy never | 先用 Start.cmd 导入镜像，或者执行 docker load -i salmon-review-image.tar.gz。无需登录 Docker Hub。 |
+| 提示发现已有项目 | 使用 Start.cmd -ProjectName 原项目名，避免误开空库。 |
 | `port is already allocated`、端口被占用 | 可能另一份 Salmon Review 已在运行。先在 Docker Desktop 查看；如需换端口，按下方说明设置。 |
 | 浏览器打不开 | 确认地址是 `http://127.0.0.1:8787/`，运行 `docker compose -p salmon-review ps` 查看是否已启动。不要用 `https`，也不要直接打开 HTML 文件。 |
 | 页面只剩文字、样式没加载 | 先按 `Ctrl + F5`。还不正常时，重新构建当前版本并检查容器状态。 |
@@ -233,7 +227,17 @@ docker compose -p salmon-review logs --tail=100 app
 
 ## 给开发者与准备再发布的人
 
-普通玩家可以跳过本节。
+普通玩家可以跳过本节。源码仓库的默认 `compose.yaml` 也只运行预构建镜像，不包含 build。开发者下载源码后使用单独的构建配置：
+
+```powershell
+docker compose -p salmon-review-dev -f compose.yaml -f compose.build.yaml up -d --build
+```
+
+构建仍需要联网；Dockerfile 为 npm 设置持久缓存及请求重试，减少中断后的重复下载。缓存无法解决下载站点始终不可达的问题。
+
+维护者发布流程：提交并通过 CI → 创建并推送 `v版本号` 标签 → 在 Actions 手动运行 **Package private prerelease**，输入已存在的标签。流程会构建、测试、打包、验证空数据启动，附上镜像、项目源码和第三方材料，再创建预发布 Release。它不改变仓库可见性，也不会上传本机数据卷。
+
+也可按同样步骤在本机构建，镜像标签为 `salmon-review:版本号`，传入 `--build-arg VCS_REF=提交完整SHA`，再用 Python 3.11+ 运行 `scripts/package-release.py --output 仓库外的空目录`。脚本要求干净提交与镜像标记一致，使用从未启动的临时容器收集软件声明。
 
 运行命令分别为 `nxapi nso auth --select` 和 `nxapi splatnet3 dump-results <目录> --coop --no-battles --auto-update-session`。本项目不提取 nxapi 的客户端 ID 重写认证流程，也不自行换取令牌。授权返回链接经后端校验 `state` 后通过标准输入交给 CLI，不进入命令参数；原始 CLI 输出被截获，不回传网页或直接写入应用日志。
 
@@ -258,7 +262,7 @@ npm start
 
 依赖版本锁定在 `package-lock.json`。nxapi 使用 AGPL-3.0-or-later，undici 使用 MIT；本版通过定向覆盖升级 sharp 和 uuid，不改写 nxapi 登录流程。完整 npm 包清单见 [THIRD_PARTY_PACKAGES.json](THIRD_PARTY_PACKAGES.json)，镜像内自动收集随包提供的声明。更新依赖后执行 `npm run notices`，CI 会检查清单一致性、运行生产依赖审计和镜像内测试。
 
-仍有两处上游声明缺口：`splatnet3-types` 未找到明确许可证，`tr46` 的旧发布包声明 MIT 但遗漏许可正文。详见 [第三方组件说明](THIRD_PARTY_NOTICES.md)。在这些事项和精确镜像的源码/系统组件材料核对完成前，不发布预构建镜像。其他玩家的全新环境安装、真实过期凭据续期和特殊模式样本也仍需验收。
+仍有两处上游声明缺口：`splatnet3-types` 未找到明确许可证，`tr46` 的旧发布包声明 MIT 但遗漏许可正文。详见 [第三方组件说明](THIRD_PARTY_NOTICES.md)。本次按维护者决定提供私有预发布镜像，并附上对应项目源码、nxapi 源码、声明和系统组件清单；这不代表上述许可缺口已解决或已完成全部分发审查。二次公开分发前仍需处理这些事项。其他玩家的全新环境安装、真实过期凭据续期和特殊模式样本也仍需验收。
 
 普通问题请使用仓库的 Issue 模板，注明版本、系统与操作步骤；敏感安全问题按 [安全说明](SECURITY.md) 私下报告，不要上传 token、授权链接、登录缓存或完整数据卷。
 

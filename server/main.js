@@ -18,7 +18,7 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
   const csrf=randomBytes(32).toString('hex');const assetJobs=new Map();
   await mkdir(path.join(directory,'assets'),{recursive:true,mode:0o700});
   const send=(res,status,value,extra={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',...extra});res.end(JSON.stringify(value))};
-  const state=()=>({version:'0.3.1',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
+  const state=()=>({version:'0.3.2',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
   async function readBody(req){
     if(!String(req.headers['content-type']??'').startsWith('application/json'))throw new Error('bad_json');
     let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>64*1024*1024)throw new Error('too_large');chunks.push(chunk)}
