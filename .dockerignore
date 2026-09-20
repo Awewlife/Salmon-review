@@ -6,7 +6,9 @@ backups
 .env
 work
 tests
-scripts
+scripts/*
+!scripts/generate-notices.mjs
+third-party
 examples
 *.log
 *.sqlite*

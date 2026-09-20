@@ -1,1 +1,29 @@
-{"name":"salmon-review","version":"0.3.0","private":true,"type":"module","engines":{"node":">=22.19.0"},"scripts":{"start":"node server/main.js","test":"node --test tests/*.test.js","check":"node --check server/main.js && node --check dist/app.js && node --check dist/chart-dialog.js"},"dependencies":{"nxapi":"1.6.1-next.257","undici":"6.21.3"}}
+{
+  "name": "salmon-review",
+  "version": "0.3.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.23.2 <23"
+  },
+  "scripts": {
+    "start": "node server/main.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check server/main.js && node --check dist/app.js && node --check dist/chart-dialog.js && node --check dist/manage.js",
+    "notices": "node scripts/generate-notices.mjs",
+    "notices:check": "node scripts/generate-notices.mjs --check"
+  },
+  "dependencies": {
+    "nxapi": "1.6.1-next.257",
+    "undici": "6.28.1"
+  },
+  "license": "AGPL-3.0-or-later",
+  "overrides": {
+    "nxapi": {
+      "sharp": "0.35.4",
+      "node-notifier": {
+        "uuid": "11.1.1"
+      }
+    }
+  }
+}

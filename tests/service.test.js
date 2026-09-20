@@ -21,6 +21,7 @@ test('HTTP lifecycle: empty startup, safe import, dynamic frontend, backup, rest
   assert.equal(hostileHost,403);
   assert.equal((await fetch(base+'/api/import',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
   assert.equal((await fetch(base+'/credentials.enc')).status,404);assert.equal((await fetch(base+'/server/main.js')).status,404);
+  const license=await fetch(base+'/LICENSE');assert.equal(license.status,200);assert.match(license.headers.get('content-type'),/^text\/plain/);assert.match(await license.text(),/GNU AFFERO GENERAL PUBLIC LICENSE/);
   const auth=await post('/api/sync',{}).then(r=>r.json());assert.equal(auth.code,'auth_required');
 });
 test('synchronization saves completed records on failure, deduplicates on retry, excludes concurrent runs',async t=>{

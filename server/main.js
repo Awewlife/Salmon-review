@@ -11,13 +11,14 @@ import {safeAssetUrl} from './normalize.js';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const staticFiles=new Map(['index.html','app.js','metrics.js','chart-dialog.js','style.css','manage.js','manage.css'].map(name=>['/'+name,path.join(root,'../dist',name)]));
+staticFiles.set('/LICENSE',path.join(root,'../LICENSE'));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 export async function createApp({directory=process.env.DATA_DIR??path.join(root,'../data'),runner=workerCall,accountOptions}={}){
   const store=new Store(directory),account=new CliAccount(directory,accountOptions),tasks=new Tasks(store,account,runner);
   const csrf=randomBytes(32).toString('hex');const assetJobs=new Map();
   await mkdir(path.join(directory,'assets'),{recursive:true,mode:0o700});
   const send=(res,status,value,extra={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',...extra});res.end(JSON.stringify(value))};
-  const state=()=>({version:'0.3.0',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
+  const state=()=>({version:'0.3.1',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
   async function readBody(req){
     if(!String(req.headers['content-type']??'').startsWith('application/json'))throw new Error('bad_json');
     let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>64*1024*1024)throw new Error('too_large');chunks.push(chunk)}
@@ -80,7 +81,7 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
         try{const body=await image(url.pathname.split('/').at(-1));res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'private, max-age=86400'});return res.end(body)}catch{res.writeHead(404);return res.end()}
       }
       const file=staticFiles.get(url.pathname==='/'?'/index.html':url.pathname);
-      if(file&&req.method==='GET'){res.writeHead(200,{'Content-Type':types[path.extname(file)]});return res.end(await readFile(file))}
+      if(file&&req.method==='GET'){res.writeHead(200,{'Content-Type':types[path.extname(file)]??'text/plain; charset=utf-8'});return res.end(await readFile(file))}
       send(res,404,{message:'Not found'});
     }catch(error){const e=publicError(error);send(res,e.code==='busy'?409:e.code==='internal'||e.code==='disk'?500:400,e)}
   });

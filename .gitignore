@@ -1,4 +1,5 @@
 node_modules/
+third-party/
 data/
 backups/
 .env

@@ -1,11 +1,13 @@
-FROM node:22.19.0-bookworm-slim
+FROM node:22.23.2-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production BIND_ADDRESS=0.0.0.0 PORT=8787 DATA_DIR=/data
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund && npm cache clean --force
 COPY server ./server
 COPY dist ./dist
-COPY README.md THIRD_PARTY_NOTICES.md ./
+COPY README.md LICENSE NOTICE THIRD_PARTY_NOTICES.md THIRD_PARTY_PACKAGES.json BETA_TESTING.md SECURITY.md CHANGELOG.md VALIDATION.md ./
+COPY scripts/generate-notices.mjs ./scripts/generate-notices.mjs
+RUN node scripts/generate-notices.mjs --check --bundle
 RUN mkdir -p /data && chown node:node /data
 USER node
 EXPOSE 8787

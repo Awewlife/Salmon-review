@@ -9,9 +9,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.19.0
+          node-version: 22.23.2
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run check
+      - run: npm run notices:check
+      - run: npm audit --omit=dev --audit-level=low
       - run: npm test
       - run: docker build -t salmon-review:ci .
+      - run: docker run --rm --mount type=bind,source="${{ github.workspace }}/tests",target=/app/tests,readonly salmon-review:ci npm test

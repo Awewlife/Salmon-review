@@ -4,6 +4,8 @@
 
 这是一个**本地运行的开发预览版**，不是任天堂官方产品。当前没有 AI 分析，也没有可直接下载的正式发行镜像；下面的步骤会在你的电脑上构建并运行它。首次打开是空的，需要连接自己的账号，或者导入已有记录。
 
+当前版本 **0.3.1**，项目代码采用 **AGPL-3.0-or-later**。已知限制和试用步骤见 [测试说明](BETA_TESTING.md)，版本变化见 [更新记录](CHANGELOG.md)。仓库仍处于私有准备阶段，尚未公开发行。
+
 ## 开始前先知道这些
 
 - **不需要会编程。** Windows 用户安装 Docker Desktop 后，不用另装 Python、Node.js、nxapi 或 Git。Docker 可以理解成装着本工具运行环境的盒子。
@@ -196,8 +198,8 @@ docker compose -p salmon-review logs --tail=100 app
 | Nintendo / SplatNet 3 | 打工记录的原始来源；游戏图片也来自记录引用的 Nintendo 资源域名。 |
 | [nxapi](https://github.com/samuelthomas2774/nxapi) `1.6.1-next.257` | 社区开发的非官方工具。容器调用它发布在 npm 的原始命令行程序，完成登录、凭据缓存、令牌刷新和记录下载。这里的“原始发布包”指 nxapi 项目发布，并非任天堂官方软件。 |
 | nxapi 的远程配置与第三方认证服务 | 协助完成 Nintendo Switch Online 认证所需的 f-generation 步骤。依赖版本内置的服务地址包括 `nxapi-znca-api.fancy.org.uk`，实际选择由 nxapi 的远程配置控制，可能变化或暂停。说明见 [nxapi 认证文档](https://github.com/samuelthomas2774/nxapi#coral-client-authentication)。 |
-| [Node.js](https://nodejs.org/) 22.19.0、内置 SQLite | 运行本地服务、保存原始记录与统计所需数据。SQLite 可以理解为电脑里的档案库。 |
-| [undici](https://github.com/nodejs/undici) 6.21.3 | 随应用安装的 HTTP 网络请求库，也是 nxapi 的依赖；普通玩家无需单独配置。 |
+| [Node.js](https://nodejs.org/) 22.23.2、内置 SQLite | 运行本地服务、保存原始记录与统计所需数据。SQLite 可以理解为电脑里的档案库。 |
+| [undici](https://github.com/nodejs/undici) 6.28.1 | 随应用安装的 HTTP 网络请求库，也是 nxapi 的依赖；普通玩家无需单独配置。 |
 | [Docker / Compose](https://docs.docker.com/) | 打包并运行上述环境，管理后台程序和数据卷。 |
 
 本项目运行时**不调用 s3s，不调用观星教程网站的接口，也不调用 Cypas/splatoon3-nso 的登录服务**。登录引导借鉴了 [Cypas/splatoon3-nso](https://github.com/Cypas/splatoon3-nso) 的说明方式；页面示意由本项目绘制，认证实现仍交给 nxapi。
@@ -241,7 +243,7 @@ CLI 没有独立采集语言选项。本项目的进程预加载适配器将 Spl
 
 数据库 schema 当前为 v1。遇到高于当前程序支持版本的数据库时拒绝启动，避免降级覆盖；后续 schema 升级需提供显式迁移和测试。
 
-开发环境使用 Node 22.19.0；这个版本的内置 SQLite 仍带 experimental 标记。安装依赖并运行：
+开发环境使用 Node 22.23.2；这个版本的内置 SQLite 仍带 experimental 标记。安装依赖并运行：
 
 ```sh
 npm ci --ignore-scripts
@@ -252,6 +254,12 @@ npm start
 
 `DATA_DIR` 指定数据目录，`PORT` 指定端口。直接运行默认监听 `127.0.0.1`；容器内监听 `0.0.0.0`，由 Compose 限制宿主机访问范围。
 
-依赖版本锁定在 `package-lock.json`。nxapi 使用 AGPL-3.0-or-later，undici 使用 MIT；Node 与其镜像也有各自许可声明，详见 [第三方组件说明](THIRD_PARTY_NOTICES.md)。项目整体再分发许可、完整依赖声明包、其他玩家从空环境安装验收以及更多特殊模式样本仍需完善，因此当前不提供正式公开发行镜像。不能把“仓库可以访问”当成“所有再分发事项已完成”。
+项目自身代码采用 **AGPL-3.0-or-later**，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。允许使用、修改和再分发；分发修改版或通过网络提供修改版服务时，应按许可提供相应源码。第三方组件和 Nintendo 资源保留各自权利，不因本项目采用 AGPL 而改变。
+
+依赖版本锁定在 `package-lock.json`。nxapi 使用 AGPL-3.0-or-later，undici 使用 MIT；本版通过定向覆盖升级 sharp 和 uuid，不改写 nxapi 登录流程。完整 npm 包清单见 [THIRD_PARTY_PACKAGES.json](THIRD_PARTY_PACKAGES.json)，镜像内自动收集随包提供的声明。更新依赖后执行 `npm run notices`，CI 会检查清单一致性、运行生产依赖审计和镜像内测试。
+
+仍有两处上游声明缺口：`splatnet3-types` 未找到明确许可证，`tr46` 的旧发布包声明 MIT 但遗漏许可正文。详见 [第三方组件说明](THIRD_PARTY_NOTICES.md)。在这些事项和精确镜像的源码/系统组件材料核对完成前，不发布预构建镜像。其他玩家的全新环境安装、真实过期凭据续期和特殊模式样本也仍需验收。
+
+普通问题请使用仓库的 Issue 模板，注明版本、系统与操作步骤；敏感安全问题按 [安全说明](SECURITY.md) 私下报告，不要上传 token、授权链接、登录缓存或完整数据卷。
 
 原始静态原型保存在提交 `15efce3`；`scripts/collect-data.mjs` 和 `scripts/build-data.py` 是旧原型开发工具，Docker 版不调用它们。

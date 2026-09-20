@@ -1,32 +1,31 @@
-# Development validation — 2026-09-20
+# 验证记录 — 0.3.1 / 2026-09-20
 
-## Verified
+## 本轮已验证
 
-- Windows host: Node 22.19.0; Docker Desktop Linux engine 28.5.1.
-- Docker image built from the lockfile, runs as the `node` user, health check succeeds, published address is `127.0.0.1:8787`.
-- Empty first-run screen and data management controls exercised in the browser.
-- A real detail was imported through the file picker before its summary; subsequent summary import resolved its shift.
-- All 50 existing records imported locally. 50/50 personal eggs, assists, kills, power eggs, rescues and rescued counts, plus team boss kills, matched original JSON. The two shifts retain 22/22 and 28/45 coverage.
-- Container restart and image recreation retained all 50 records. A 51-document backup merged through the browser with zero duplicates.
-- Public nxapi adapter fetched the live history list and one detail using the existing unexpired local SplatNet cache; Simplified Chinese stage name matched the earlier export. This did not test a new login or expired-token refresh.
-- Automated tests cover persistence, deduplication, atomic account validation, unsupported/incomplete records, special attribution, backup/restore, legacy credential encryption (superseded by native CLI storage), request-origin protection, sync locking, progress retention, backoff, pause states and authorization state validation.
-- External Edge was also exercised. Its requests in the tested configuration contained `Sec-Fetch-Site: same-origin` with an `Origin` missing the port. The server now trusts the browser-controlled same-origin classification, while retaining exact Origin checks otherwise, host validation, cross-site rejection and CSRF checks. Regression tests cover both compatibility and rejected cross-site/cross-port requests (14 tests pass).
+- Docker Desktop 的 Linux 容器使用 Node.js 22.23.2，按锁文件构建成功；容器以 `node` 用户运行。
+- 新镜像内 26 项自动化测试全部通过。覆盖存储和去重、导入与备份、账号状态与登录子进程、失败重试、同步锁、敏感输出屏蔽、请求来源及 CSRF 保护，以及许可证下载。
+- 新增兼容性测试实际调用 undici 的本地 HTTP 请求、sharp 原生图片编码/解码，以及 node-notifier 所需的 CommonJS / uuid 接口；测试不会发送桌面通知。
+- 新镜像中 `npm audit --omit=dev --audit-level=low` 返回 0 个已知漏洞。此结果只针对当时 npm 审计数据库和依赖树，不包含完整操作系统扫描或应用安全审计。
+- 保留此前已验证可用的 nxapi 1.6.1-next.257，定向更新 undici、sharp 和 node-notifier 使用的 uuid。sharp 的原生加载与通知依赖的兼容性已验证，未把它们视作登录功能的替代测试。
+- 项目采用 AGPL-3.0-or-later；锁文件内 170 个包已生成可校验清单，新 Linux 镜像为实际安装的 149 个包收集了许可证据。部分材料仍不完整，见第三方声明。
 
-## Still requires validation before a general release
+- 本机运行服务已升级至 0.3.1，账号连接与 50 场记录保留。18:37:07（UTC+8）通过网页“立即同步”完成 50/50，新增 0 场、无错误；网页同步完成提示及许可证入口正常。此次使用现有账号缓存，不等同于过期凭据续期测试。
 
-- Complete an interactive Nintendo login in the new CLI-backed webpage flow, then verify expired-credential renewal with a real account. No separate client registration is required.
-- Ask another player to install on a clean machine and connect their own account.
-- Additional actual datasets for unusual modes; these remain excluded from regular-mode statistics.
-- Select the project-wide redistribution license and finish dependency notices before distributing a public image.
-- Very large archives: current browser import limit is 60 MB; streaming import and paginated history are not implemented.
+## 此前版本已有的验证证据
 
-Personal records, cache credentials and backups used during validation are outside the repository. No authentication values were included in command output or commits.
+- 空数据首次启动、网页导入及数据管理流程已在本机浏览器验证；外部 Edge 的样式加载和请求来源兼容问题已修复并增加回归测试。
+- 50 场真实记录的个人搬蛋、协助、巨大鲑鱼击杀、红蛋、救援、被救援及团队巨大鲑鱼击杀，均与原始 JSON 逐场核对。两期排班覆盖分别为 22/22 和 28/45。
+- 重启、重建容器后 50 场记录保留；51 份文档的备份重新导入没有重复场次。
+- CLI 同步曾在隔离的现有登录缓存副本中取得 50 场详情，场地名称与简体中文导出一致。这项测试本身不代表过期凭据续期已验证。
+- 用户已完成网页引导的 Nintendo 账号连接；随后在运行中的应用观察到成功同步。此前文档中“交互登录尚未完成”的描述已过时；真实过期凭据续期仍需另测。
+- Git 历史与 CI 日志曾做有限规则扫描，未发现匹配的令牌、私钥或已知真实玩家资料。规则扫描不能证明所有敏感信息都不存在。
 
-## CLI authentication migration (0.3.0)
+## 仍需验证或补齐
 
-- Replaced direct library authentication and token renewal with the published nxapi CLI executable. No application client ID is needed.
-- The actual packaged command generated a Nintendo login URL locally without any client configuration. Incorrect callback state was rejected before submitting to the CLI.
-- Subprocess tests exercise successful login, restart persistence, failed reconnect preserving old credentials, timeout, logout, sensitive-output suppression, partial downloads, interrupted-write recovery and deduplication on retry.
-- The CLI owns its native cache in a restricted local directory. It is not encrypted by this application. The UI, README and backup boundary describe this storage accurately.
-- The new CLI synchronization worker fetched all 50 real details using an isolated copy of the existing host nxapi login cache. All 50 Simplified Chinese stage names matched previous exports. The temporary cache and exports were removed after validation; no credentials were imported into the live application.
-- Docker rebuilt successfully and remained healthy at 127.0.0.1:8787; all 50 archived records survived. External Edge displays the updated account instructions and generates a real authorization link without application client configuration. 19 automated tests pass.
+- 另一位玩家在干净电脑上从零安装并连接自己的账号。
+- 真实凭据自然过期后的续期；不通过主动注销现有账号来冒充续期验证。
+- 更多特殊模式的实际数据。这些模式目前不计入普通打工统计。
+- splatnet3-types 的授权信息，以及 tr46 旧发布包缺失的许可证正文。不要把本项目的 AGPL 许可套用到这些依赖；公开镜像前还需整理对应源码和原生组件、系统包的分发材料。
+- 大型历史归档的性能。目前单次网页导入上限为 60 MB，尚未实现流式导入及历史分页。
+
+真实记录、登录缓存、验证备份不在 Git 仓库中；不将它们作为反馈附件或镜像内容发布。仓库保持 Private，本轮不发布公共镜像。
