@@ -17,7 +17,7 @@
     <button class="nav-item" id="nav-manage"><span>⚙</span>数据与同步</button>
     <div class="sidebar-bottom"><div class="data-badge"><span class="status-dot"></span>本地数据已载入</div><p>尚未导入记录<br>更新于 2026.09.20</p><div class="profile"><div class="avatar">G</div><div>尚未连接<small>我的打工记录</small></div></div></div>
   </aside>
-  <div class="workspace"><header class="topbar"><div class="breadcrumbs" id="breadcrumbs">工作台 <span>/</span> 排班总览</div><div class="topbar-note"><span class="live-dot"></span> 本地运行版 <span class="topbar-divider"></span> <span>UTC+8</span></div></header><div id="sync-strip" role="status">正在读取同步状态…</div><main id="app"></main><footer>数据来自 SplatNet 3 · nxapi 本地导出 <span>仅在本机保存战绩 · 支持备份导出</span></footer></div>
+  <div class="workspace"><header class="topbar"><div class="breadcrumbs" id="breadcrumbs">工作台 <span>/</span> 排班总览</div><div class="topbar-note"><span class="live-dot"></span> 本地运行版 <span class="topbar-divider"></span> <span>UTC+8</span></div></header><div id="sync-strip"><div class="sync-summary"><span id="sync-status" role="status">正在读取同步状态…</span><button id="quick-connect" class="sync-connect" hidden>未连接账号</button><span id="sync-last"></span></div><button id="quick-sync" class="button sync-action" disabled>立即同步</button><p id="sync-feedback" role="status" hidden></p></div><main id="app"></main><footer>数据来自 SplatNet 3 · nxapi 本地导出 <span>仅在本机保存战绩 · 支持备份导出</span></footer></div>
   <dialog id="manage-dialog" aria-labelledby="manage-title"></dialog>
   <dialog id="trend-dialog" aria-labelledby="trend-title"></dialog>
 </body></html>
