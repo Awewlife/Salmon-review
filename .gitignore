@@ -1,0 +1,9 @@
+node_modules/
+data/
+backups/
+.env
+*.log
+*.sqlite*
+*.db
+__pycache__/
+private/
