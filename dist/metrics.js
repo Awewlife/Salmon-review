@@ -22,7 +22,7 @@ window.SalmonStats={
     [...jobs].sort((a,b)=>a.time.localeCompare(b.time)).forEach((j,i)=>{
       j.players.filter(p=>!p.me).forEach(p=>{
         const row=people.get(p.key)||{key:p.key,name:p.name,last:-2,run:0,longest:0,count:0};
-        row.run=row.last===i-1?row.run+1:1;
+        row.run=row.last===i-1&&j.continuousWithPrevious===true?row.run+1:1;
         row.longest=Math.max(row.longest,row.run);row.last=i;row.count++;row.name=p.name;
         people.set(p.key,row);
       });
@@ -32,6 +32,7 @@ window.SalmonStats={
   segments(jobs,key,metric){
     const segments=[];let current=[];
     jobs.forEach((j,index)=>{
+      if(index>0&&j.continuousWithPrevious!==true&&current.length){segments.push(current);current=[];}
       const p=j.players.find(p=>p.key===key);
       if(p&&Number.isFinite(p[metric]))current.push({index,value:p[metric]});
       else if(current.length){segments.push(current);current=[];}

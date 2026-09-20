@@ -42,7 +42,7 @@ test('failed waves and remaining specials; clear including failed king never tag
   j.players[1].special.weaponId=j.players[0].special.weaponId;assert.equal(metrics.unusedSpecials(j,j.players[0]),null);
 });
 test('same nicknames remain distinct; rename retains identity; absent matches break lines',()=>{
-  const jobs=[['a','b'],['a'],['a','b']].map((ids,i)=>({time:String(i),players:ids.map(key=>({key,name:i===2?'新名字':'同名',me:false,kills:1}))}));
+  const jobs=[['a','b'],['a'],['a','b']].map((ids,i)=>({time:String(i),continuousWithPrevious:i>0,players:ids.map(key=>({key,name:i===2?'新名字':'同名',me:false,kills:1}))}));
   assert.equal(metrics.suspectedTeammates(jobs).length,1);assert.equal(metrics.suspectedTeammates(jobs)[0].key,'a');assert.equal(metrics.segments(jobs,'b','kills').length,2);assert.equal(metrics.killAverage([],true).value,null);
 });
 test('asset URL allowlist',()=>{

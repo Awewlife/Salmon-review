@@ -2,10 +2,10 @@
 let trendState;
 const TREND_METRICS={eggs:{label:'搬蛋',short:'搬蛋',unit:'颗'},kills:{label:'巨大鲑鱼击杀',short:'击杀',unit:'只'},deaths:{label:'被救援次数',short:'被救援次数',unit:'次'}};
 function openTrend(){
-  const jobs=matches(),teammates=shift().complete?SalmonStats.suspectedTeammates(jobs):[];
+  const jobs=matches(),teammates=SalmonStats.suspectedTeammates(jobs);
   trendState={jobs,teammates,selected:new Set(),include:false,showNames:true};
   const dialog=document.querySelector('#trend-dialog');
-  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期表现大图</h2><p class="subtext">${esc(shift().stage.name)} · ${jobs.length} 场已记录 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭大图">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>本期连续同队 ≥ 3 场，仅作疑似识别</p></div><div id="trend-people"></div><div id="trend-plots"></div><p class="trend-footnote">同色为同一玩家，从上到下依次为搬蛋、巨大鲑鱼击杀、被救援次数。队友缺席场次留空；点击任一场查看详情。${shift().loaded<shift().total?'本期记录不完整，识别与对比仅覆盖已保存场次。':''}</p></div>`;
+  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期表现大图</h2><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭大图">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场，仅作疑似识别</p></div><div id="trend-people"></div><div id="trend-plots"></div><p class="trend-footnote">同色为同一玩家，从上到下依次为搬蛋、巨大鲑鱼击杀、被救援次数。队友缺席场次留空；缺场或无法确认相邻的位置断开计数和折线。点击任一场查看详情。${shift().loaded<shift().total?'本期仅保存部分场次，识别与对比覆盖已保存的连续片段。':''}</p></div>`;
   document.querySelector('#close-trend').onclick=()=>dialog.close();
   document.querySelector('#include-teammates').onclick=()=>{
     trendState.include=!trendState.include;
@@ -14,7 +14,6 @@ function openTrend(){
   };
   dialog.onclick=e=>{if(e.target===dialog)dialog.close()};
   renderTrend();
-  if(!shift().complete)dialog.querySelector('.trend-toolbar p').textContent='本期记录不完整，暂不推断连续同队关系。';
   if(!dialog.open)dialog.showModal();
 }
 function trendPeople(){
@@ -28,7 +27,7 @@ function renderTrend(){
   toggle.textContent=include?'移除队友对比':`加入疑似组队队友（${teammates.length}）`;
   toggle.setAttribute('aria-pressed',String(include));
   toggle.classList.toggle('primary',include);
-  document.querySelector('#trend-people').innerHTML=`<span class="trend-person self"><i style="background:${people[0].color}"></i>${esc(people[0].name)} <small>我 · ${jobs.length} 场</small></span>${include?people.slice(1).map(p=>`<label class="trend-person"><input type="checkbox" data-trend-player="${p.key}" ${selected.has(p.key)?'checked':''}><i style="background:${p.color}"></i>${esc(p.name)}<small>${p.count} 场 · 最长连续 ${p.longest} 场</small></label>`).join(''):''}${!teammates.length?'<span class="subtext">本期未识别到连续同队至少 3 场的队友。</span>':''}`;
+  document.querySelector('#trend-people').innerHTML=`<span class="trend-person self"><i style="background:${people[0].color}"></i>${esc(people[0].name)} <small>我 · ${jobs.length} 场</small></span>${include?people.slice(1).map(p=>`<label class="trend-person"><input type="checkbox" data-trend-player="${p.key}" ${selected.has(p.key)?'checked':''}><i style="background:${p.color}"></i>${esc(p.name)}<small>${p.count} 场 · 最长连续 ${p.longest} 场</small></label>`).join(''):''}${!teammates.length?'<span class="subtext">已确认连续的记录内，未识别到同队至少 3 场的队友。</span>':''}`;
   const shown=people.filter(p=>p.self||(include&&selected.has(p.key)));
   document.querySelector('#trend-plots').innerHTML=`<div class="trend-outcome-legend"><span><i class="node-solid"></i>常规三波通过</span><span><i class="node-hollow"></i>未通过</span><span>↔ 三张图横向同步</span></div>`+Object.keys(TREND_METRICS).map(metric=>`<section class="trend-plot" data-plot-metric="${metric}"><div class="trend-plot-heading"><h3>${TREND_METRICS[metric].label}<span>${TREND_METRICS[metric].unit}</span></h3>${metric==='eggs'?`<label class="name-switch" title="控制三张图的线尾姓名标签"><span>显示人名</span><input type="checkbox" role="switch" id="show-trend-names" ${trendState.showNames?'checked':''}><i aria-hidden="true"></i></label>`:''}</div><div class="trend-chart-scroll" tabindex="0" role="region" aria-label="${TREND_METRICS[metric].short}图表横向滚动区域"><div class="trend-chart-inner">${largeChart(jobs,shown,metric)}<div class="tooltip trend-tooltip"></div></div></div></section>`).join('');
   const plots=document.querySelector('#trend-plots'),nameSwitch=document.querySelector('#show-trend-names');

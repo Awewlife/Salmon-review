@@ -2,6 +2,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,chmodSync} from 'node:fs';
 import path from 'node:path';
 import {hash,ownerOf,validateRecord,groupsOf,normalize,item,rejectSecrets} from './normalize.js';
+import {historyAdjacency} from './continuity.js';
 
 export class Store{
   constructor(directory){
@@ -60,6 +61,7 @@ export class Store{
   }
   asset(url){if(!url)return '';const id=hash(url.split('?')[0]);this.db.prepare('INSERT OR REPLACE INTO assets VALUES(?,?)').run(id,url);return '/assets/'+id}
   snapshot(){
+    const adjacent=historyAdjacency(this.db.prepare('SELECT raw FROM summaries').all().map(r=>JSON.parse(r.raw)));
     const allShifts=this.db.prepare('SELECT info FROM shifts').all().map(r=>JSON.parse(r.info));
     const byId=new Map(allShifts.map(s=>[s.id,s]));
     const rows=this.db.prepare('SELECT r.raw,m.shift_id FROM records r LEFT JOIN membership m ON m.record_id=r.id ORDER BY r.played,r.id').all();
@@ -69,7 +71,7 @@ export class Store{
     for(const group of allShifts.sort((a,b)=>b.start.localeCompare(a.start))){
       const batch=jobs.filter(j=>j.shift===group.id),archived=all.filter(j=>j.shift===group.id);
       if(!batch.length)continue;
-      batch.forEach((j,i)=>j.index=i+1);
+      batch.forEach((j,i)=>{j.index=i+1;j.continuousWithPrevious=i>0&&adjacent(group.id,batch[i-1].id,j.id)});
       const lastRaw=rawById.get(batch.at(-1).id);
       const complete=group.total!==null&&archived.length>=group.total&&batch.length===archived.length;
       shifts.push({...group,recordIds:undefined,loaded:batch.length,total:group.total??archived.length,complete,stage:batch.at(-1).stage,weapons:(lastRaw.weapons??[]).map(w=>item(w,url=>this.asset(url)))});
