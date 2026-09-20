@@ -24,9 +24,9 @@ test('HTTP lifecycle: empty startup, safe import, dynamic frontend, backup, rest
   const auth=await post('/api/sync',{}).then(r=>r.json());assert.equal(auth.code,'auth_required');
 });
 test('synchronization saves completed records on failure, deduplicates on retry, excludes concurrent runs',async t=>{
-  const {store,vault}=await setup(t),f=fixture();vault.save({sessionToken:'test-only'});const old=process.env.NXAPI_AUTH_CLIENT_ID;process.env.NXAPI_AUTH_CLIENT_ID='test-client';t.after(()=>{if(old===undefined)delete process.env.NXAPI_AUTH_CLIENT_ID;else process.env.NXAPI_AUTH_CLIENT_ID=old});
+  const {store,account}=await setup(t),f=fixture();account.read=()=>({backend:'nxapi-cli',profile:'test-only'});
   let release;const hold=new Promise(resolve=>release=resolve);
-  const tasks=new Tasks(store,vault,async(input,emit)=>{await emit('summary',f.summary);await emit('record',f.record);await hold;throw new Error('network')});
+  const tasks=new Tasks(store,account,async(input,emit)=>{await emit('summary',f.summary);await emit('record',f.record);await hold;throw new Error('network')});
   tasks.start();assert.throws(()=>tasks.start(),/busy/);release();await tasks.completion;
   assert.equal(store.snapshot().jobs.length,1);assert.equal(tasks.status().last.state,'failed');assert(tasks.status().nextAttempt>Date.now());assert.throws(()=>tasks.start(),/cooldown/);
   store.set('nextAttempt',0);tasks.runner=async(input,emit)=>{assert(input.known.includes(f.record.result.id));await emit('summary',f.summary);await emit('record',f.record);await emit('progress',{done:1,total:1})};tasks.start();await tasks.completion;assert.equal(tasks.status().last.state,'success');assert.equal(tasks.status().last.added,0);assert.equal(store.snapshot().jobs.length,1);
@@ -46,12 +46,8 @@ test('browser same-origin metadata tolerates rewritten Origin, while cross-site 
   assert.equal((await fetch(base+'/api/status',{headers:{Origin:'http://127.0.0.1:9999'}})).status,403);
 });
 test('authentication failures pause automation; rate limits preserve Retry-After; error text is sanitized',async t=>{
-  const {store,vault}=await setup(t);vault.save({sessionToken:'test-only'});const old=process.env.NXAPI_AUTH_CLIENT_ID;process.env.NXAPI_AUTH_CLIENT_ID='test-client';t.after(()=>{if(old===undefined)delete process.env.NXAPI_AUTH_CLIENT_ID;else process.env.NXAPI_AUTH_CLIENT_ID=old});
-  const tasks=new Tasks(store,vault,async()=>{throw new Error('Remote configuration prevents Coral authentication')});tasks.start();await tasks.completion;assert.equal(tasks.status().paused,'upstream_disabled');
+  const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'test-only'});
+  const tasks=new Tasks(store,account,async()=>{throw new Error('Remote configuration prevents Coral authentication')});tasks.start();await tasks.completion;assert.equal(tasks.status().paused,'upstream_disabled');
   store.set('nextAttempt',0);tasks.runner=async()=>{throw Object.assign(new Error('rate_limited'),{retryAfter:3600})};tasks.start();await tasks.completion;assert(tasks.status().nextAttempt>Date.now()+3590000);
   assert.equal(classify(new Error('upstream text containing SECRET')),'upstream');assert.equal(classify({response:{status:401}}),'auth_required');
-});
-test('public nxapi authorizer works in an isolated child; mismatched state is rejected before token exchange',async()=>{
-  const auth=await workerCall({action:'auth-start'},()=>{},30000);assert.equal(new URL(auth.url).hostname,'accounts.nintendo.com');assert(auth.state&&auth.verifier);
-  await assert.rejects(workerCall({action:'auth-complete',auth,url:'npf71b963c1b7b6d119://auth#state=wrong&session_token_code=not-a-token'},()=>{},30000),/auth_callback/);
 });

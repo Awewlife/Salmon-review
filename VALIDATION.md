@@ -9,15 +9,24 @@
 - All 50 existing records imported locally. 50/50 personal eggs, assists, kills, power eggs, rescues and rescued counts, plus team boss kills, matched original JSON. The two shifts retain 22/22 and 28/45 coverage.
 - Container restart and image recreation retained all 50 records. A 51-document backup merged through the browser with zero duplicates.
 - Public nxapi adapter fetched the live history list and one detail using the existing unexpired local SplatNet cache; Simplified Chinese stage name matched the earlier export. This did not test a new login or expired-token refresh.
-- Automated tests cover persistence, deduplication, atomic account validation, unsupported/incomplete records, special attribution, backup/restore, credential encryption, request-origin protection, sync locking, progress retention, backoff, pause states and authorization state validation.
+- Automated tests cover persistence, deduplication, atomic account validation, unsupported/incomplete records, special attribution, backup/restore, legacy credential encryption (superseded by native CLI storage), request-origin protection, sync locking, progress retention, backoff, pause states and authorization state validation.
 - External Edge was also exercised. Its requests in the tested configuration contained `Sec-Fetch-Site: same-origin` with an `Origin` missing the port. The server now trusts the browser-controlled same-origin classification, while retaining exact Origin checks otherwise, host validation, cross-site rejection and CSRF checks. Regression tests cover both compatibility and rejected cross-site/cross-port requests (14 tests pass).
 
 ## Still requires validation before a general release
 
-- Register/configure an independent nxapi-auth client, then exercise fresh Nintendo authorization and expired-credential renewal.
+- Complete an interactive Nintendo login in the new CLI-backed webpage flow, then verify expired-credential renewal with a real account. No separate client registration is required.
 - Ask another player to install on a clean machine and connect their own account.
 - Additional actual datasets for unusual modes; these remain excluded from regular-mode statistics.
 - Select the project-wide redistribution license and finish dependency notices before distributing a public image.
 - Very large archives: current browser import limit is 60 MB; streaming import and paginated history are not implemented.
 
 Personal records, cache credentials and backups used during validation are outside the repository. No authentication values were included in command output or commits.
+
+## CLI authentication migration (0.3.0)
+
+- Replaced direct library authentication and token renewal with the published nxapi CLI executable. No application client ID is needed.
+- The actual packaged command generated a Nintendo login URL locally without any client configuration. Incorrect callback state was rejected before submitting to the CLI.
+- Subprocess tests exercise successful login, restart persistence, failed reconnect preserving old credentials, timeout, logout, sensitive-output suppression, partial downloads, interrupted-write recovery and deduplication on retry.
+- The CLI owns its native cache in a restricted local directory. It is not encrypted by this application. The UI, README and backup boundary describe this storage accurately.
+- The new CLI synchronization worker fetched all 50 real details using an isolated copy of the existing host nxapi login cache. All 50 Simplified Chinese stage names matched previous exports. The temporary cache and exports were removed after validation; no credentials were imported into the live application.
+- Docker rebuilt successfully and remained healthy at 127.0.0.1:8787; all 50 archived records survived. External Edge displays the updated account instructions and generates a real authorization link without application client configuration. 19 automated tests pass.

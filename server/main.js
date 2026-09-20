@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
 import {Store} from './store.js';
-import {Vault} from './vault.js';
+import {CliAccount} from './account.js';
 import {Tasks,workerCall} from './tasks.js';
 import {publicError} from './errors.js';
 import {safeAssetUrl} from './normalize.js';
@@ -12,12 +12,12 @@ import {safeAssetUrl} from './normalize.js';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const staticFiles=new Map(['index.html','app.js','metrics.js','chart-dialog.js','style.css','manage.js','manage.css'].map(name=>['/'+name,path.join(root,'../dist',name)]));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
-export async function createApp({directory=process.env.DATA_DIR??path.join(root,'../data'),runner=workerCall}={}){
-  const store=new Store(directory),vault=new Vault(directory),tasks=new Tasks(store,vault,runner);
-  const csrf=randomBytes(32).toString('hex');let pendingAuth=null;const assetJobs=new Map();
+export async function createApp({directory=process.env.DATA_DIR??path.join(root,'../data'),runner=workerCall,accountOptions}={}){
+  const store=new Store(directory),account=new CliAccount(directory,accountOptions),tasks=new Tasks(store,account,runner);
+  const csrf=randomBytes(32).toString('hex');const assetJobs=new Map();
   await mkdir(path.join(directory,'assets'),{recursive:true,mode:0o700});
   const send=(res,status,value,extra={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',...extra});res.end(JSON.stringify(value))};
-  const state=()=>({version:'0.2.0',csrf,connected:!!vault.read(),clientConfigured:!!process.env.NXAPI_AUTH_CLIENT_ID,records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
+  const state=()=>({version:'0.3.0',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
   async function readBody(req){
     if(!String(req.headers['content-type']??'').startsWith('application/json'))throw new Error('bad_json');
     let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>64*1024*1024)throw new Error('too_large');chunks.push(chunk)}
@@ -65,17 +65,16 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
         store.set('autoMinutes',body.autoMinutes);return send(res,200,state());
       }
       if(req.method==='POST'&&url.pathname==='/api/auth/start'){
-        if(tasks.active||tasks.authBusy)throw new Error('busy');if(!process.env.NXAPI_AUTH_CLIENT_ID)throw new Error('client_required');
-        tasks.authBusy=true;try{pendingAuth={...await runner({action:'auth-start'},()=>{},60000),expires:Date.now()+10*60000};return send(res,200,{url:pendingAuth.url,expires:pendingAuth.expires})}finally{tasks.authBusy=false}
+        if(tasks.active||tasks.authBusy)throw new Error('busy');
+        tasks.authBusy=true;try{return send(res,200,await account.start())}finally{tasks.authBusy=false}
       }
       if(req.method==='POST'&&url.pathname==='/api/auth/complete'){
         if(tasks.active||tasks.authBusy)throw new Error('busy');const body=await readBody(req);
-        if(!pendingAuth||pendingAuth.expires<Date.now()||typeof body.url!=='string'||body.url.length>12000)throw new Error('auth_callback');
-        const auth=pendingAuth;pendingAuth=null;tasks.authBusy=true;
-        try{const credentials=await runner({action:'auth-complete',auth,url:body.url},()=>{},90000);vault.save(credentials);store.set('paused',null);store.set('nextAttempt',0);return send(res,200,state())}finally{tasks.authBusy=false}
+        tasks.authBusy=true;
+        try{await account.complete(body.url);store.set('paused',null);store.set('nextAttempt',0);return send(res,200,state())}finally{tasks.authBusy=false}
       }
       if(req.method==='POST'&&url.pathname==='/api/auth/logout'){
-        if(tasks.active||tasks.authBusy)throw new Error('busy');vault.clear();pendingAuth=null;store.set('autoMinutes',0);store.set('paused',null);return send(res,200,state());
+        if(tasks.active||tasks.authBusy)throw new Error('busy');await account.clear();store.set('autoMinutes',0);store.set('paused',null);return send(res,200,state());
       }
       if(req.method==='GET'&&/^\/assets\/[a-f0-9]{64}$/.test(url.pathname)){
         try{const body=await image(url.pathname.split('/').at(-1));res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'private, max-age=86400'});return res.end(body)}catch{res.writeHead(404);return res.end()}
@@ -86,7 +85,7 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
     }catch(error){const e=publicError(error);send(res,e.code==='busy'?409:e.code==='internal'||e.code==='disk'?500:400,e)}
   });
   server.requestTimeout=120000;server.headersTimeout=15000;tasks.schedule();
-  return {server,store,vault,tasks,close:async()=>{tasks.stop();await new Promise(resolve=>server.close(resolve));if(tasks.completion)await tasks.completion;store.close()}};
+  return {server,store,account,tasks,close:async()=>{tasks.stop();await account.cancel();await new Promise(resolve=>server.close(resolve));if(tasks.completion)await tasks.completion;store.close()}};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   const app=await createApp(),port=Number(process.env.PORT??8787);app.server.listen(port,process.env.BIND_ADDRESS??'127.0.0.1',()=>console.log(`Salmon Review listening on port ${port}`));

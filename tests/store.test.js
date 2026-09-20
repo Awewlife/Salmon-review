@@ -5,7 +5,6 @@ import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
 import {Store} from '../server/store.js';
-import {Vault} from '../server/vault.js';
 import {safeAssetUrl} from '../server/normalize.js';
 import {fixture} from './fixtures.js';
 function setup(t){const dir=mkdtempSync(path.join(os.tmpdir(),'salmon-test-'));const store=new Store(dir);t.after(()=>{try{store.close()}catch{};rmSync(dir,{recursive:true,force:true})});return {store,dir}}
@@ -46,7 +45,6 @@ test('same nicknames remain distinct; rename retains identity; absent matches br
   const jobs=[['a','b'],['a'],['a','b']].map((ids,i)=>({time:String(i),players:ids.map(key=>({key,name:i===2?'新名字':'同名',me:false,kills:1}))}));
   assert.equal(metrics.suspectedTeammates(jobs).length,1);assert.equal(metrics.suspectedTeammates(jobs)[0].key,'a');assert.equal(metrics.segments(jobs,'b','kills').length,2);assert.equal(metrics.killAverage([],true).value,null);
 });
-test('vault persists encrypted credentials, logout erases them; asset URL allowlist',t=>{
-  const {dir}=setup(t),vault=new Vault(dir);vault.save({sessionToken:'private-test-value'});assert.equal(readFileSync(path.join(dir,'credentials.enc')).includes('private-test-value'),false);assert.equal(new Vault(dir).read().sessionToken,'private-test-value');vault.clear();assert.equal(vault.read(),null);
+test('asset URL allowlist',()=>{
   assert.equal(safeAssetUrl('http://127.0.0.1/test'),null);assert.equal(safeAssetUrl('https://cdn.nintendo.net.attacker.com/test'),null);assert.equal(safeAssetUrl('https://cdn.nintendo.net:444/test'),null);assert.equal(safeAssetUrl('https://cdn.nintendo.net/test'),'https://cdn.nintendo.net/test');
 });

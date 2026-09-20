@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {fork} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {classify,messages} from './errors.js';
@@ -19,12 +20,11 @@ export function workerCall(input,onEvent=()=>{},timeoutMs=15*60*1000){
   });
 }
 export class Tasks{
-  constructor(store,vault,runner=workerCall){this.store=store;this.vault=vault;this.runner=runner;this.active=false;this.authBusy=false;this.timer=null}
+  constructor(store,account,runner=workerCall){this.store=store;this.account=account;this.runner=runner;this.active=false;this.authBusy=false;this.timer=null}
   status(){const last=this.store.db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 1').get()??null;return {active:this.active,last,lastSuccess:this.store.get('lastSuccess'),nextAttempt:this.store.get('nextAttempt',0),autoMinutes:this.store.get('autoMinutes',0),paused:this.store.get('paused',null)}}
   start(){
     if(this.active||this.authBusy)throw new Error('busy');
-    if(!this.vault.read())throw new Error('auth_required');
-    if(!process.env.NXAPI_AUTH_CLIENT_ID)throw new Error('client_required');
+    if(!this.account.read())throw new Error('auth_required');
     if(Date.now()<this.store.get('nextAttempt',0))throw new Error('cooldown');
     this.active=true;
     const id=Number(this.store.db.prepare("INSERT INTO runs(kind,state,started) VALUES('sync','running',?)").run(new Date().toISOString()).lastInsertRowid);
@@ -34,8 +34,7 @@ export class Tasks{
   async run(id){
     let summary=null;
     try{
-      await this.runner({action:'sync',credentials:this.vault.read(),known:this.store.db.prepare('SELECT id FROM records').all().map(r=>r.id)},(type,value)=>{
-        if(type==='credentials')this.vault.save(value);
+      await this.runner({action:'sync',credentials:this.account.read(),exportDirectory:path.join(this.store.directory,'exports'),known:this.store.db.prepare('SELECT id FROM records').all().map(r=>r.id)},(type,value)=>{
         if(type==='summary')summary=value;
         if(type==='record'){
           const result=this.store.import(summary?[summary,value]:[value]);
@@ -58,7 +57,7 @@ export class Tasks{
   schedule(){this.timer=setInterval(()=>{
     const minutes=this.store.get('autoMinutes',0),last=this.store.db.prepare('SELECT started FROM runs ORDER BY id DESC LIMIT 1').get();
     if(minutes&&!this.active&&!this.authBusy&&!this.store.get('paused')&&Date.now()>=this.store.get('nextAttempt',0)&&(!last||Date.now()-Date.parse(last.started)>=minutes*60000)){
-      try{this.start()}catch(error){if(['auth_required','client_required'].includes(classify(error)))this.store.set('paused',classify(error))}
+      try{this.start()}catch(error){if(['auth_required'].includes(classify(error)))this.store.set('paused',classify(error))}
     }
   },15000);this.timer.unref()}
   stop(){clearInterval(this.timer)}
