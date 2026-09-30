@@ -65,3 +65,21 @@ test('a complete count or short time interval alone cannot prove adjacency',t=>{
   const data=store.snapshot();assert.equal(data.shifts[0].complete,true);
   assert.deepEqual(flags(data.jobs),[false,false,false]);assert.equal(metrics.suspectedTeammates(data.jobs).length,0);
 });
+
+test('interrupted result is saved separately, does not make a full shift incomplete and breaks continuity',t=>{
+  const store=setup(t),bad=record(3);bad.result.resultWave=-1;bad.result.waveResults=[];
+  store.import([1,2,4,5].map(record).concat(bad,summary([5,4,3,2,1],4)));
+  const data=store.snapshot(),s=data.shifts[0];
+  assert.equal(s.complete,true);assert.equal(s.saved,4);assert.equal(s.loaded,4);assert.equal(s.interrupted,1);assert.equal(s.excluded,0);
+  assert.equal(data.archived,5);assert.match(data.excluded[0].reasons.join(','),/对局中断/);
+  assert.deepEqual(flags(data.jobs),[false,true,false,true]);
+  assert.equal(metrics.suspectedTeammates(data.jobs).length,0);
+});
+
+test('interrupted result cannot fill a missing normal result; malformed result has a separate statistics count',t=>{
+  const store=setup(t),bad=record(3);bad.result.resultWave=-1;bad.result.waveResults=[];
+  store.import([record(1),bad,summary([3,2,1],2)]);
+  let s=store.snapshot().shifts[0];assert.equal(s.complete,false);assert.equal(s.saved,1);assert.equal(s.total,2);
+  const malformed=record(2);delete malformed.result.myResult.defeatEnemyCount;store.import([malformed]);
+  s=store.snapshot().shifts[0];assert.equal(s.complete,true);assert.equal(s.saved,2);assert.equal(s.loaded,1);assert.equal(s.excluded,1);
+});

@@ -73,8 +73,11 @@ export class Store{
       if(!batch.length)continue;
       batch.forEach((j,i)=>{j.index=i+1;j.continuousWithPrevious=i>0&&adjacent(group.id,batch[i-1].id,j.id)});
       const lastRaw=rawById.get(batch.at(-1).id);
-      const complete=group.total!==null&&archived.length>=group.total&&batch.length===archived.length;
-      shifts.push({...group,recordIds:undefined,loaded:batch.length,total:group.total??archived.length,complete,stage:batch.at(-1).stage,weapons:(lastRaw.weapons??[]).map(w=>item(w,url=>this.asset(url)))});
+      // NSO playCount excludes interrupted results (-1, no waves). Saving a
+      // detail and having enough fields to analyse it are separate conditions.
+      const interrupted=archived.filter(j=>j.interrupted).length,saved=archived.length-interrupted;
+      const complete=group.total!==null&&saved>=group.total;
+      shifts.push({...group,recordIds:undefined,loaded:batch.length,saved,interrupted,excluded:saved-batch.length,total:group.total??saved,complete,stage:batch.at(-1).stage,weapons:(lastRaw.weapons??[]).map(w=>item(w,url=>this.asset(url)))});
     }
     return {generated:new Date().toISOString(),language:'zh-CN',timezone:'Asia/Hong_Kong',player:all.at(-1)?.players[0]?.name??'尚未导入战绩',jobs,shifts,
       archived:all.length,excluded:all.filter(j=>!j.supported).map(j=>({id:j.id,time:j.time,stage:j.stage.name,reasons:j.reasons})),lastImport:this.get('lastImport')};

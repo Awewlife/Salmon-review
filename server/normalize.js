@@ -37,6 +37,7 @@ export function normalize(raw,group,asset){
   const sum=values=>values.every(v=>v!==null)?values.reduce((a,b)=>a+b,0):null;
   const rule=group?.rule??raw.rule??'UNKNOWN';
   const reasons=[];
+  const interrupted=raw.resultWave===-1&&waves.length===0;
   if(!group)reasons.push('缺少排班汇总，等待归类');
   if(rule!=='REGULAR')reasons.push('此模式暂未支持统计');
   if(![0,1,2,3].includes(raw.resultWave)||number(raw.dangerRate)===null||players.length!==4||new Set(players.map(p=>p.key)).size!==4||players.some(p=>['eggs','kills','power','rescues','deaths'].some(k=>!Number.isInteger(p[k])))||!bosses.every(b=>Number.isInteger(b.team)))reasons.push('结算字段不完整');
@@ -44,7 +45,11 @@ export function normalize(raw,group,asset){
   const normalWaves=waves.filter(w=>w.number>=1&&w.number<=3);
   if(![1,2,3].includes(expected)||normalWaves.length!==expected||new Set(waves.map(w=>w.number)).size!==waves.length||waves.some(w=>![1,2,3,4].includes(w.number))||!Array.from({length:expected},(_,i)=>i+1).every(n=>normalWaves.some(w=>w.number===n&&Number.isInteger(w.eggs)))||normalWaves.some(w=>!Array.isArray(w.specials)))reasons.push('波次字段不完整');
   const eggs=sum(waves.filter(w=>w.number<=3).map(w=>w.eggs)),playerEggs=sum(players.map(p=>p.eggs));
-  return {id:'job-'+hash(raw.id).slice(0,24),shift:group?.id??'unassigned',time:raw.playedTime,rule,supported:reasons.length===0,reasons,
+  if(interrupted){
+    for(const reason of ['结算字段不完整','波次字段不完整']){const i=reasons.indexOf(reason);if(i>=0)reasons.splice(i,1)}
+    reasons.push('对局中断：没有波次结算，不计入统计');
+  }
+  return {id:'job-'+hash(raw.id).slice(0,24),shift:group?.id??'unassigned',time:raw.playedTime,rule,supported:reasons.length===0,reasons,interrupted,
     stage:item(raw.coopStage,asset),hazard:number(raw.dangerRate)===null?null:Math.round(raw.dangerRate*1000)/10,clear:raw.resultWave===0,failedWave:raw.resultWave,
     grade:text(raw.afterGrade?.name,'—'),gradePoint:number(raw.afterGradePoint),eggs,power:sum(players.map(p=>p.power)),kills:sum(bosses.map(b=>b.team)),playerKills:sum(players.map(p=>p.kills)),players,waves,bosses,
     king:raw.bossResult?{...item(raw.bossResult.boss,asset),clear:raw.bossResult.hasDefeatBoss===true}:null,scales:raw.scale??null,
