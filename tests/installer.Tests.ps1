@@ -20,3 +20,5 @@ foreach ($scenario in @('classic','containerd','missing','replace','legacy','wro
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
 }
+# Expected rejection cases leave LASTEXITCODE=1; do not leak it to CI's wrapper.
+$global:LASTEXITCODE = 0
