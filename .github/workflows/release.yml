@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag, for example v0.3.3
+        description: Existing version tag, for example v0.3.4
         required: true
 permissions:
   contents: read
@@ -38,6 +38,7 @@ jobs:
           npm run notices:check
           npm audit --omit=dev --audit-level=low
           npm test
+          python -m unittest discover -s tests -p test_release_package.py
       - name: Build and test release image
         run: |
           VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')

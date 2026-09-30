@@ -29,6 +29,14 @@ try {
     }
     $release = Get-Content -LiteralPath './release.json' -Raw | ConvertFrom-Json
     if ($release.image -notmatch '^salmon-review:[0-9]+\.[0-9]+\.[0-9]+$' -or $release.imageId -notmatch '^sha256:[a-f0-9]{64}$') { throw '镜像版本信息无效。' }
+    $acceptedImageIds = @($release.imageId)
+    if ($release.PSObject.Properties.Name -contains 'imageIds') {
+        $acceptedImageIds = @($release.imageIds)
+        if ($acceptedImageIds.Count -eq 0 -or $acceptedImageIds -notcontains $release.imageId) { throw '镜像校验标识列表无效。' }
+        foreach ($imageId in $acceptedImageIds) {
+            if ($imageId -isnot [string] -or $imageId -cnotmatch '^sha256:[a-f0-9]{64}$') { throw '镜像校验标识列表无效。' }
+        }
+    }
 
     # Prevent old custom project names from silently becoming a fresh empty database.
     if (-not $PSBoundParameters.ContainsKey('ProjectName')) {
@@ -54,12 +62,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw '无法读取本机镜像。' }
     $actualId = ''
     if ($present.Count -gt 0) { $actualId = & docker image inspect --format '{{.Id}}' $release.image }
-    if ($actualId -ne $release.imageId) {
+    if ($acceptedImageIds -notcontains $actualId) {
         Write-Host '正在导入随包提供的镜像，不需要联网下载依赖……'
         & docker load --input (Join-Path $PSScriptRoot 'salmon-review-image.tar.gz')
         if ($LASTEXITCODE -ne 0) { throw '镜像导入失败，请检查 Docker 状态及磁盘剩余空间。' }
         $actualId = & docker image inspect --format '{{.Id}}' $release.image
-        if ($LASTEXITCODE -ne 0 -or $actualId -ne $release.imageId) { throw '导入的镜像与发布版本不符，已停止启动。' }
+        if ($LASTEXITCODE -ne 0 -or $acceptedImageIds -notcontains $actualId) { throw '导入的镜像与发布版本不符，已停止启动。请下载最新安装包；若仍失败，请反馈 docker image inspect 返回的镜像 Id。' }
     }
     Write-Host "正在启动项目 $ProjectName；数据卷名称会沿用此项目名。"
     & docker @composeArgs up -d --no-build --pull never

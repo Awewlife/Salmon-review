@@ -16,5 +16,19 @@ jobs:
       - run: npm run notices:check
       - run: npm audit --omit=dev --audit-level=low
       - run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m unittest discover -s tests -p test_release_package.py
       - run: docker build -t salmon-review:ci .
       - run: docker run --rm --mount type=bind,source="${{ github.workspace }}/tests",target=/app/tests,readonly salmon-review:ci npm test
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Windows PowerShell 5.1 installer regression
+        shell: powershell
+        run: ./tests/installer.Tests.ps1
+      - name: PowerShell 7 installer regression
+        shell: pwsh
+        run: ./tests/installer.Tests.ps1

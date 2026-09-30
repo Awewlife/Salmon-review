@@ -1,6 +1,6 @@
 services:
   app:
-    image: salmon-review:0.3.3
+    image: salmon-review:0.3.4
     pull_policy: never
     platform: linux/amd64
     init: true

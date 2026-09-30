@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import tempfile
+import tarfile
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -20,6 +21,23 @@ def run(*args):
 def sha256(path):
     with path.open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def image_ids(archive, image, inspected_id, revision):
+    """Classic stores expose the config ID; containerd may expose the index ID."""
+    with tarfile.open(archive, 'r:gz') as saved:
+        manifests = json.load(saved.extractfile('manifest.json'))
+        matches = [entry for entry in manifests if image in (entry.get('RepoTags') or [])]
+        if len(matches) != 1:
+            raise ValueError('Expected exactly one tagged image in docker save archive')
+        config_bytes = saved.extractfile(matches[0]['Config']).read()
+        config = json.loads(config_bytes)
+        if (config.get('os'), config.get('architecture')) != ('linux', 'amd64'):
+            raise ValueError('Archived image platform mismatch')
+        if config.get('config', {}).get('Labels', {}).get('org.opencontainers.image.revision') != revision:
+            raise ValueError('Archived image source revision mismatch')
+        config_id = 'sha256:' + hashlib.sha256(config_bytes).hexdigest()
+        return sorted(set([inspected_id, config_id]))
 
 
 def main():
@@ -62,7 +80,8 @@ def main():
                 process.stdout.close()
             if process.wait():
                 raise SystemExit('docker save failed')
-        metadata = {'version': version, 'commit': commit, 'image': image, 'imageId': info['Id'], 'platform': 'linux/amd64'}
+        metadata = {'version': version, 'commit': commit, 'image': image, 'imageId': info['Id'],
+                    'imageIds': image_ids(archive, image, info['Id'], commit), 'platform': 'linux/amd64'}
         (package/'release.json').write_text(json.dumps(metadata, indent=2)+'\n', encoding='utf-8')
         (package/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(package.iterdir())), encoding='ascii')
         with zipfile.ZipFile(output/(package_name+'.zip'), 'w', compression=zipfile.ZIP_DEFLATED) as result:
