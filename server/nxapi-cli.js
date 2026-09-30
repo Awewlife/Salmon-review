@@ -16,7 +16,7 @@ export function launchCli(profile,args){
   for(const key of Object.keys(env))if(/^(NXAPI_|ZNCA_|ZNC_PROXY_URL$|DEBUG$|NODE_OPTIONS$)/.test(key))delete env[key];
   Object.assign(env,{
     NODE_ENV:'production',DEBUG:'',NODE_OPTIONS:'',NXAPI_DEBUG_FILE:'0',NXAPI_SKIP_UPDATE_CHECK:'1',
-    NXAPI_USER_AGENT:'salmon-review/0.3.2 (+https://github.com/Awewlife/Salmon-review)',
+    NXAPI_USER_AGENT:'salmon-review/0.3.3 (+https://github.com/Awewlife/Salmon-review)',
     NXAPI_DATA_PATH:profile,HOME:profile,APPDATA:profile,LOCALAPPDATA:profile,
     XDG_DATA_HOME:profile,XDG_CACHE_HOME:path.join(profile,'cache'),XDG_CONFIG_HOME:profile,XDG_STATE_HOME:profile,
   });
