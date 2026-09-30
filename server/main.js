@@ -72,7 +72,7 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
       if(req.method==='POST'&&url.pathname==='/api/auth/complete'){
         if(tasks.active||tasks.authBusy)throw new Error('busy');const body=await readBody(req);
         tasks.authBusy=true;
-        try{await account.complete(body.url);store.set('paused',null);store.set('nextAttempt',0);return send(res,200,state())}finally{tasks.authBusy=false}
+        try{await account.complete(body.url);tasks.reconnected();return send(res,200,state())}finally{tasks.authBusy=false}
       }
       if(req.method==='POST'&&url.pathname==='/api/auth/logout'){
         if(tasks.active||tasks.authBusy)throw new Error('busy');await account.clear();store.set('autoMinutes',0);store.set('paused',null);return send(res,200,state());

@@ -30,7 +30,7 @@ test('synchronization saves completed records on failure, deduplicates on retry,
   const tasks=new Tasks(store,account,async(input,emit)=>{await emit('summary',f.summary);await emit('record',f.record);await hold;throw new Error('network')});
   tasks.start();assert.throws(()=>tasks.start(),/busy/);release();await tasks.completion;
   assert.equal(store.snapshot().jobs.length,1);assert.equal(tasks.status().last.state,'failed');assert(tasks.status().nextAttempt>Date.now());assert.throws(()=>tasks.start(),/cooldown/);
-  store.set('nextAttempt',0);tasks.runner=async(input,emit)=>{assert(input.known.includes(f.record.result.id));await emit('summary',f.summary);await emit('record',f.record);await emit('progress',{done:1,total:1})};tasks.start();await tasks.completion;assert.equal(tasks.status().last.state,'success');assert.equal(tasks.status().last.added,0);assert.equal(store.snapshot().jobs.length,1);
+  store.set('nextAttempt',0);store.set('manualNextAttempt',0);tasks.runner=async(input,emit)=>{assert(input.known.includes(f.record.result.id));await emit('summary',f.summary);await emit('record',f.record);await emit('progress',{done:1,total:1})};tasks.start();await tasks.completion;assert.equal(tasks.status().last.state,'success');assert.equal(tasks.status().last.added,0);assert.equal(store.snapshot().jobs.length,1);
 });
 test('browser same-origin metadata tolerates rewritten Origin, while cross-site and cross-port requests remain blocked',async t=>{
   const {base,csrf}=await setup(t),headers={Origin:'http://127.0.0.1','Sec-Fetch-Site':'same-origin'};
@@ -49,6 +49,58 @@ test('browser same-origin metadata tolerates rewritten Origin, while cross-site 
 test('authentication failures pause automation; rate limits preserve Retry-After; error text is sanitized',async t=>{
   const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'test-only'});
   const tasks=new Tasks(store,account,async()=>{throw new Error('Remote configuration prevents Coral authentication')});tasks.start();await tasks.completion;assert.equal(tasks.status().paused,'upstream_disabled');
-  store.set('nextAttempt',0);tasks.runner=async()=>{throw Object.assign(new Error('rate_limited'),{retryAfter:3600})};tasks.start();await tasks.completion;assert(tasks.status().nextAttempt>Date.now()+3590000);
+  store.set('nextAttempt',0);store.set('manualNextAttempt',0);tasks.runner=async()=>{throw Object.assign(new Error('rate_limited'),{retryAfter:3600})};tasks.start();await tasks.completion;assert(tasks.status().nextAttempt>Date.now()+3590000);
   assert.equal(classify(new Error('upstream text containing SECRET')),'upstream');assert.equal(classify({response:{status:401}}),'auth_required');
+});
+
+test('network failure permits manual retry at five seconds while automatic backoff grows and survives restart',async t=>{
+  const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});
+  t.mock.timers.enable({apis:['Date'],now:1900000000000});
+  const fail=async()=>{throw new Error('network')};let tasks=new Tasks(store,account,fail);
+  tasks.start();await tasks.completion;
+  assert.equal(tasks.status().manualNextAttempt,Date.now()+5000);
+  assert.equal(tasks.status().nextAttempt,Date.now()+300000);
+  t.mock.timers.tick(4999);assert.throws(()=>tasks.start(),/cooldown/);
+  t.mock.timers.tick(1);tasks=new Tasks(store,account,fail);
+  assert.throws(()=>tasks.start({automatic:true}),/cooldown/);
+  tasks.start();await tasks.completion;
+  assert.equal(tasks.status().nextAttempt,Date.now()+600000);
+  t.mock.timers.tick(600000);tasks.runner=async()=>{};
+  tasks.start({automatic:true});await tasks.completion;assert.equal(store.get('failures'),0);
+});
+
+test('rate limits apply to both paths across restart and reconnection, respecting the boundary',async t=>{
+  const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});
+  t.mock.timers.enable({apis:['Date'],now:1900000000000});
+  let tasks=new Tasks(store,account,async()=>{throw Object.assign(new Error('rate_limited'),{retryAfter:3600})});
+  tasks.start();await tasks.completion;const until=Date.now()+3600000;
+  assert.equal(tasks.status().manualNextAttempt,until);assert.equal(tasks.status().nextAttempt,until);
+  tasks=new Tasks(store,account,async()=>{});tasks.reconnected();
+  t.mock.timers.tick(3599999);
+  assert.throws(()=>tasks.start(),/cooldown/);assert.throws(()=>tasks.start({automatic:true}),/cooldown/);
+  t.mock.timers.tick(1);tasks.start();await tasks.completion;assert.equal(tasks.status().last.state,'success');
+});
+
+test('expired stored credentials block retries until successful account reconnection clears the backoff',async t=>{
+  const {store,account,tasks,base,csrf}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});
+  tasks.runner=async()=>{throw new Error('auth_required')};tasks.start();await tasks.completion;
+  assert.equal(tasks.status().paused,'auth_required');
+  assert.throws(()=>tasks.start(),/auth_required/);
+  assert.throws(()=>tasks.start({automatic:true}),/auth_required/);
+  account.complete=async()=>{};
+  const response=await fetch(base+'/api/auth/complete',{method:'POST',headers:{'Content-Type':'application/json','X-Salmon-CSRF':csrf},body:JSON.stringify({url:'test-only'})});
+  assert.equal(response.status,200);assert.equal(tasks.status().paused,null);assert.equal(tasks.status().manualNextAttempt,0);
+  assert.equal(store.get('failures'),0);tasks.runner=async()=>{};tasks.start();await tasks.completion;
+});
+
+test('legacy network cooldown is shortened only for manual retry, while legacy rate limits stay binding',async t=>{
+  const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});
+  t.mock.timers.enable({apis:['Date'],now:1900000000000});
+  const finish=new Date().toISOString();
+  store.db.prepare("INSERT INTO runs(kind,state,started,finished,error) VALUES('sync','failed',?,?,'network')").run(finish,finish);
+  store.set('nextAttempt',Date.now()+300000);const tasks=new Tasks(store,account,async()=>{});
+  t.mock.timers.tick(5000);assert.equal(tasks.status().manualNextAttempt,Date.now());
+  assert.throws(()=>tasks.start({automatic:true}),/cooldown/);
+  store.db.prepare("UPDATE runs SET error='rate_limited'").run();store.set('nextAttempt',Date.now()+900000);
+  tasks.reconnected();assert.throws(()=>tasks.start(),/cooldown/);assert.equal(tasks.status().manualNextAttempt,Date.now()+900000);
 });

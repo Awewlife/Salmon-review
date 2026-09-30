@@ -32,21 +32,28 @@
     document.querySelector('#auth-expiry').textContent=waiting?`本次链接剩余 ${Math.ceil((authAttempt.expires-Date.now())/60000)} 分钟；请使用本次打开的登录页面。`:'';
     document.querySelector('#disconnect-account').disabled=busy||state.sync.active||!state.connected;
   }
+  const needsLogin=()=>!state.connected||state.sync.paused==='auth_required';
+  const manualRetryAt=()=>state.sync.manualNextAttempt??state.sync.nextAttempt??0;
+  function paintRetryButtons(){
+    const quick=document.querySelector('#quick-sync'),retryAt=manualRetryAt(),seconds=Math.max(0,Math.ceil((retryAt-Date.now())/1000)),cooldown=seconds>0,limited=state.sync.rateLimitedUntil>Date.now();
+    quick.disabled=busy||state.sync.active||needsLogin()||cooldown;
+    quick.textContent=state.sync.active?'正在同步…':needsLogin()?'请先连接账号':cooldown?(limited?'限流等待中':seconds<=60?`${seconds} 秒后可重试`:'稍后再同步'):'立即同步';
+    quick.title=needsLogin()?'请通过左侧账号入口重新连接':cooldown?`${limited?'请求受限，最早':'手动'}可同步：${stamp(retryAt)}`:'下载最新打工记录';
+    const sync=document.querySelector('#sync-now');if(sync){sync.disabled=quick.disabled;sync.textContent=quick.textContent;sync.title=quick.title}
+    return {cooldown,retryAt};
+  }
   function paintStatus(){
-    const run=state.sync.last,description=authPhase==='starting'?'正在准备登录':authPhase==='submitting'?'正在验证登录':authPhase==='waiting'?'等待任天堂授权':state.sync.active?`同步中 ${run?.done??0} / ${run?.total??0}`:state.connected?'账号已连接':'未连接账号，可导入记录';
+    const run=state.sync.last,description=authPhase==='starting'?'正在准备登录':authPhase==='submitting'?'正在验证登录':authPhase==='waiting'?'等待任天堂授权':state.sync.active?`同步中 ${run?.done??0} / ${run?.total??0}`:state.sync.paused==='auth_required'?'登录已失效，请重新连接':state.connected?'账号已连接':'未连接账号，可导入记录';
     const previous=run?.state==='failed'||run?.state==='interrupted'?`上次同步未完成（${stamp(run.finished)}）：${errors[run.error]??'同步未完成'}。`:'';
-    const disconnected=!state.connected&&!['starting','submitting','waiting'].includes(authPhase)&&!state.sync.active;
+    const disconnected=needsLogin()&&!['starting','submitting','waiting'].includes(authPhase)&&!state.sync.active;
     document.querySelector('#sync-status').textContent=`${state.records} 场已保存 · ${disconnected?'':description}`;
     document.querySelector('#quick-connect').hidden=!disconnected;
+    document.querySelector('#quick-connect').textContent=state.sync.paused==='auth_required'?'重新连接账号':'未连接账号';
     document.querySelector('#quick-connect').disabled=busy;
     document.querySelector('#sync-last').textContent=` · 上次成功同步：${stamp(state.sync.lastSuccess)}`;
-    const quick=document.querySelector('#quick-sync'),cooldown=state.sync.nextAttempt>Date.now();
-    quick.disabled=busy||state.sync.active||!state.connected||cooldown;
-    quick.textContent=state.sync.active?'正在同步…':cooldown?'稍后再同步':'立即同步';
-    quick.title=!state.connected?'请先连接任天堂账号':cooldown?`下次可同步：${stamp(state.sync.nextAttempt)}`:'下载最新打工记录';
-    const details=document.querySelector('#sync-details');if(details)details.textContent=`${description}。${previous}上次导入：${stamp(state.lastImport)}。${state.sync.paused?'自动同步已暂停：'+(errors[state.sync.paused]??state.sync.paused)+'。':''}${state.sync.nextAttempt>Date.now()?'下次可同步：'+stamp(state.sync.nextAttempt):''}`;
+    const {cooldown,retryAt}=paintRetryButtons();
+    const details=document.querySelector('#sync-details');if(details)details.textContent=`${description}。${previous}上次导入：${stamp(state.lastImport)}。${state.sync.paused?'自动同步已暂停：'+(errors[state.sync.paused]??state.sync.paused)+'。':''}${cooldown?'手动可同步：'+stamp(retryAt)+'。':''}${state.sync.autoMinutes&&!state.sync.paused&&state.sync.nextAttempt>Date.now()?'自动同步最早重试：'+stamp(state.sync.nextAttempt)+'（同时遵循所选同步间隔）。':''}`;
     paintAuth();
-    const sync=document.querySelector('#sync-now');if(sync)sync.disabled=busy||state.sync.active||!state.connected||state.sync.nextAttempt>Date.now();
   }
   function refresh(){
     // Coalesce timer/manual reads; a slow response must not race a newer render.
@@ -80,9 +87,9 @@
     });
     return dataRefresh;
   }
-  async function operation(action,{auth=false,quick=false,pending='正在处理…'}={}){if(busy)return;busy=true;const notify=auth?authReport:quick?quickReport:report;notify(pending);paintStatus();dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=true);try{await action();await refresh()}catch(error){if(auth){if(authPhase==='starting'||authPhase==='submitting'&&error.code!=='auth_callback'){authPhase='error';authAttempt=null}else if(authPhase==='submitting')authPhase='waiting';authReport(error.message,true)}else notify(error.message,true)}finally{busy=false;dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=false);paintStatus()}}
+  async function operation(action,{auth=false,quick=false,pending='正在处理…'}={}){if(busy)return;busy=true;const notify=auth?authReport:quick?quickReport:report;notify(pending);paintStatus();dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=true);try{await action();await refresh()}catch(error){if(auth){if(authPhase==='starting'||authPhase==='submitting'&&error.code!=='auth_callback'){authPhase='error';authAttempt=null}else if(authPhase==='submitting')authPhase='waiting';authReport(error.message,true)}else {if(error.code==='auth_required')state.sync.paused='auth_required';notify(error.message,true)}}finally{busy=false;dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=false);paintStatus()}}
   function startSync(quick=false){
-    if(!state||busy||state.sync.active||!state.connected||state.sync.nextAttempt>Date.now())return;
+    if(!state||busy||state.sync.active||needsLogin()||manualRetryAt()>Date.now())return;
     return operation(async()=>{await request('/api/sync',{});(quick?quickReport:report)('同步已在后台开始，完成后自动更新战绩。')},{quick,pending:'正在开始同步…'});
   }
   window.openManage=async({section}={})=>{
@@ -91,7 +98,7 @@
     dialog.innerHTML=`<header class="manage-header"><div><div class="eyebrow">LOCAL DATA</div><h2 id="manage-title">数据与同步</h2></div><button class="close-chat" id="close-manage" aria-label="关闭数据管理">×</button></header>
     <div class="manage-body"><p class="manage-message" id="manage-message" role="status">一个实例保存一位玩家的数据。导入、同步和升级均保留已归档场次。</p>
     <section><h3>导入已有记录</h3><p>选择 nxapi 导出的打工详情与排班汇总 JSON。可多选；没有汇总的记录会先保存，等待归类。重复导入会自动去重。</p><label class="file-picker">选择 JSON 文件<input id="import-files" type="file" accept=".json,application/json" multiple></label><button class="button primary" id="import-records">导入所选文件</button></section>
-    <section class="auth-section" id="account-section" tabindex="-1" aria-labelledby="account-heading"><div class="auth-heading"><h3 id="account-heading">连接任天堂账号</h3><span class="auth-local">仅在本机保存</span></div><p id="account-state">${state.connected?'已保存登录状态。':'尚未连接账号。'}</p>
+    <section class="auth-section" id="account-section" tabindex="-1" aria-labelledby="account-heading"><div class="auth-heading"><h3 id="account-heading">连接任天堂账号</h3><span class="auth-local">仅在本机保存</span></div><p id="account-state">${state.sync.paused==='auth_required'?'登录已失效，请重新连接后再同步。':state.connected?'已保存登录状态。':'尚未连接账号。'}</p>
     <p>准备好玩喷喷的任天堂账号，按照下面三步操作。密码只在任天堂页面输入。</p>
     <button class="button primary" id="connect-account">开始连接 / 重新连接</button> <button class="button" id="disconnect-account" ${state.connected?'':'disabled'}>退出账号</button>
     <p class="manage-message auth-message" id="auth-message" role="status" aria-live="polite" hidden></p>
@@ -141,5 +148,5 @@
   document.querySelector('#data-refresh-note').textContent=window.hasLoadedData()?'暂显示本标签页上次读取的战绩，正在后台更新。':'';
   refresh().catch(()=>{});
   setInterval(()=>refresh().catch(()=>{}),4000);
-  setInterval(()=>{if(dialog.open)paintAuth()},1000);
+  setInterval(()=>{if(state){paintRetryButtons();if(dialog.open)paintAuth()}},1000);
 })();

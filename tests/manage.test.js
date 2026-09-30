@@ -20,15 +20,16 @@ async function page({open=true,connected=false}={}){
   for(const id of ['manage-dialog','sync-strip','sync-status','sync-last','quick-sync','quick-connect','sync-feedback','data-refresh-note','nav-manage'])elements.set(id,new Element());
   const status={csrf:'fixture',connected,records:50,lastImport:null,sync:{last:null,active:false,lastSuccess:null,nextAttempt:0,paused:null,autoMinutes:0}};
   let transport=async()=>({url:'https://accounts.nintendo.com/connect/1.0.0/authorize?state=fixture',expires:Date.now()+600000});
-  const intervals=[], replacements=[];
+  const intervals=[], replacements=[];let timeOffset=0;
+  class Clock extends Date {static now(){return Date.now()+timeOffset}}
   let readTransport=async url=>url==='/api/status'?structuredClone(status):{excluded:[]};
-  const context={AbortSignal,document:{querySelector:selector=>elements.get(selector.slice(1))??null},window:{SALMON_DATA:{excluded:[]},hasLoadedData:()=>true,replaceData(data){replacements.push(data)}},setInterval(fn,ms){intervals.push({fn,ms})},fetch:async(url,options)=>{
+  const context={Date:Clock,AbortSignal,document:{querySelector:selector=>elements.get(selector.slice(1))??null},window:{SALMON_DATA:{excluded:[]},hasLoadedData:()=>true,replaceData(data){replacements.push(data)}},setInterval(fn,ms){intervals.push({fn,ms})},fetch:async(url,options)=>{
     if(url==='/api/status'||url==='/api/data')return {ok:true,json:async()=>readTransport(url)};
     const result=await transport(url,JSON.parse(options.body));return {ok:!result.error,json:async()=>result.error??result};
   }};
   vm.createContext(context);vm.runInContext(readFileSync(new URL('../dist/manage.js',import.meta.url),'utf8'),context);
   if(open)await context.window.openManage();else await new Promise(resolve=>setImmediate(resolve));
-  return {get:id=>elements.get(id),status,setTransport:fn=>transport=fn,setRead:fn=>readTransport=fn,replacements,poll:()=>intervals.find(i=>i.ms===4000).fn()};
+  return {get:id=>elements.get(id),status,setTransport:fn=>transport=fn,setRead:fn=>readTransport=fn,replacements,clockTick:ms=>{timeOffset+=ms;intervals.find(i=>i.ms===1000).fn()},poll:()=>intervals.find(i=>i.ms===4000).fn()};
 }
 test('retry immediately clears old login error and stale link while a new request is pending',async()=>{
   const p=await page();p.setTransport(async()=>({error:{code:'network',message:'上一次网络失败'}}));
@@ -78,7 +79,7 @@ test('toolbar sync works before opening management, prevents duplicate clicks an
   assert.equal(p.get('manage-dialog').open,undefined);
   p.status.sync.active=false;p.status.sync.nextAttempt=Date.now()+60000;
   await p.get('quick-sync').onclick();assert.equal(calls,1);
-  await p.get('nav-manage').onclick();assert.equal(p.get('quick-sync').textContent,'稍后再同步');assert.equal(p.get('sync-now').disabled,true);
+  await p.get('nav-manage').onclick();assert.match(p.get('quick-sync').textContent,/秒后可重试|稍后再同步/);assert.equal(p.get('sync-now').disabled,true);
 });
 
 function deferred(){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject}}
@@ -102,11 +103,32 @@ test('slow status and data refreshes keep the displayed snapshot until both fini
 test('failed status or data requests retain the current snapshot and a later poll recovers',async()=>{
   const p=await page({open:false}),before=p.replacements.length;
   p.setRead(async()=>{throw new Error('offline')});await p.poll();
-  assert.equal(p.replacements.length,before);assert.match(p.get('sync-status').textContent,/当前战绩保持显示/);
+  p.clockTick(1000);assert.equal(p.replacements.length,before);assert.match(p.get('sync-status').textContent,/当前战绩保持显示/);
   p.status.lastImport='changed';
   p.setRead(async url=>{if(url==='/api/status')return structuredClone(p.status);throw new Error('data unavailable')});await p.poll();
   assert.equal(p.replacements.length,before);assert.match(p.get('data-refresh-note').textContent,/已保留当前展示/);
   p.setRead(async url=>url==='/api/status'?structuredClone(p.status):{excluded:[],marker:'recovered'});await p.poll();
   assert.equal(p.replacements.at(-1).marker,'recovered');assert.equal(p.get('data-refresh-note').textContent,'');
   const after=p.replacements.length;await p.poll();assert.equal(p.replacements.length,after);
+});
+
+
+test('manual button uses five-second deadline instead of automatic backoff and enables without another status read',async()=>{
+  const p=await page({open:false,connected:true});
+  p.status.sync.nextAttempt=Date.now()+300000;p.status.sync.manualNextAttempt=Date.now()+5000;
+  await p.poll();assert.equal(p.get('quick-sync').disabled,true);assert.match(p.get('quick-sync').textContent,/5 秒后可重试/);
+  p.clockTick(4000);assert.equal(p.get('quick-sync').disabled,true);assert.match(p.get('quick-sync').textContent,/1 秒后可重试/);
+  p.clockTick(1000);assert.equal(p.get('quick-sync').disabled,false);assert.equal(p.get('quick-sync').textContent,'立即同步');
+});
+
+test('rate limit keeps manual controls disabled and expired credentials offer direct reconnection',async()=>{
+  const p=await page({open:false,connected:true});
+  p.status.sync.manualNextAttempt=p.status.sync.rateLimitedUntil=Date.now()+900000;
+  await p.poll();p.clockTick(5000);assert.equal(p.get('quick-sync').disabled,true);assert.equal(p.get('quick-sync').textContent,'限流等待中');
+  p.status.sync.rateLimitedUntil=0;p.status.sync.manualNextAttempt=0;p.status.sync.paused='auth_required';
+  await p.poll();assert.equal(p.get('quick-sync').disabled,true);assert.equal(p.get('quick-connect').hidden,false);
+  assert.equal(p.get('quick-connect').textContent,'重新连接账号');
+  await p.get('quick-connect').onclick();assert.equal(p.get('account-section').focused,true);
+  p.status.sync.paused=null;await p.poll();assert.equal(p.get('quick-sync').disabled,false);assert.equal(p.get('sync-now').disabled,false);
+  assert.equal(p.get('quick-connect').hidden,true);
 });
