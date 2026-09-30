@@ -1,5 +1,7 @@
 'use strict';
-let DATA=window.SALMON_DATA;
+let hasData=!!window.SALMON_DATA;
+let DATA=window.SALMON_DATA??{jobs:[],shifts:[],player:'正在读取战绩',generated:new Date().toISOString()};
+window.SALMON_DATA=DATA;
 let shiftId=DATA.shifts[0]?.id;
 let series={eggs:true,kills:true,deaths:true};
 const seriesColors={eggs:'#d5ef68',kills:'#ff7957',deaths:'#a8b0b4'};
@@ -62,8 +64,8 @@ function detail(j){
   <section class="panel reward-panel"><div class="eyebrow">GRIZZCO POINTS</div><h2>获得点数</h2><div class="reward-value">${fmt(j.jobPoint)}<small>p</small></div><div class="reward-equation">${fmt(j.jobScore)} × ${esc(j.jobRate)} + ${fmt(j.jobBonus)}</div><div class="reward-labels"><span>打工分数</span><span>评价倍率</span><span>过关奖励</span></div></section><p class="page-footer-note">数据来自 NSO 结算记录<br>时间统一为 UTC+8</p></aside></div>`;
   wireCommon();
 }
-function route(){if(!DATA.jobs.length){app.innerHTML=`<section class="panel empty-state"><div class="eyebrow">SALMON REVIEW</div><h1>开始你的打工复盘</h1><p>连接账号同步，或导入 nxapi 打工详情与排班汇总 JSON。</p><p>${DATA.archived?`已保存 ${DATA.archived} 场，暂未归类或未支持的记录可在数据管理中查看。`:'战绩保存在这个实例的数据卷中。'}</p><button class="button primary" id="get-started">导入记录 / 连接账号</button></section>`;document.querySelector('#get-started').onclick=()=>window.openManage();return}const id=location.hash.slice(1),j=DATA.jobs.find(j=>j.id===id);document.querySelector('#nav-overview').classList.toggle('active',!j);document.querySelector('#nav-latest').classList.toggle('active',!!j);if(j){shiftId=j.shift;detail(j)}else overview();window.scrollTo(0,0)}
-document.querySelector('.sidebar-bottom>p').innerHTML=`${DATA.jobs.length} 场记录 · ${DATA.shifts.length} 期排班<br>更新于 ${date(DATA.generated)}`;
+function route({preserveScroll=false}={}){if(!hasData){app.innerHTML='<section class="panel empty-state"><h1>正在读取本机战绩…</h1><p>读取完成后自动展示，无需重新登录或导入。</p></section>';return}if(!DATA.jobs.length){app.innerHTML=`<section class="panel empty-state"><div class="eyebrow">SALMON REVIEW</div><h1>开始你的打工复盘</h1><p>连接账号同步，或导入 nxapi 打工详情与排班汇总 JSON。</p><p>${DATA.archived?`已保存 ${DATA.archived} 场，暂未归类或未支持的记录可在数据管理中查看。`:'战绩保存在这个实例的数据卷中。'}</p><button class="button primary" id="get-started">导入记录 / 连接账号</button></section>`;document.querySelector('#get-started').onclick=()=>window.openManage();return}const id=location.hash.slice(1),j=DATA.jobs.find(j=>j.id===id);document.querySelector('#nav-overview').classList.toggle('active',!j);document.querySelector('#nav-latest').classList.toggle('active',!!j);if(j){shiftId=j.shift;detail(j)}else overview();if(!preserveScroll)window.scrollTo(0,0)}
+document.querySelector('.sidebar-bottom>p').innerHTML=hasData?`${DATA.jobs.length} 场记录 · ${DATA.shifts.length} 期排班<br>更新于 ${date(DATA.generated)}`:'正在读取本机战绩…';
 document.querySelector('.profile>div:last-child').innerHTML=`${esc(DATA.player)}<small>我的打工记录</small>`;
 document.querySelector('#nav-latest').onclick=()=>{const job=matches().at(-1);if(job)location.hash=job.id};
 
@@ -71,4 +73,17 @@ window.addEventListener('hashchange',route);route();
 let resizeTimer;
 window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(DATA.jobs.length&&!DATA.jobs.some(j=>'#'+j.id===location.hash))overview()},120)});
 
-window.replaceData=data=>{DATA=data;window.SALMON_DATA=data;if(!DATA.shifts.some(s=>s.id===shiftId))shiftId=DATA.shifts[0]?.id;document.querySelector('.sidebar-bottom>p').innerHTML=`${DATA.archived??DATA.jobs.length} 场已保存 · ${DATA.shifts.length} 期可查看`;document.querySelector('.profile>div:last-child').innerHTML=`${esc(DATA.player)}<small>我的打工记录</small>`;route()};
+window.replaceData=data=>{
+  if(!window.SalmonViewData.valid(data))throw new Error('战绩数据格式异常，已保留当前展示。');
+  const changed=!hasData||window.SalmonViewData.signature(DATA)!==window.SalmonViewData.signature(data);
+  DATA=data;window.SALMON_DATA=data;hasData=true;
+  if(!DATA.shifts.some(s=>s.id===shiftId))shiftId=DATA.shifts[0]?.id;
+  if(changed){
+    const x=window.scrollX,y=window.scrollY;
+    document.querySelector('.sidebar-bottom>p').innerHTML=`${DATA.archived??DATA.jobs.length} 场已保存 · ${DATA.shifts.length} 期可查看`;
+    document.querySelector('.profile>div:last-child').innerHTML=`${esc(DATA.player)}<small>我的打工记录</small>`;
+    route({preserveScroll:true});window.scrollTo(x,y);
+  }
+  window.SalmonViewData.save(data);
+};
+window.hasLoadedData=()=>hasData;

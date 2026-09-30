@@ -10,7 +10,7 @@ import {publicError} from './errors.js';
 import {safeAssetUrl} from './normalize.js';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const staticFiles=new Map(['index.html','app.js','metrics.js','chart-dialog.js','style.css','manage.js','manage.css'].map(name=>['/'+name,path.join(root,'../dist',name)]));
+const staticFiles=new Map(['index.html','view-data.js','app.js','metrics.js','chart-dialog.js','style.css','manage.js','manage.css'].map(name=>['/'+name,path.join(root,'../dist',name)]));
 staticFiles.set('/LICENSE',path.join(root,'../LICENSE'));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 export async function createApp({directory=process.env.DATA_DIR??path.join(root,'../data'),runner=workerCall,accountOptions}={}){

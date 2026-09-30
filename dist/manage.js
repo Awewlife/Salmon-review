@@ -1,12 +1,13 @@
 'use strict';
 (()=>{
   let state=null,lastRun=null,busy=false,authPhase='idle',authAttempt=null;
+  let refreshing=null,dataRefresh=Promise.resolve(),loadedVersion=null,needsData=true;
   const dialog=document.querySelector('#manage-dialog');
   const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stamp=value=>value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'尚无';
   const errors={auth_required:'请重新连接账号',upstream_disabled:'上游暂时禁止认证',upstream:'上游接口异常，需要检查版本',rate_limited:'请求受限，已延后',network:'网络暂时不可用',interrupted:'任务中断，可再次同步继续',account_mismatch:'账号与已有战绩不一致',disk:'请检查磁盘空间或数据卷权限'};
   async function request(url,body){
-    const response=await fetch(url,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json','X-Salmon-CSRF':state?.csrf??''},body:body===undefined?undefined:JSON.stringify(body)});
+    const response=await fetch(url,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json','X-Salmon-CSRF':state?.csrf??''},body:body===undefined?undefined:JSON.stringify(body),...(body===undefined?{signal:AbortSignal.timeout(30000)}:{})});
     const result=await response.json();if(!response.ok)throw Object.assign(new Error(result.message??'操作未完成'),{code:result.code});return result;
   }
   function report(message,error=false){const element=document.querySelector('#manage-message');if(element){element.textContent=message;element.classList.toggle('error',error)}}
@@ -47,16 +48,38 @@
     paintAuth();
     const sync=document.querySelector('#sync-now');if(sync)sync.disabled=busy||state.sync.active||!state.connected||state.sync.nextAttempt>Date.now();
   }
-  async function refresh(){
-    state=await request('/api/status');paintStatus();const run=state.sync.last;
-    if(lastRun!==null&&run&&lastRun!==run.id+':'+run.state&&!state.sync.active){
-      quickReport(run.state==='success'?`同步完成，新增 ${run.added??0} 场记录。`:`本次同步未完成：${errors[run.error]??'请在数据与同步中查看状态'}。`,run.state!=='success');
-      await refreshData();
-    }
-    lastRun=run?run.id+':'+run.state:'';
+  function refresh(){
+    // Coalesce timer/manual reads; a slow response must not race a newer render.
+    if(refreshing)return refreshing;
+    refreshing=(async()=>{
+      try{state=await request('/api/status')}catch(error){
+        document.querySelector('#sync-status').textContent=window.hasLoadedData()?'暂时无法读取同步状态，当前战绩保持显示；稍后自动重试。':'暂时无法连接本地服务，稍后自动重试。';
+        document.querySelector('#data-refresh-note').textContent=window.hasLoadedData()?'当前展示为上次成功读取的战绩。':'';
+        throw error;
+      }
+      paintStatus();const run=state.sync.last,runKey=run?run.id+':'+run.state:'';
+      const version=JSON.stringify([state.records,state.lastImport,runKey]);
+      if(lastRun!==null&&run&&lastRun!==runKey&&!state.sync.active){
+        quickReport(run.state==='success'?`同步完成，新增 ${run.added??0} 场记录。`:`本次同步未完成：${errors[run.error]??'请在数据与同步中查看状态'}。`,run.state!=='success');
+      }
+      lastRun=runKey;
+      if(needsData||(!state.sync.active&&loadedVersion!==version)){
+        document.querySelector('#data-refresh-note').textContent=window.hasLoadedData()?'正在更新战绩，暂显示上次读取的内容。':'正在读取本机战绩…';
+        try{await refreshData();loadedVersion=version;needsData=false}
+        catch(error){document.querySelector('#data-refresh-note').textContent=window.hasLoadedData()?'战绩更新失败，已保留当前展示；稍后自动重试。':'战绩暂时读取失败，稍后自动重试。';throw error}
+      }
+    })().finally(()=>{refreshing=null});
+    return refreshing;
   }
   function paintExcluded(){const element=document.querySelector('#excluded-records');if(!element)return;const excluded=window.SALMON_DATA.excluded??[];element.innerHTML=excluded.length?`<p>共 ${excluded.length} 场${excluded.length>100?'，显示最近 100 场':''}</p>`+excluded.slice(-100).reverse().map(j=>`<div class="excluded-row">${html(stamp(j.time))} · ${html(j.stage)}<br><span>${html(j.reasons.join('；'))}</span></div>`).join(''):'<p>暂无。</p>'}
-  async function refreshData(){window.replaceData(await request('/api/data'));paintExcluded()}
+  function refreshData(){
+    // Queue import/restore refreshes behind any older read, so older data cannot win.
+    dataRefresh=dataRefresh.catch(()=>{}).then(async()=>{
+      const data=await request('/api/data');window.replaceData(data);paintExcluded();
+      document.querySelector('#data-refresh-note').textContent='';
+    });
+    return dataRefresh;
+  }
   async function operation(action,{auth=false,quick=false,pending='正在处理…'}={}){if(busy)return;busy=true;const notify=auth?authReport:quick?quickReport:report;notify(pending);paintStatus();dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=true);try{await action();await refresh()}catch(error){if(auth){if(authPhase==='starting'||authPhase==='submitting'&&error.code!=='auth_callback'){authPhase='error';authAttempt=null}else if(authPhase==='submitting')authPhase='waiting';authReport(error.message,true)}else notify(error.message,true)}finally{busy=false;dialog.querySelectorAll('button,input,select').forEach(e=>e.disabled=false);paintStatus()}}
   function startSync(quick=false){
     if(!state||busy||state.sync.active||!state.connected||state.sync.nextAttempt>Date.now())return;
@@ -115,7 +138,8 @@
   document.querySelector('#nav-manage').onclick=()=>window.openManage();
   document.querySelector('#quick-connect').onclick=()=>window.openManage({section:'account'});
   document.querySelector('#quick-sync').onclick=()=>startSync(true);
-  refresh().catch(()=>{document.querySelector('#sync-status').textContent='无法连接本地服务，请检查容器状态。'});
+  document.querySelector('#data-refresh-note').textContent=window.hasLoadedData()?'暂显示本标签页上次读取的战绩，正在后台更新。':'';
+  refresh().catch(()=>{});
   setInterval(()=>refresh().catch(()=>{}),4000);
   setInterval(()=>{if(dialog.open)paintAuth()},1000);
 })();

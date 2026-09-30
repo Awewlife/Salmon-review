@@ -34,7 +34,7 @@ test('synchronization saves completed records on failure, deduplicates on retry,
 });
 test('browser same-origin metadata tolerates rewritten Origin, while cross-site and cross-port requests remain blocked',async t=>{
   const {base,csrf}=await setup(t),headers={Origin:'http://127.0.0.1','Sec-Fetch-Site':'same-origin'};
-  for(const route of ['/style.css','/manage.css','/data.js','/app.js','/api/status']){
+  for(const route of ['/style.css','/manage.css','/data.js','/view-data.js','/app.js','/api/status']){
     // Use HTTP directly: Fetch synthesizes Sec-Fetch-* headers itself.
     const status=await new Promise((resolve,reject)=>{http.get(base+route,{headers},res=>{res.resume();resolve(res.statusCode)}).on('error',reject)});
     assert.equal(status,200,route);
