@@ -1,26 +1,20 @@
 'use strict';
 let trendState;
-const TREND_METRICS={eggs:{label:'搬蛋',short:'搬蛋',unit:'颗'},kills:{label:'巨大鲑鱼击杀',short:'击杀',unit:'只'},deaths:{label:'被救援次数',short:'被救援次数',unit:'次'},combined:{label:'三合一对比',short:'三合一',unit:'数量（颗 / 只 / 次）'}};
-const TREND_DASH={kills:'none',eggs:'9 5',deaths:'10 4 2 4'};
+const TREND_METRICS={eggs:{label:'搬蛋',short:'搬蛋',unit:'颗'},kills:{label:'巨大鲑鱼击杀',short:'击杀',unit:'只'},deaths:{label:'被救援次数',short:'被救援次数',unit:'次'}};
 function trendRangeJobs(){return trendState.jobs.slice(trendState.from,trendState.to+1)}
-function trendMarker(x,y,color,shape=0,clear=true,attributes=''){
-  const common=`class="chart-point ${clear?'node-cleared':'node-failed'}" ${attributes} fill="${clear?color:'#202528'}" stroke="${color}" stroke-width="1.8"`;
-  if(!shape)return `<circle ${common} cx="${x}" cy="${y}" r="4"/>`;
-  if(shape===2)return `<rect ${common} x="${x-4}" y="${y-4}" width="8" height="8"/>`;
-  const sides=shape===3?4:shape>=5?shape:3,rotation=shape===4?Math.PI/2:-Math.PI/2;
-  const points=Array.from({length:sides},(_,i)=>{const angle=rotation+i*Math.PI*2/sides;return `${x+5.5*Math.cos(angle)},${y+5.5*Math.sin(angle)}`}).join(' ');
-  return `<polygon ${common} points="${points}"/>`;
+function trendMarker(x,y,color,clear=true,attributes=''){
+  return `<circle class="chart-point ${clear?'node-cleared':'node-failed'}" ${attributes} cx="${x}" cy="${y}" r="4" fill="${clear?color:'#202528'}" stroke="${color}" stroke-width="1.8"/>`;
 }
-function trendSymbol(person){return `<svg class="trend-symbol" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">${trendMarker(8,8,person.color,person.shape,true)}</svg>`}
+function trendSymbol(person){return `<svg class="trend-symbol" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">${trendMarker(8,8,person.color,true)}</svg>`}
 
 // Reuse the preview's data and geometry, with self-contained SVG styling.
 function trendExportSvg(jobs,people,metrics,showNames,stage){
   const width=1160,legendRows=Math.ceil(people.length/3),top=144+legendRows*28,height=top+metrics.length*310+68;
   const style=`text{font-family:"Microsoft YaHei","Noto Sans CJK SC","Segoe UI",sans-serif;font-size:14px}.muted,.chart-text{fill:#a9b4bc}.chart-grid{stroke:#465057;stroke-dasharray:3 5;stroke-width:.7}.chart-line{fill:none;stroke-linejoin:round;stroke-linecap:round}.trend-line-label rect{fill:#202528;stroke:#465057;stroke-width:.5}.trend-line-label text{font-size:13px;font-weight:600}`;
-  const legend=people.map((p,i)=>{const x=30+i%3*370,y=132+Math.floor(i/3)*28;return `${trendMarker(x+5,y-5,p.color,p.shape,true)}<text x="${x+18}" y="${y}">${esc(p.name+(p.self?' · 我':''))}</text>`}).join('');
+  const legend=people.map((p,i)=>{const x=30+i%3*370,y=132+Math.floor(i/3)*28;return `${trendMarker(x+5,y-5,p.color,true)}<text x="${x+18}" y="${y}">${esc(p.name+(p.self?' · 我':''))}</text>`}).join('');
   const plots=metrics.map((metric,i)=>{
     const y=top+i*310,m=TREND_METRICS[metric];
-    return `<text x="30" y="${y}" style="font-size:18px;font-weight:700">${m.label} · ${m.unit}${metric==='combined'?'　实线：击杀 / 虚线：搬蛋 / 点划线：被救援':''}</text>`+largeChart(jobs,people,metric,{interactive:false,showNames}).replace('<svg viewBox=',`<svg x="30" y="${y+12}" width="1100" height="260" viewBox=`);
+    return `<text x="30" y="${y}" style="font-size:18px;font-weight:700">${m.label} · ${m.unit}</text>`+largeChart(jobs,people,metric,{interactive:false,showNames}).replace('<svg viewBox=',`<svg x="30" y="${y+12}" width="1100" height="260" viewBox=`);
   }).join('');
   return {width,height,svg:`<svg xmlns="http://www.w3.org/2000/svg" fill="#eff3ed" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>${style}</style><rect width="100%" height="100%" fill="#202528"/><text x="30" y="38" style="font-size:23px;font-weight:700">SALMON REVIEW · ${esc(stage)}</text><text x="30" y="66">本期第 ${jobs[0].index}—${jobs.at(-1).index} 场 · 共 ${jobs.length} 场 · ${esc(date(jobs[0].time,true))} — ${esc(date(jobs.at(-1).time,true))}（UTC+8）</text><text x="30" y="94" class="muted">实心节点：常规三波通过　空心节点：未通过　同色：同一玩家</text>${legend}${plots}<text x="30" y="${height-42}" class="muted">搬蛋不计协助；被救援不等同全部倒地。队友缺席、缺场或无法确认相邻的位置断线。</text><text x="30" y="${height-18}" class="muted">场次编号沿用本期本地记录顺序；仅导出所选范围和玩家。数据来源：SplatNet 3 结算记录。</text></svg>`};
 }
@@ -56,7 +50,7 @@ function openTrend(){
   const jobs=matches(),teammates=SalmonStats.suspectedTeammates(jobs);
   trendState={jobs,teammates,selected:new Set(),include:false,showNames:true,from:0,to:jobs.length-1};
   const dialog=document.querySelector('#trend-dialog');
-  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期表现大图</h2><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭大图">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场，仅作疑似识别</p></div><div id="trend-people"></div><div class="trend-range" role="group" aria-label="选择连续场次与导出"><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">第 ${j.index} 场 · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>第 ${j.index} 场 · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><div class="trend-export-controls"><label>导出内容<select id="trend-export-metric"><option value="all">全部四张图（长图）</option>${Object.entries(TREND_METRICS).map(([key,m])=>`<option value="${key}">${m.label}</option>`).join('')}</select></label><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></div><div id="trend-plots"></div><p class="trend-footnote">同色为同一玩家，从上到下依次为搬蛋、巨大鲑鱼击杀、被救援次数、三合一。三合一共用纵轴显示原始数量，形状区分玩家；实线击杀、虚线搬蛋、点划线被救援。队友缺席场次留空；缺场或无法确认相邻的位置断开计数和折线。点击任一场查看详情。${shift().loaded<shift().total?'本期仅保存部分场次，识别与对比覆盖已保存的连续片段。':''}</p></div>`;
+  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期表现大图</h2><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭大图">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场，仅作疑似识别</p></div><div id="trend-people"></div><details class="trend-range" aria-label="选择连续场次与导出"><summary><span>场次筛选与导出</span><span id="trend-range-summary"></span></summary><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">第 ${j.index} 场 · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>第 ${j.index} 场 · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><div class="trend-export-controls"><label>导出内容<select id="trend-export-metric"><option value="all">全部三张图（长图）</option>${Object.entries(TREND_METRICS).map(([key,m])=>`<option value="${key}">${m.label}</option>`).join('')}</select></label><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></details><div id="trend-plots"></div><p class="trend-footnote">同色为同一玩家，从上到下依次为搬蛋、巨大鲑鱼击杀、被救援次数。队友缺席场次留空；缺场或无法确认相邻的位置断开计数和折线。点击任一场查看详情。${shift().loaded<shift().total?'本期仅保存部分场次，识别与对比覆盖已保存的连续片段。':''}</p></div>`;
   document.querySelector('#close-trend').onclick=()=>dialog.close();
   document.querySelector('#include-teammates').onclick=()=>{
     trendState.include=!trendState.include;
@@ -77,7 +71,7 @@ function openTrend(){
 }
 function trendPeople(){
   const palette=['#81cbd9','#ff997d','#bc9cff','#f0c36d','#ec91be','#78d5ac','#91acf8'];
-  return [{...trendState.jobs[0].players.find(p=>p.me),color:'#d5ef68',shape:0,self:true},...trendState.teammates.map((p,i)=>({...p,color:palette[i%palette.length],shape:i%7+1,self:false}))];
+  return [{...trendState.jobs[0].players.find(p=>p.me),color:'#d5ef68',self:true},...trendState.teammates.map((p,i)=>({...p,color:palette[i%palette.length],self:false}))];
 }
 function renderTrend(){
   const {include,selected,teammates}=trendState,people=trendPeople(),jobs=trendRangeJobs();
@@ -88,8 +82,9 @@ function renderTrend(){
   toggle.classList.toggle('primary',include);
   document.querySelector('#trend-people').innerHTML=`<span class="trend-person self">${trendSymbol(people[0])}${esc(people[0].name)} <small>我 · 本期 ${trendState.jobs.length} 场</small></span>${include?people.slice(1).map(p=>`<label class="trend-person"><input type="checkbox" data-trend-player="${p.key}" ${selected.has(p.key)?'checked':''}>${trendSymbol(p)}${esc(p.name)}<small>${p.count} 场 · 最长连续 ${p.longest} 场</small></label>`).join(''):''}${!teammates.length?'<span class="subtext">已确认连续的记录内，未识别到同队至少 3 场的队友。</span>':''}`;
   const shown=people.filter(p=>p.self||(include&&selected.has(p.key)));
+  document.querySelector('#trend-range-summary').textContent=jobs.length===trendState.jobs.length?`全部 ${jobs.length} 场`:`第 ${jobs[0].index}—${jobs.at(-1).index} 场 · ${jobs.length} 场`;
   document.querySelector('#trend-range-note').textContent=`当前显示第 ${jobs[0].index}—${jobs.at(-1).index} 场，共 ${jobs.length} 场。导出沿用当前队友选择与人名开关；缺口仍会断线。`;
-  document.querySelector('#trend-plots').innerHTML=`<div class="trend-outcome-legend"><span><i class="node-solid"></i>常规三波通过</span><span><i class="node-hollow"></i>未通过</span><span>↔ 四张图横向同步</span></div>`+Object.keys(TREND_METRICS).map(metric=>`<section class="trend-plot" data-plot-metric="${metric}"><div class="trend-plot-heading"><h3>${TREND_METRICS[metric].label}<span>${TREND_METRICS[metric].unit}</span></h3>${metric==='eggs'?`<label class="name-switch" title="控制四张图的线尾姓名标签"><span>显示人名</span><input type="checkbox" role="switch" id="show-trend-names" ${trendState.showNames?'checked':''}><i aria-hidden="true"></i></label>`:''}</div>${metric==='combined'?'<p class="combined-key">━━ 击杀　┄┄ 搬蛋　━·━ 被救援 · 共用纵轴，均为原始数量</p>':''}<div class="trend-chart-scroll" tabindex="0" role="region" aria-label="${TREND_METRICS[metric].short}图表横向滚动区域"><div class="trend-chart-inner">${largeChart(jobs,shown,metric)}<div class="tooltip trend-tooltip"></div></div></div></section>`).join('');
+  document.querySelector('#trend-plots').innerHTML=`<div class="trend-outcome-legend"><span><i class="node-solid"></i>常规三波通过</span><span><i class="node-hollow"></i>未通过</span><span>↔ 三张图横向同步</span></div>`+Object.keys(TREND_METRICS).map(metric=>`<section class="trend-plot" data-plot-metric="${metric}"><div class="trend-plot-heading"><h3>${TREND_METRICS[metric].label}<span>${TREND_METRICS[metric].unit}</span></h3>${metric==='eggs'?`<label class="name-switch" title="控制三张图的线尾姓名标签"><span>显示人名</span><input type="checkbox" role="switch" id="show-trend-names" ${trendState.showNames?'checked':''}><i aria-hidden="true"></i></label>`:''}</div><div class="trend-chart-scroll" tabindex="0" role="region" aria-label="${TREND_METRICS[metric].short}图表横向滚动区域"><div class="trend-chart-inner">${largeChart(jobs,shown,metric)}<div class="tooltip trend-tooltip"></div></div></div></section>`).join('');
   const plots=document.querySelector('#trend-plots'),nameSwitch=document.querySelector('#show-trend-names');
   plots.classList.toggle('names-hidden',!trendState.showNames);
   nameSwitch.onchange=()=>{trendState.showNames=nameSwitch.checked;plots.classList.toggle('names-hidden',!trendState.showNames)};
@@ -112,7 +107,7 @@ function renderTrend(){
     const j=jobs.find(j=>j.id===el.dataset.trendJob),metric=el.dataset.metric,wrap=el.closest('.trend-chart-inner'),tip=wrap.querySelector('.tooltip');
     const show=()=>{
       const present=shown.flatMap(who=>{const player=j.players.find(p=>p.key===who.key);return player?[{...who,player}]:[]});
-      tip.innerHTML=`<strong>第 ${j.index} 场 · ${j.clear?'通过':'未通过'} · ${date(j.time,true)}</strong>${metric==='eggs'||metric==='combined'?'<small>搬蛋 + 协助搬蛋 · 折线不计协助</small>':''}${present.map(who=>{const p=who.player;return `<div class="trend-tip-row"><span><i style="background:${who.color}"></i>${esc(who.name)}</span><b>${metric==='combined'?`击杀 ${fmt(p.kills)} · 搬蛋 ${fmt(p.eggs)}<span class="tip-assist"> + ${fmt(p.assist)}</span> · 被救援 ${fmt(p.deaths)}`:metric==='eggs'?`${fmt(p.eggs)}<span class="tip-assist"> + ${fmt(p.assist)}</span> 颗`:`${fmt(p[metric])} ${TREND_METRICS[metric].unit}`}</b></div>`}).join('')}<small>点击查看场次详情 ↗</small>`;
+      tip.innerHTML=`<strong>第 ${j.index} 场 · ${j.clear?'通过':'未通过'} · ${date(j.time,true)}</strong>${metric==='eggs'?'<small>搬蛋 + 协助搬蛋 · 折线不计协助</small>':''}${present.map(who=>{const p=who.player;return `<div class="trend-tip-row"><span><i style="background:${who.color}"></i>${esc(who.name)}</span><b>${metric==='eggs'?`${fmt(p.eggs)}<span class="tip-assist"> + ${fmt(p.assist)}</span> 颗`:`${fmt(p[metric])} ${TREND_METRICS[metric].unit}`}</b></div>`}).join('')}<small>点击查看场次详情 ↗</small>`;
       tip.style.display='block';
       const a=el.getBoundingClientRect(),b=wrap.getBoundingClientRect();
       tip.style.left=Math.max(4,Math.min(a.x-b.x+15,b.width-tip.offsetWidth-4))+'px';tip.style.top='5px';
@@ -124,19 +119,12 @@ function renderTrend(){
 }
 function largeChart(jobs,people,metric,{interactive=true,showNames=true}={}){
   const W=1100,H=260,L=42,R=160,T=18,B=34;
-  const lines=people.flatMap(p=>(metric==='combined'?['kills','eggs','deaths']:[metric]).map(key=>({...p,metric:key})));
+  const lines=people.map(p=>({...p,metric}));
   const peak=Math.max(0,...jobs.flatMap(j=>lines.map(who=>j.players.find(p=>p.key===who.key)?.[who.metric]??0)));
   const max=metric==='deaths'?Math.max(5,Math.ceil(peak/5)*5):Math.max(10,Math.ceil(peak/10)*10);
   const x=i=>jobs.length===1?(L+W-R)/2:L+i*(W-L-R)/(jobs.length-1),y=v=>H-B-v/max*(H-B-T),step=(W-L-R)/Math.max(1,jobs.length-1);
   const placed=[];
-  // One name per player in the combined plot; labelling all three metrics
-  // would pile up twelve labels near the baseline in a four-player comparison.
-  const labelLines=metric==='combined'?people.map(p=>{
-    const latest=jobs.findLast(j=>j.players.some(v=>v.key===p.key))?.players.find(v=>v.key===p.key);
-    const key=['kills','eggs','deaths'].sort((a,b)=>(latest?.[b]??0)-(latest?.[a]??0))[0];
-    return {...p,metric:key};
-  }):lines;
-  const labels=(showNames?labelLines:[]).map(p=>{
+  const labels=(showNames?lines:[]).map(p=>{
     const end=SalmonStats.segments(jobs,p.key,p.metric).at(-1)?.at(-1);if(!end)return '';
     const name=p.name+(p.self?' · 我':''),shortName=[...name].slice(0,18).join('')+([...name].length>18?'…':'');
     const width=Math.min(148,[...shortName].reduce((n,c)=>n+(c.charCodeAt(0)>255?13:7.5),0)+12),left=Math.min(W-width-4,x(end.index)+13);
@@ -145,5 +133,5 @@ function largeChart(jobs,people,metric,{interactive=true,showNames=true}={}){
     placed.push({left,top,width});
     return `<g class="trend-line-label" data-line-label="${p.key}"><title>${esc(name)}</title><path d="M${x(end.index)+5},${y(end.value)} L${left},${top+11}" stroke="${p.color}" stroke-width="1" opacity=".65"/><rect x="${left}" y="${top}" width="${width}" height="22" rx="4"/><text x="${left+6}" y="${top+15}" fill="${p.color}">${esc(shortName)}</text></g>`;
   }).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${TREND_METRICS[metric].short}逐场对比"><text x="${L}" y="${H-3}" class="chart-text">场次</text>${Array.from({length:6},(_,i)=>{const v=max*i/5;return `<line class="chart-grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="chart-text" x="${L-12}" y="${y(v)+4}" text-anchor="end">${fmt(v)}</text>`}).join('')}${lines.map(p=>SalmonStats.segments(jobs,p.key,p.metric).map(segment=>`<polyline class="chart-line" data-player-line="${p.key}" stroke="${p.color}" stroke-dasharray="${metric==='combined'?TREND_DASH[p.metric]:'none'}" style="stroke-width:${p.self?3:2}" points="${segment.map(v=>`${x(v.index)},${y(v.value)}`).join(' ')}"/>${segment.map(v=>trendMarker(x(v.index),y(v.value),p.color,metric==='combined'?p.shape:0,jobs[v.index].clear,`data-point-job="${jobs[v.index].id}"`)).join('')}`).join('')).join('')}${labels}${jobs.map((j,i)=>`${interactive?`<rect class="chart-hit" data-trend-job="${j.id}" data-metric="${metric}" x="${x(i)-step/2}" y="${T}" width="${step}" height="${H-T-B}" tabindex="0" role="link" aria-label="查看第 ${j.index} 场${j.clear?'通过':'未通过'}的${TREND_METRICS[metric].short}数据与详情"/>`:""}${jobs.length<36||i%2===0||i===jobs.length-1?`<text class="chart-text" x="${x(i)}" y="${H-15}" text-anchor="middle">${j.index}</text>`:''}`).join('')}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${TREND_METRICS[metric].short}逐场对比"><text x="${L}" y="${H-3}" class="chart-text">场次</text>${Array.from({length:6},(_,i)=>{const v=max*i/5;return `<line class="chart-grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="chart-text" x="${L-12}" y="${y(v)+4}" text-anchor="end">${fmt(v)}</text>`}).join('')}${lines.map(p=>SalmonStats.segments(jobs,p.key,p.metric).map(segment=>`<polyline class="chart-line" data-player-line="${p.key}" stroke="${p.color}" style="stroke-width:${p.self?3:2}" points="${segment.map(v=>`${x(v.index)},${y(v.value)}`).join(' ')}"/>${segment.map(v=>trendMarker(x(v.index),y(v.value),p.color,jobs[v.index].clear,`data-point-job="${jobs[v.index].id}"`)).join('')}`).join('')).join('')}${labels}${jobs.map((j,i)=>`${interactive?`<rect class="chart-hit" data-trend-job="${j.id}" data-metric="${metric}" x="${x(i)-step/2}" y="${T}" width="${step}" height="${H-T-B}" tabindex="0" role="link" aria-label="查看第 ${j.index} 场${j.clear?'通过':'未通过'}的${TREND_METRICS[metric].short}数据与详情"/>`:""}${jobs.length<36||i%2===0||i===jobs.length-1?`<text class="chart-text" x="${x(i)}" y="${H-15}" text-anchor="middle">${j.index}</text>`:''}`).join('')}</svg>`;
 }

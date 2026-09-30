@@ -30,14 +30,3 @@ test('single-match single-metric export centers the point and respects hidden na
   assert.equal((c.output.svg.match(/class="chart-line"/g)??[]).length,1);
   assert.equal(c.jobs.length,6);
 });
-
-test('combined chart uses real values on one scale, metric dash styles and player shapes',()=>{
-  const c=setup();
-  vm.runInContext(`people[0].shape=1; output=trendExportSvg(jobs.slice(1,3),people,['combined'],true,'场地')`,c);
-  const svg=c.output.svg;
-  assert.match(svg,/stroke-dasharray="none"/);assert.match(svg,/stroke-dasharray="9 5"/);assert.match(svg,/stroke-dasharray="10 4 2 4"/);
-  assert.equal((svg.match(/class="chart-line"/g)??[]).length,3);
-  assert.equal((svg.match(/<polygon class="chart-point/g)??[]).length,7);
-  assert.match(svg,/未通过/);assert.match(svg,/node-failed/);assert.match(svg,/>20<\/text>/);
-  assert.match(svg,/数量（颗 \/ 只 \/ 次）/);assert.doesNotMatch(svg,/>900</);
-});
