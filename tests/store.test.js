@@ -48,3 +48,36 @@ test('same nicknames remain distinct; rename retains identity; absent matches br
 test('asset URL allowlist',()=>{
   assert.equal(safeAssetUrl('http://127.0.0.1/test'),null);assert.equal(safeAssetUrl('https://cdn.nintendo.net.attacker.com/test'),null);assert.equal(safeAssetUrl('https://cdn.nintendo.net:444/test'),null);assert.equal(safeAssetUrl('https://cdn.nintendo.net/test'),'https://cdn.nintendo.net/test');
 });
+
+test('199-match snapshots deduplicate image writes and unchanged reads stay read-only across restart',t=>{
+  const {store,dir}=setup(t),documents=[];
+  const addImages=value=>{if(!value||typeof value!=='object')return;for(const child of Object.values(value))addImages(child);if(typeof value.name==='string')value.image={url:'https://cdn.nintendo.net/shared-test.png'}};
+  for(let i=0;i<199;i++){const f=fixture({id:'images-'+i});addImages(f.record);documents.push(f.record,f.summary)}
+  store.import(documents);const original=store.backup().documents;
+  const changes=()=>store.db.prepare('SELECT total_changes() AS n').get().n;
+  let before=changes();const first=store.snapshot();
+  assert.equal(first.jobs.length,199);assert.equal(changes()-before,1);
+  const image=first.jobs[0].stage.image;assert.match(image,/^\/assets\/[a-f0-9]{64}$/);
+  assert.equal(store.db.prepare('SELECT url FROM assets WHERE id=?').get(image.split('/').at(-1)).url,'https://cdn.nintendo.net/shared-test.png');
+  before=changes();const second=store.snapshot();assert.equal(changes()-before,0);
+  assert.deepEqual({...second,generated:null},{...first,generated:null});
+  assert.deepEqual(store.backup().documents,original);
+  store.close();const reopened=new Store(dir);
+  try{const n=reopened.db.prepare('SELECT total_changes() AS n').get().n;assert.equal(reopened.snapshot().jobs.length,199);assert.equal(reopened.db.prepare('SELECT total_changes() AS n').get().n,n)}finally{reopened.close()}
+});
+
+test('asset URL refresh keeps stable image paths and batch failure rolls back all changes',t=>{
+  const {store}=setup(t),first=fixture(),second=fixture({id:'newer-image'});
+  first.record.result.coopStage.image={url:'https://cdn.nintendo.net/stage.png?v=1'};
+  second.record.result.playedTime='2026-09-19T02:00:00Z';
+  second.record.result.coopStage.image={url:'https://cdn.nintendo.net/stage.png?v=2'};
+  store.import([first.record,first.summary]);const image=store.snapshot().jobs[0].stage.image;
+  store.import([second.record,second.summary]);const data=store.snapshot();
+  assert.equal(data.jobs[1].stage.image,image);
+  assert.equal(store.db.prepare('SELECT url FROM assets WHERE id=?').get(image.split('/').at(-1)).url,'https://cdn.nintendo.net/stage.png?v=2');
+  const before=store.db.prepare('SELECT * FROM assets').all();
+  store.db.exec("CREATE TRIGGER fail_asset BEFORE INSERT ON assets WHEN NEW.id='reject' BEGIN SELECT RAISE(ABORT,'fixture_failure'); END");
+  assert.throws(()=>store.saveAssets(new Map([['first','https://cdn.nintendo.net/new.png'],['reject','https://cdn.nintendo.net/reject.png']])),/fixture_failure/);
+  assert.deepEqual(store.db.prepare('SELECT * FROM assets').all(),before);
+  store.db.exec('DROP TRIGGER fail_asset');assert.equal(store.snapshot().jobs.length,2);
+});

@@ -4,7 +4,7 @@
 
 这是一个**本地运行的预发布版**，不是任天堂官方产品。普通玩家从 Release 下载已构建好的安装包即可，安装过程中不需要连接 Docker Hub 或 npm，也无需编译代码。首次打开是空的，需要连接自己的账号，或者导入已有记录。当前没有 AI 分析。
 
-当前版本 **0.3.4**，项目代码采用 **AGPL-3.0-or-later**。已知限制和试用步骤见 [测试说明](BETA_TESTING.md)，版本变化见 [更新记录](CHANGELOG.md)。仓库仍为 Private，Release 附件仅有仓库访问权限的人可下载。
+当前版本 **0.3.5**，项目代码采用 **AGPL-3.0-or-later**。已知限制和试用步骤见 [测试说明](BETA_TESTING.md)，版本变化见 [更新记录](CHANGELOG.md)。仓库仍为 Private，Release 附件仅有仓库访问权限的人可下载。
 
 ## 开始前先知道这些
 
@@ -26,8 +26,8 @@
 
 ### 2. 下载预构建安装包
 
-1. 打开 [Release 下载页](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.4)。仓库仍为私有，需要先登录有访问权限的 GitHub 账号。
-2. 在 **Assets** 中下载 **`SalmonReview-v0.3.4-windows-x64.zip`**。
+1. 打开 [Release 下载页](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.5)。仓库仍为私有，需要先登录有访问权限的 GitHub 账号。
+2. 在 **Assets** 中下载 **`SalmonReview-v0.3.5-windows-x64.zip`**。
 3. 将 ZIP **全部解压**到一个固定位置，例如 `D:\Games\SalmonReview`。不要直接在压缩包里运行。
 4. 进入能看到 `Start.cmd`、`Start.ps1`、`compose.yaml` 和 `salmon-review-image.tar.gz` 的文件夹。
 
@@ -170,6 +170,7 @@ docker compose -p salmon-review up -d --no-build --pull never
 | 看到的情况 | 应该怎么做 |
 | --- | --- |
 | v0.3.3 导入镜像后提示“与发布版本不符” | 下载 v0.3.4 或更新安装包，完整解压后沿用原项目名启动。这是旧启动器兼容性问题，无需重装 Docker、删除镜像或数据卷。 |
+| v0.3.4 战绩读取很慢，页面反复提示读取失败 | 升级到 v0.3.5，关闭旧页面并沿用原项目名启动。新版消除了读取时重复写入图片索引的问题。 |
 | 提示找不到 `docker` 命令 | 确认 Docker Desktop 已安装，重新打开终端后再试。 |
 | `Cannot connect to the Docker daemon`、pipe 或 engine 错误 | 打开 Docker Desktop，等待引擎运行；如果 Docker Desktop 自身报错，先按它的提示或官方安装说明完成修复，再运行本项目。 |
 | 提示找不到配置文件 | 终端没有开在项目目录。进入能看到 `compose.yaml` 的文件夹。 |

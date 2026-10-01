@@ -59,14 +59,26 @@ export class Store{
     }catch(error){this.db.exec('ROLLBACK');throw error}
     return {added,skipped:records.length-added,summaries:summaries.length};
   }
-  asset(url){if(!url)return '';const id=hash(url.split('?')[0]);this.db.prepare('INSERT OR REPLACE INTO assets VALUES(?,?)').run(id,url);return '/assets/'+id}
+  saveAssets(assets){
+    const known=new Map(this.db.prepare('SELECT id,url FROM assets').all().map(row=>[row.id,row.url]));
+    const changed=[...assets].filter(([id,url])=>known.get(id)!==url);
+    if(!changed.length)return;
+    // A snapshot may reference the same image thousands of times. Commit only
+    // distinct new/changed URLs together; unchanged reads must not write to disk.
+    const put=this.db.prepare('INSERT INTO assets(id,url) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET url=excluded.url');
+    this.db.exec('BEGIN IMMEDIATE');
+    try{for(const [id,url] of changed)put.run(id,url);this.db.exec('COMMIT')}
+    catch(error){this.db.exec('ROLLBACK');throw error}
+  }
   snapshot(){
+    const assets=new Map();
+    const asset=url=>{if(!url)return '';const id=hash(url.split('?')[0]);assets.set(id,url);return '/assets/'+id};
     const adjacent=historyAdjacency(this.db.prepare('SELECT raw FROM summaries').all().map(r=>JSON.parse(r.raw)));
     const allShifts=this.db.prepare('SELECT info FROM shifts').all().map(r=>JSON.parse(r.info));
     const byId=new Map(allShifts.map(s=>[s.id,s]));
     const rows=this.db.prepare('SELECT r.raw,m.shift_id FROM records r LEFT JOIN membership m ON m.record_id=r.id ORDER BY r.played,r.id').all();
     const rawById=new Map(rows.map(row=>{const raw=JSON.parse(row.raw);return [normalizeId(raw.id),raw]}));
-    const all=rows.map(row=>normalize(JSON.parse(row.raw),byId.get(row.shift_id),url=>this.asset(url)));
+    const all=rows.map(row=>normalize(JSON.parse(row.raw),byId.get(row.shift_id),asset));
     const jobs=all.filter(j=>j.supported),shifts=[];
     for(const group of allShifts.sort((a,b)=>b.start.localeCompare(a.start))){
       const batch=jobs.filter(j=>j.shift===group.id),archived=all.filter(j=>j.shift===group.id);
@@ -77,8 +89,9 @@ export class Store{
       // detail and having enough fields to analyse it are separate conditions.
       const interrupted=archived.filter(j=>j.interrupted).length,saved=archived.length-interrupted;
       const complete=group.total!==null&&saved>=group.total;
-      shifts.push({...group,recordIds:undefined,loaded:batch.length,saved,interrupted,excluded:saved-batch.length,total:group.total??saved,complete,stage:batch.at(-1).stage,weapons:(lastRaw.weapons??[]).map(w=>item(w,url=>this.asset(url)))});
+      shifts.push({...group,recordIds:undefined,loaded:batch.length,saved,interrupted,excluded:saved-batch.length,total:group.total??saved,complete,stage:batch.at(-1).stage,weapons:(lastRaw.weapons??[]).map(w=>item(w,asset))});
     }
+    this.saveAssets(assets);
     return {generated:new Date().toISOString(),language:'zh-CN',timezone:'Asia/Hong_Kong',player:all.at(-1)?.players[0]?.name??'尚未导入战绩',jobs,shifts,
       archived:all.length,excluded:all.filter(j=>!j.supported).map(j=>({id:j.id,time:j.time,stage:j.stage.name,reasons:j.reasons})),lastImport:this.get('lastImport')};
   }
