@@ -1,5 +1,8 @@
 'use strict';
 window.SalmonStats={
+  interruptionMarker(x,y){
+    return `<circle class="interruption-marker" cx="${x}" cy="${y}" r="4" fill="#202528" stroke="#a8b0b4" stroke-width="1.8"><title>掉线：无有效波次结算，不计入表现统计</title></circle>`;
+  },
   unusedSpecials(job,player){
     // Attribute uses by stable special ID only when all four assignments are unique.
     if(job.rule!=='REGULAR'||job.clear||![1,2,3].includes(job.failedWave))return null;
@@ -22,8 +25,9 @@ window.SalmonStats={
     [...jobs].sort((a,b)=>a.time.localeCompare(b.time)).forEach((j,i)=>{
       j.players.filter(p=>!p.me).forEach(p=>{
         const row=people.get(p.key)||{key:p.key,name:p.name,last:-2,run:0,longest:0,count:0};
-        row.run=row.last===i-1&&j.continuousWithPrevious===true?row.run+1:1;
-        row.longest=Math.max(row.longest,row.run);row.last=i;row.count++;row.name=p.name;
+        // Keep confirmed roster continuity through interruptions, without counting them as played matches.
+        row.run=(row.last===i-1&&j.continuousWithPrevious===true?row.run:0)+(j.interrupted?0:1);
+        row.longest=Math.max(row.longest,row.run);row.last=i;if(!j.interrupted)row.count++;row.name=p.name;
         people.set(p.key,row);
       });
     });
@@ -34,7 +38,8 @@ window.SalmonStats={
     jobs.forEach((j,index)=>{
       if(index>0&&j.continuousWithPrevious!==true&&current.length){segments.push(current);current=[];}
       const p=j.players.find(p=>p.key===key);
-      if(p&&Number.isFinite(p[metric]))current.push({index,value:p[metric]});
+      // Zero is a display position for interrupted records, never a statistical value.
+      if(p&&(j.interrupted||Number.isFinite(p[metric])))current.push({index,value:j.interrupted?0:p[metric]});
       else if(current.length){segments.push(current);current=[];}
     });
     if(current.length)segments.push(current);

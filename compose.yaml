@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${SALMON_IMAGE:-salmon-review:0.3.7}
+    image: ${SALMON_IMAGE:-salmon-review:0.3.8}
     pull_policy: never
     platform: linux/amd64
     init: true
@@ -18,7 +18,7 @@ services:
     cap_drop:
       - ALL
   updater:
-    image: salmon-review:0.3.7
+    image: salmon-review:0.3.8
     pull_policy: never
     platform: linux/amd64
     init: true

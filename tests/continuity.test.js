@@ -66,7 +66,7 @@ test('a complete count or short time interval alone cannot prove adjacency',t=>{
   assert.deepEqual(flags(data.jobs),[false,false,false]);assert.equal(metrics.suspectedTeammates(data.jobs).length,0);
 });
 
-test('interrupted result is saved separately, does not make a full shift incomplete and breaks continuity',t=>{
+test('interrupted result is excluded from statistics but preserves confirmed teammate continuity',t=>{
   const store=setup(t),bad=record(3);bad.result.resultWave=-1;bad.result.waveResults=[];
   store.import([1,2,4,5].map(record).concat(bad,summary([5,4,3,2,1],4)));
   const data=store.snapshot(),s=data.shifts[0];
@@ -82,4 +82,52 @@ test('interrupted result cannot fill a missing normal result; malformed result h
   let s=store.snapshot().shifts[0];assert.equal(s.complete,false);assert.equal(s.saved,1);assert.equal(s.total,2);
   const malformed=record(2);delete malformed.result.myResult.defeatEnemyCount;store.import([malformed]);
   s=store.snapshot().shifts[0];assert.equal(s.complete,true);assert.equal(s.saved,2);assert.equal(s.loaded,1);assert.equal(s.excluded,1);
+});
+
+test('chart timeline retains interrupted scores without changing statistics or bridging missing records',t=>{
+  const store=setup(t),stopped=record(3);
+  stopped.result.resultWave=-1;stopped.result.waveResults=[];stopped.result.afterGradePoint=540;
+  for(const p of [stopped.result.myResult,...stopped.result.memberResults])p.goldenDeliverCount=0;
+  store.import([record(1),record(2),stopped,record(4),record(6),summary([6,5,4,3,2,1],5)]);
+  const d=store.snapshot(),timeline=d.chartJobs;
+  assert.equal(d.jobs.length,4);assert.equal(timeline.length,5);
+  assert.deepEqual(flags(d.jobs),[false,true,false,false]);
+  assert.deepEqual(flags(timeline),[false,true,true,true,false]);
+  assert.equal(timeline[2].interrupted,true);assert.equal(timeline[2].gradePoint,540);
+  assert.deepEqual(timeline.map(j=>j.index),[1,2,3,4,5]);
+  assert.equal(timeline[2].players[0].eggs,null);
+  assert.equal(timeline[2].recordedPerformance.players[0].eggs,0);
+  assert.equal(timeline[2].recordedPerformance.players[0].kills,stopped.result.myResult.defeatEnemyCount);
+  assert.equal(metrics.suspectedTeammates(d.jobs).length,0);
+  assert.equal(metrics.suspectedTeammates(timeline).length,3);
+  assert.equal(metrics.suspectedTeammates(timeline)[0].longest,3);
+  assert.deepEqual(Array.from(metrics.segments(timeline,timeline[0].players[0].key,'eggs'),part=>part.length),[4,1]);
+});
+
+
+test('four matches, interruption, two matches form a six-match teammate streak',t=>{
+  const store=setup(t),stopped=record(5);stopped.result.resultWave=-1;stopped.result.waveResults=[];
+  store.import([1,2,3,4,6,7].map(record).concat(stopped,summary([7,6,5,4,3,2,1],6)));
+  const data=store.snapshot(),people=metrics.suspectedTeammates(data.chartJobs);
+  assert.equal(people.length,3);
+  for(const p of people){assert.equal(p.longest,6);assert.equal(p.count,6);}
+  assert.equal(data.jobs.length,6);assert.equal(data.shifts[0].loaded,6);
+});
+
+test('interruptions preserve teammate runs only when roster and every adjacency are confirmed',()=>{
+  const job=(n,interrupted=false)=>({time:String(n).padStart(2,'0'),continuousWithPrevious:n>0,interrupted,players:[{key:'a',name:'A'}]});
+  const jobs=[job(0),job(1),job(2,true),job(3,true),job(4)];
+  const rows=metrics.suspectedTeammates(jobs);
+  assert.equal(rows.length,1);assert.equal(rows[0].longest,3);assert.equal(rows[0].count,3);
+  for(let i=1;i<jobs.length;i++){
+    const gap=structuredClone(jobs);gap[i].continuousWithPrevious=false;
+    assert.equal(metrics.suspectedTeammates(gap).length,0);
+  }
+  for(let i=1;i<jobs.length;i++){
+    const absent=structuredClone(jobs);absent[i].players=[];
+    assert.equal(metrics.suspectedTeammates(absent).length,0);
+  }
+  assert.equal(metrics.suspectedTeammates(jobs.slice(0,-1)).length,0);
+  assert.equal(metrics.suspectedTeammates([job(0,true),job(1),job(2)]).length,0);
+  assert.equal(metrics.suspectedTeammates([job(0,true),job(1,true),job(2,true)]).length,0);
 });

@@ -79,11 +79,19 @@ export class Store{
     const rows=this.db.prepare('SELECT r.raw,m.shift_id FROM records r LEFT JOIN membership m ON m.record_id=r.id ORDER BY r.played,r.id').all();
     const rawById=new Map(rows.map(row=>{const raw=JSON.parse(row.raw);return [normalizeId(raw.id),raw]}));
     const all=rows.map(row=>normalize(JSON.parse(row.raw),byId.get(row.shift_id),asset));
-    const jobs=all.filter(j=>j.supported),shifts=[];
+    const jobs=all.filter(j=>j.supported),shifts=[],chartJobs=[];
     for(const group of allShifts.sort((a,b)=>b.start.localeCompare(a.start))){
       const batch=jobs.filter(j=>j.shift===group.id),archived=all.filter(j=>j.shift===group.id);
       if(!batch.length)continue;
       batch.forEach((j,i)=>{j.index=i+1;j.continuousWithPrevious=i>0&&adjacent(group.id,batch[i-1].id,j.id)});
+      // A chart timeline may include known interruptions, but statistical jobs
+      // remain unchanged. Teammate detection uses the complete timeline. Never expose placeholder zeros
+      // from an interrupted result as performance measurements.
+      const timeline=archived.filter(j=>j.supported||(j.interrupted&&j.rule==='REGULAR'));
+      timeline.forEach((j,i)=>chartJobs.push({...j,index:i+1,
+        continuousWithPrevious:i>0&&adjacent(group.id,timeline[i-1].id,j.id),
+        ...(j.interrupted?{recordedPerformance:{hazard:j.hazard,eggs:j.eggs,kills:j.kills,power:j.power,players:j.players},hazard:null,eggs:null,power:null,kills:null,playerKills:null,
+          players:j.players.map(p=>({...p,eggs:null,assist:null,power:null,kills:null,rescues:null,deaths:null}))}:{})}));
       const lastRaw=rawById.get(batch.at(-1).id);
       // NSO playCount excludes interrupted results (-1, no waves). Saving a
       // detail and having enough fields to analyse it are separate conditions.
@@ -92,7 +100,7 @@ export class Store{
       shifts.push({...group,recordIds:undefined,loaded:batch.length,saved,interrupted,excluded:saved-batch.length,total:group.total??saved,complete,stage:batch.at(-1).stage,weapons:(lastRaw.weapons??[]).map(w=>item(w,asset))});
     }
     this.saveAssets(assets);
-    return {generated:new Date().toISOString(),language:'zh-CN',timezone:'Asia/Hong_Kong',player:all.at(-1)?.players[0]?.name??'尚未导入战绩',jobs,shifts,
+    return {generated:new Date().toISOString(),language:'zh-CN',timezone:'Asia/Hong_Kong',player:all.at(-1)?.players[0]?.name??'尚未导入战绩',jobs,chartJobs,shifts,
       archived:all.length,excluded:all.filter(j=>!j.supported).map(j=>({id:j.id,time:j.time,stage:j.stage.name,reasons:j.reasons})),lastImport:this.get('lastImport')};
   }
   backup(){return {format:'salmon-review-backup',version:1,created:new Date().toISOString(),documents:[...this.db.prepare('SELECT raw FROM summaries ORDER BY created').all(),...this.db.prepare('SELECT raw FROM records ORDER BY played').all()].map(r=>({result:JSON.parse(r.raw)}))}}

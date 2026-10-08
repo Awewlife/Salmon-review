@@ -54,3 +54,20 @@ test('score labels mark hundred bands once, the endpoint and recorded destinatio
   assert.match(svg,/data-score-label-index="2"[^>]*jump/);
   assert.equal((svg.match(/class="score-annotation"/g)||[]).length,labels.length);
 });
+
+test('known interrupted score is grey and connected, but missing score or adjacency remains a gap',()=>{
+  const data=jobs([560,540,560]);data[1].interrupted=true;data[1].index=2;
+  assert.equal(chart.model(data).segments.length,1);
+  assert.match(chart.render(data),/score-point node-interrupted/);
+  assert.doesNotMatch(chart.render(data),/<text[^>]*>中断<\/text>/);
+  assert.match(chart.render(data),/score-annotation interrupted/);
+  assert.match(chart.tooltip(data,1),/对局中断/);
+  assert.doesNotMatch(chart.tooltip(data,1),/未通过/);
+  assert.match(chart.tooltip(data,1),/540/);
+  data[1].gradePoint=null;
+  assert.deepEqual(Array.from(chart.model(data).segments,p=>p.length),[1,1]);
+  assert.match(chart.render(data),/interruption-marker/);
+  assert.match(chart.tooltip(data,1),/未提供/);
+  data[1].gradePoint=540;data[2].continuousWithPrevious=false;
+  assert.deepEqual(Array.from(chart.model(data).segments,p=>p.length),[2,1]);
+});

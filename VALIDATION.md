@@ -98,3 +98,11 @@
 - Score charts now always auto-scale. Labels show the initial score, first recorded score in each new hundred band, final point and rank-change/large-jump destinations. Same-score plateaus and ordinary +20/-10/-20 changes do not add repetitive labels. Missing scores/continuity gaps remain disconnected.
 - Browser verified SALMON REVIEW title, removal of the full-range and sidebar update buttons, real score labels 420/500/600/610, and the update dialog opened from Data & Sync settings. No browser console errors were observed.
 - Local preview reused the original Compose project and data volume; all archived backup document hashes were unchanged.
+
+
+## v0.3.8 release preparation — 2026-10-08
+
+- 77 Node 22 container tests passed, covering interrupted-record timelines, zero-position hollow markers and solid chart lines, teammate continuity across confirmed interruptions, missing-record/absent-player breaks, export coordinates, match navigation, and pending GitHub authorization feedback.
+- Syntax checks, license inventory verification (170 packages), two Python packaging tests and the Windows PowerShell 5.1 installer regression passed. Dependency audit reported zero vulnerabilities.
+- Browser checks confirmed four loaded weapon images in the narrow shift card, normal/interrupted chart nodes opening their corresponding records, the concise interruption legend, and solid lines passing through interruption markers in the overview and three detail charts.
+- Existing local preview continued to use the original data volume. No user records, credentials or signing keys are included in release assets; packaging exports a newly built image and committed source.

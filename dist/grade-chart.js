@@ -38,6 +38,7 @@ window.SalmonGradeChart=(()=>{
       if(segmentStart)reasons.push('start');
       if(!bands.has(band))reasons.push('milestone');
       if(jump)reasons.push('jump');
+      if(point.job.interrupted)reasons.push('interrupted');
       if(point===points.at(-1))reasons.push('end');
       bands.add(band);
       if(reasons.length)labels.push({...point,reasons});
@@ -62,24 +63,25 @@ window.SalmonGradeChart=(()=>{
       const box=boxes.find(b=>!occupied.some(o=>b.x<o.x+o.w+4&&b.x+b.w+4>o.x&&b.y<o.y+o.h+3&&b.y+b.h+3>o.y))??boxes[0];
       occupied.push(box);
       const ly=box.y+7;
-      return `<g class="score-annotation" data-score-label-index="${esc(p.job.index)}" data-score-label-reasons="${p.reasons.join(' ')}"><line class="score-label-leader" x1="${n(px)}" y1="${n(py)}" x2="${n(lx)}" y2="${n(ly)}"/><text class="score-value-label" x="${n(lx)}" y="${n(ly+4)}" text-anchor="middle">${p.value}</text></g>`;
+      return `<g class="score-annotation${p.job.interrupted?' interrupted':''}" data-score-label-index="${esc(p.job.index)}" data-score-label-reasons="${p.reasons.join(' ')}"><line class="score-label-leader" x1="${n(px)}" y1="${n(py)}" x2="${n(lx)}" y2="${n(ly)}"/><text class="score-value-label" x="${n(lx)}" y="${n(ly+4)}" text-anchor="middle">${p.value}</text></g>`;
     }).join('');
     return `<svg class="score-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="打工分数变化：每场结束时的段位分数，纵轴 ${m.lower} 至 ${m.upper} 分"><title>打工分数变化 · 每场结束段位分数</title>
       ${m.ticks.map(value=>`<line x1="${L}" x2="${W-R}" y1="${n(y(value))}" y2="${n(y(value))}" class="chart-grid"/><text class="chart-text" x="${L-10}" y="${n(y(value)+4)}" text-anchor="end">${value}</text>`).join('')}
       ${m.segments.filter(s=>s.length>1).map(s=>`<polyline class="chart-line score-line" points="${s.map(p=>`${n(x(p.position))},${n(y(p.value))}`).join(' ')}"/>`).join('')}
-      ${m.points.filter(p=>p.value!==null).map(p=>`<circle class="chart-point score-point ${p.job.clear?'node-cleared':'node-failed'}" cx="${n(x(p.position))}" cy="${n(y(p.value))}" r="3.8"/>`).join('')}
+      ${m.points.filter(p=>p.value!==null).map(p=>`<circle class="chart-point score-point ${p.job.interrupted?'node-interrupted':p.job.clear?'node-cleared':'node-failed'}" cx="${n(x(p.position))}" cy="${n(y(p.value))}" r="3.8"/>`).join('')}
+      ${m.points.filter(p=>p.job.interrupted&&p.value===null).map(p=>`<circle class="interruption-marker" cx="${n(x(p.position))}" cy="${H-B}" r="4" fill="#202528" stroke="#a8b0b4" stroke-width="1.8"><title>对局中断，未提供结束分数</title></circle>`).join('')}
       ${labels}
-      ${m.points.map(p=>`${p.value!==null?`<rect class="chart-hit score-hit" data-score-job="${esc(p.job.id)}" x="${n(x(p.position)-Math.min(32,(W-L-R)/Math.max(1,jobs.length-1))/2)}" y="${T-8}" width="${n(Math.min(32,(W-L-R)/Math.max(1,jobs.length-1)))}" height="${H-B-T+16}" tabindex="0" role="link" aria-label="第 ${esc(p.job.index)} 场，${esc(p.job.grade)} ${p.value} 分，${p.job.clear?'通过':'未通过'}，查看详情"/>`:''}${p.position===0||p.position===jobs.length-1||(p.position+1)%labelEvery===0?`<text class="chart-text" x="${n(x(p.position))}" y="${H-9}" text-anchor="middle">${esc(p.job.index)}</text>`:''}`).join('')}
+      ${m.points.map(p=>`${p.value!==null||p.job.interrupted?`<rect class="chart-hit score-hit" data-score-job="${esc(p.job.id)}" x="${n(x(p.position)-Math.min(32,(W-L-R)/Math.max(1,jobs.length-1))/2)}" y="${T-8}" width="${n(Math.min(32,(W-L-R)/Math.max(1,jobs.length-1)))}" height="${H-B-T+22}" tabindex="0" role="link" aria-label="${p.job.interrupted?'对局中断':'第 '+esc(p.job.index)+' 场'}，${esc(p.job.grade)} ${p.value??'未提供'} 分，查看详情"/>`:''}${p.position===0||p.position===jobs.length-1||(p.position+1)%labelEvery===0?`<text class="chart-text" x="${n(x(p.position))}" y="${H-9}" text-anchor="middle">${esc(p.job.index)}</text>`:''}`).join('')}
     </svg>`;
   }
   function tooltip(jobs,index){
     const job=jobs[index],previous=jobs[index-1];
     let comparison='';
-    if(previous&&job.continuousWithPrevious===true&&Number.isFinite(previous.gradePoint)){
+    if(Number.isFinite(job.gradePoint)&&previous&&job.continuousWithPrevious===true&&Number.isFinite(previous.gradePoint)){
       if(previous.grade!==job.grade)comparison=`段位变化：${esc(previous.grade)} ${previous.gradePoint} → ${esc(job.grade)} ${job.gradePoint}`;
       else{const delta=job.gradePoint-previous.gradePoint;comparison=delta===0?'较上一场：持平':`较上一场：${delta>0?'+':''}${delta} 分`}
     }else if(previous)comparison='前一场记录不连续或缺少分数';
-    return `<strong>第 ${esc(job.index)} 场 · ${job.clear?'通过':'未通过'}</strong><br>结束分数：<b>${esc(job.grade)} ${job.gradePoint}</b>${comparison?`<br>${comparison}`:''}<br><small>点击查看该场详情</small>`;
+    return `<strong>${job.interrupted?'对局中断':'第 '+esc(job.index)+' 场 · '+(job.clear?'通过':'未通过')}</strong><br>结束分数：<b>${esc(job.grade)} ${job.gradePoint??'未提供'}</b>${comparison?`<br>${comparison}`:''}${job.interrupted?'<br>本场无有效波次结算，不计入表现统计。':''}<br><small>点击查看该场详情</small>`;
   }
   return {model,render,tooltip};
 })();
