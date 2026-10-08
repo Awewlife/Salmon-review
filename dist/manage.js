@@ -112,9 +112,10 @@
     <div id="auth-steps" hidden><p id="auth-expiry"></p><label for="auth-link">③ 粘贴按钮的返回链接</label><input id="auth-link" type="password" autocomplete="off" spellcheck="false" aria-describedby="auth-link-help" placeholder="npf71b963c1b7b6d119://auth…"><p id="auth-link-help">链接仅提交给本机服务，无需发到聊天窗口。</p><button class="button primary" id="finish-auth" disabled>完成连接</button></div>
     <details class="auth-faq"><summary>没有看到按钮，或链接提示无效？</summary><p>请使用这次生成的登录页面，重新复制“选择此账号”按钮的完整链接。若已跳转到 App、链接过期或关掉了登录页面，点击“重新生成登录链接”再试。</p><p>登录和刷新由 nxapi 处理，无需配置客户端 ID。登录缓存保存在本机数据卷；认证过程需要向第三方认证服务发送短期令牌。</p></details></section>
     <section><h3>同步设置</h3><p id="sync-details"></p><button class="button primary" id="sync-now">立即同步</button><label class="auto-label">自动同步<select id="auto-sync"><option value="0">关闭</option><option value="15">每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每小时</option><option value="120">每 2 小时</option></select></label><p>容器运行时生效。上游认证或接口异常时自动暂停；仍可查看已保存的战绩。</p></section>
-    <section><h3>备份与恢复</h3><p>备份包含原始战绩和排班汇总，不包含登录凭据或图片缓存。恢复会合并同账号记录，不覆盖现有记录。备份含玩家昵称，请妥善保存。</p><a class="button" href="/api/backup" download>下载数据备份</a><label class="file-picker">选择备份<input id="restore-file" type="file" accept=".json,application/json"></label><button class="button" id="restore-backup">恢复并合并</button></section>
+    <section><h3>版本与更新</h3><p id="manage-update-status">启动时自动检查新版，也可以在这里手动检查和更新。</p><button class="button" id="open-update">查看版本与更新</button></section><section><h3>备份与恢复</h3><p>备份包含原始战绩和排班汇总，不包含登录凭据或图片缓存。恢复会合并同账号记录，不覆盖现有记录。备份含玩家昵称，请妥善保存。</p><a class="button" href="/api/backup" download>下载数据备份</a><label class="file-picker">选择备份<input id="restore-file" type="file" accept=".json,application/json"></label><button class="button" id="restore-backup">恢复并合并</button></section>
     <section><h3>暂未纳入统计的记录</h3><p>缺少排班、结算字段不完整或未支持的模式会保留原始数据；不会按零分参与均值。</p><div id="excluded-records"></div></section></div>`;
     document.querySelector('#auto-sync').value=state.sync.autoMinutes;
+    document.querySelector('#open-update').onclick=()=>window.SalmonUpdates?.open();window.SalmonUpdates?.paintEntry();
     paintExcluded();
     document.querySelector('#close-manage').onclick=()=>dialog.close();dialog.onclick=e=>{if(e.target===dialog)dialog.close()};
     document.querySelector('#import-records').onclick=()=>operation(async()=>{

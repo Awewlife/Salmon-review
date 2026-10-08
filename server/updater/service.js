@@ -172,7 +172,6 @@ export async function serve(updater){
     }catch(e){send(409,{message:publicMessage(e)})}
   });
   server.listen(8790,'0.0.0.0');
-  const timer=setInterval(()=>{if(process.env.SALMON_UPDATE_AUTO_CHECK!=='0'&&updater.credential&&!updater.busy&&updater.info.phase!=='blocked'&&Date.now()-(updater.info.checked??0)>24*3600*1000)void updater.check()},60000);timer.unref();
   return server;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))await serve(new Updater());

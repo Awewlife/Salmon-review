@@ -20,7 +20,7 @@
   "license": "AGPL-3.0-or-later",
   "overrides": {
     "nxapi": {
-      "sharp": "0.35.4",
+      "sharp": "0.35.5",
       "node-notifier": {
         "uuid": "11.1.1"
       }

@@ -7,7 +7,7 @@ vm.runInContext(readFileSync(new URL('../dist/grade-chart.js',import.meta.url),'
 const chart=context.window.SalmonGradeChart;
 const jobs=values=>values.map((gradePoint,i)=>({id:'job-'+i,index:i+1,grade:'传说',gradePoint,jobPoint:9999,clear:i%2===0,continuousWithPrevious:i>0}));
 
-test('score scales cover 0/40/999, keep flat series readable, and offer the full raw range',()=>{
+test('score scales cover 0/40/999, keep flat series readable, with automatic scaling',()=>{
   for(const values of [[40,60,40],[550,570,550],[999],[0],[40,200,600,999]]){
     const m=chart.model(jobs(values));
     assert.ok(m.lower<=Math.min(...values)&&m.upper>=Math.max(...values));
@@ -15,8 +15,7 @@ test('score scales cover 0/40/999, keep flat series readable, and offer the full
     const svg=chart.render(jobs(values));assert.doesNotMatch(svg,/NaN|Infinity|9999/);
   }
   const focused=chart.model(jobs([550,570,550]));assert.ok(focused.lower>0&&focused.upper-focused.lower<=200);
-  const full=chart.model(jobs([550,570]),true);assert.equal(full.lower,0);assert.equal(full.upper,999);
-  assert.equal(full.ticks.at(-1),999);
+
 });
 
 test('promotion retains the real score jump; unknown scores and continuity gaps break the line',()=>{
@@ -37,4 +36,21 @@ test('score chart supports a single match, missing scores, exact accessible valu
   assert.doesNotMatch(svg,/<img|bad"<id>/);assert.match(svg,/&lt;img/);
   assert.doesNotMatch(chart.tooltip(data,0),/<img/);
   assert.match(svg,/cx="154.5"/);
+});
+
+
+test('score labels mark hundred bands once, the endpoint and recorded destinations of jumps',()=>{
+  const m=chart.model(jobs([430,450,470,490,510,510,530,550,570,590,610,610]));
+  assert.deepEqual(Array.from(m.labels,p=>p.value),[430,510,610,610]);
+  assert.equal(m.labels.filter(p=>p.value===510).length,1);
+  const changed=jobs([90,40,60,400,420,200,220]);changed[0].grade='熟练';
+  const labels=chart.model(changed).labels;
+  for(const i of [1,3,5])assert.ok(labels.some(p=>p.position===i&&p.reasons.includes('jump')));
+  const normal=chart.model(jobs([550,570,560,540,540]));
+  assert.deepEqual(Array.from(normal.labels,p=>p.position),[0,4]);
+  const gap=jobs([550,570,null,570,590]);gap[4].continuousWithPrevious=false;
+  assert.ok(chart.model(gap).labels.some(p=>p.position===3));
+  const svg=chart.render(changed,{width:310});assert.doesNotMatch(svg,/NaN|Infinity/);
+  assert.match(svg,/data-score-label-index="2"[^>]*jump/);
+  assert.equal((svg.match(/class="score-annotation"/g)||[]).length,labels.length);
 });

@@ -88,3 +88,13 @@
 - Disposable Compose integration passed real container replacement, record/fixture-secret retention, restart after activation and interrupted update recovery. Only the isolated test project and its test volumes were removed.
 - Updated the existing local preview using its original data volume. All backup document hashes remained unchanged. Browser verified the private authorization form, disabled unauthenticated update controls and empty-token error; no real credential was entered or persisted in this UI test.
 - JavaScript syntax checks and two Python release packaging tests passed. This change does not publish a new release or install package.
+
+
+## Score chart, update settings and CI dependency fix — 2026-10-08
+
+- CI run 37752906367 failed at `npm audit`, before `npm test`: sharp <0.35.5 was flagged for GHSA-wq5f-xc86-pv6w, published 2026-10-06. Windows installer checks passed. The prior local functional test result did not cover this new dependency advisory.
+- Updated only the sharp override to 0.35.5 and its lockfile/platform dependencies; retained nxapi 1.6.1-next.257. Regenerated dependency notices. Both host lockfile and built Linux container audits reported zero vulnerabilities at this check.
+- 67 tests passed in the Node 22 container, including native sharp compatibility, score labels at hundred bands/jump destinations, startup-only update checking, notification dismissal, unauthenticated startup and manual checking. No invited-player acceptance run was attempted, per user request.
+- Score charts now always auto-scale. Labels show the initial score, first recorded score in each new hundred band, final point and rank-change/large-jump destinations. Same-score plateaus and ordinary +20/-10/-20 changes do not add repetitive labels. Missing scores/continuity gaps remain disconnected.
+- Browser verified SALMON REVIEW title, removal of the full-range and sidebar update buttons, real score labels 420/500/600/610, and the update dialog opened from Data & Sync settings. No browser console errors were observed.
+- Local preview reused the original Compose project and data volume; all archived backup document hashes were unchanged.

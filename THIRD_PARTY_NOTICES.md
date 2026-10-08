@@ -8,7 +8,7 @@ Salmon Review's own code is licensed under **AGPL-3.0-or-later**. See [LICENSE](
 | --- | --- | --- | --- |
 | nxapi | 1.6.1-next.257 | AGPL-3.0-or-later; [source](https://github.com/samuelthomas2774/nxapi/tree/47c9d35d9d51d33e62dd6d3733b616e0ad31b02b) | Published CLI entry point handles authentication, native cache and collection. A local preload adapter changes the SplatNet request language to zh-CN. |
 | undici | 6.28.1 | MIT; [source](https://github.com/nodejs/undici) | HTTP client used by nxapi. |
-| sharp | 0.35.4 (override under nxapi) | Apache-2.0; [source](https://github.com/lovell/sharp) | nxapi dependency for presence-image rendering; Salmon Review does not invoke this feature. Native bundled libraries have additional notices in their packages. |
+| sharp | 0.35.5 (override under nxapi) | Apache-2.0; [source](https://github.com/lovell/sharp) | nxapi dependency for presence-image rendering; Salmon Review does not invoke this feature. Native bundled libraries have additional notices in their packages. |
 | uuid | 11.1.1 (override under node-notifier) | MIT; [source](https://github.com/uuidjs/uuid) | Preserves the CommonJS v4 API used by node-notifier. Salmon Review does not send desktop notifications. |
 | Node.js / Node Docker image | 22.23.2 / bookworm-slim | [Node licenses](https://github.com/nodejs/node/blob/v22.23.2/LICENSE), [image source](https://github.com/nodejs/docker-node) | Runtime, built-in SQLite and base operating system. |
 
