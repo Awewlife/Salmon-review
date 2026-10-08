@@ -1,0 +1,72 @@
+name: Stage signed release assets
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag and draft release
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: stage-release-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Verify existing tag and unpublished release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          node -e 'if (process.env.TAG !== "v"+JSON.parse(require("fs").readFileSync("package.json")).version) process.exit(1)'
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")"
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+      - name: Build and validate clean release image
+        run: |
+          VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
+          docker build --platform linux/amd64 --build-arg VCS_REF="$(git rev-parse HEAD)" -t "salmon-review:$VERSION" .
+          docker run --rm --network none --mount type=bind,source="$PWD/tests",target=/app/tests,readonly "salmon-review:$VERSION" npm test
+          docker run --rm "salmon-review:$VERSION" npm audit --omit=dev --audit-level=low
+          python -m unittest discover -s tests -p test_release_package.py
+      - name: Package software and prepare unsigned update payload
+        run: |
+          python scripts/package-release.py --output "$RUNNER_TEMP/release"
+          python - <<'PY'
+          import hashlib,json,os,shutil,zipfile
+          from pathlib import Path
+          out=Path(os.environ['RUNNER_TEMP'])/'release'
+          v=json.loads(Path('package.json').read_text())['version']
+          prefix=f'SalmonReview-v{v}-windows-x64/'
+          image=out/f'salmon-review-{v}-linux-amd64.tar.gz'
+          with zipfile.ZipFile(out/f'SalmonReview-v{v}-windows-x64.zip') as z:
+              metadata=json.loads(z.read(prefix+'release.json'))
+              with z.open(prefix+'salmon-review-image.tar.gz') as src,image.open('wb') as dst:
+                  shutil.copyfileobj(src,dst)
+          payload={'format':1,'updaterProtocol':1,'dataFormat':1,'repository':'Awewlife/Salmon-review','version':v,'commit':metadata['commit'],'platform':'linux/amd64','image':metadata['image'],'imageIds':metadata['imageIds'],'asset':image.name,'bytes':image.stat().st_size,'sha256':hashlib.file_digest(image.open('rb'),'sha256').hexdigest()}
+          (out.parent/'unsigned-update.json').write_text(json.dumps(payload,separators=(',',':')))
+          PY
+      - name: Upload complete unsigned assets to draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+          gh release upload "$TAG" "$RUNNER_TEMP/release/"* --clobber
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-update-payload
+          path: ${{ runner.temp }}/unsigned-update.json
+          retention-days: 7
