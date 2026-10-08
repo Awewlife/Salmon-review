@@ -54,7 +54,7 @@ test('authentication failures pause automation; rate limits preserve Retry-After
 });
 test('web updater endpoints require CSRF; internal controls cannot be called by ordinary pages; maintenance blocks writes',async t=>{
   const {base,csrf,tasks}=await setup(t);
-  assert.equal((await fetch(base+'/api/update/check',{method:'POST'})).status,403);
+  for(const route of ['check','authorize','disconnect'])assert.equal((await fetch(base+'/api/update/'+route,{method:'POST'})).status,403);
   for(const route of ['prepare','validate','activate','cancel'])assert.equal((await fetch(base+'/api/update/'+route,{method:'POST',headers:{'X-Salmon-CSRF':csrf,'X-Salmon-Updater':'forged'}})).status,403);
   assert.equal((await fetch(base+'/api/update/status').then(r=>r.json())).enabled,false);
   tasks.updateLocked=true;

@@ -74,5 +74,17 @@
 - Two Python release identity tests and JavaScript syntax checks passed.
 - Disposable `salmon-update-test` Compose integration verified actual container replacement, retained records/local fixture secret, writable app after restart, and recovery after simulated interruption and damaged fixture data. It did not use the player's volume. The image was locally supplied in this test, not downloaded from a public release.
 - Local `salmon-review-dev` preview uses the same original data volume. Hash of all 189 backup documents remained unchanged (179 archived records; 178 supported jobs).
-- Browser verified version/update dialog, real unauthenticated query of the public release source, and the honest no-release message. No frontend console errors observed.
-- Public release repository exists; original development repository remains private. No public image or installer was uploaded. Public image distribution remains blocked by the unresolved upstream license grant documented in THIRD_PARTY_NOTICES.md; a complete public-download-to-install acceptance test remains pending.
+- Earlier browser verification covered the previous public-source prototype; this has been superseded by private collaborator authorization.
+- Earlier public release repository was deleted on 2026-10-08 at the user's request; original development repository remains private. No public image or installer was uploaded. Public image distribution remains blocked by the unresolved upstream license grant documented in THIRD_PARTY_NOTICES.md; a complete public-download-to-install acceptance test remains pending.
+
+
+## Private collaborator updates — 2026-10-08
+
+- Deleted the separate public release repository at the user's request; GitHub returned 404 afterwards. Original `Awewlife/Salmon-review` remains PRIVATE. No collaborators were added automatically.
+- Replaced public downloads with authenticated private Release API requests and per-user local credentials. The UI and documentation explain collaborator write access and classic token scope limitations.
+- 64 Node tests passed in the Node 22 container. New tests cover missing/invalid/revoked credentials, rate limits, repository restrictions, credential stripping across CDN redirects, numeric asset-ID resolution, octet-stream negotiation, local secret file permissions, no token in status, disconnect, CSRF checks, and refusing cached updates after access revocation. After the final source cleanup the 12 updater tests passed again.
+- Real GitHub access verified using the maintainer's existing CLI login in process memory only: private repository access succeeded and the v0.3.5 SHA256SUMS.txt asset downloaded with the expected 304 bytes. That credential was not stored in the app, an image, a source file, or a package.
+- No signed update is published yet (`release_missing`); successful private collaborator authorization through the full installed browser flow and a real signed-release download-to-install remain to be tested with a consenting collaborator. Simulated revoked-access tests do not replace that acceptance test.
+- Disposable Compose integration passed real container replacement, record/fixture-secret retention, restart after activation and interrupted update recovery. Only the isolated test project and its test volumes were removed.
+- Updated the existing local preview using its original data volume. All backup document hashes remained unchanged. Browser verified the private authorization form, disabled unauthenticated update controls and empty-token error; no real credential was entered or persisted in this UI test.
+- JavaScript syntax checks and two Python release packaging tests passed. This change does not publish a new release or install package.

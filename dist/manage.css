@@ -11,3 +11,7 @@
 #update-dialog .update-notes{white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere;color:var(--muted)}
 #update-dialog progress{width:100%;accent-color:var(--lime)}
 #update-dialog .manage-actions{display:flex;gap:12px;flex-wrap:wrap}
+
+#update-dialog details { margin: 14px 0; }
+#update-dialog summary { cursor: pointer; color: var(--lime, #d7f36b); }
+#update-token { display: block; width: 100%; box-sizing: border-box; margin: 10px 0; padding: 10px; background: #171c1e; color: #eef2f2; border: 1px solid #465157; border-radius: 6px; }

@@ -1,29 +1,31 @@
 import {readFile,open,statfs,rename,rm} from 'node:fs/promises';
 import {createHash,verify} from 'node:crypto';
 import path from 'node:path';
-export const repository='Awewlife/Salmon-review-releases';
+export const repository='Awewlife/Salmon-review';
+const apiRoot=`https://api.github.com/repos/${repository}`;
 export const versionPattern=/^\d+\.\d+\.\d+$/;
 export function compareVersions(a,b){
   if(!versionPattern.test(a)||!versionPattern.test(b))throw new Error('invalid_version');
   const aa=a.split('.').map(Number),bb=b.split('.').map(Number);
   for(let i=0;i<3;i++)if(aa[i]!==bb[i])return Math.sign(aa[i]-bb[i]);return 0;
 }
-export function assetURL(version,name){
-  if(!versionPattern.test(version)||!/^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/.test(name))throw new Error('invalid_manifest');
-  return `https://github.com/${repository}/releases/download/v${version}/${name}`;
-}
-export async function publicFetch(url,{timeout=30000}={}){
+export async function githubFetch(url,{timeout=30000,token,asset=false,transport=fetch}={}){
+  if(typeof token!=='string'||!token.trim())throw new Error('auth_required');
   for(let redirects=0;redirects<5;redirects++){
     const u=new URL(url);
-    if(u.protocol!=='https:'||u.username||u.password||u.port||!['api.github.com','github.com','release-assets.githubusercontent.com','objects.githubusercontent.com'].includes(u.hostname))throw new Error('invalid_source');
-    const r=await fetch(u,{redirect:'manual',signal:AbortSignal.timeout(timeout),headers:{'User-Agent':'SalmonReview-Updater','Accept':u.hostname==='api.github.com'?'application/vnd.github+json':'application/octet-stream'}});
+    if(u.protocol!=='https:'||u.username||u.password||u.port||!['api.github.com','release-assets.githubusercontent.com','objects.githubusercontent.com'].includes(u.hostname))throw new Error('invalid_source');
+    const api=u.hostname==='api.github.com';
+    if((redirects===0&&!api)||(api&&u.pathname!=='/user'&&u.pathname!==`/repos/${repository}`&&!u.pathname.startsWith(`/repos/${repository}/`)))throw new Error('invalid_source');
+    // Signed CDN redirects must never receive the user's GitHub credential.
+    const headers={'User-Agent':'SalmonReview-Updater','Accept':asset?'application/octet-stream':'application/vnd.github+json',...(api?{Authorization:`Bearer ${token}`}:{})};
+    const r=await transport(u,{redirect:'manual',signal:AbortSignal.timeout(timeout),headers});
     if([301,302,303,307,308].includes(r.status)){url=new URL(r.headers.get('location'),u).href;await r.body?.cancel();continue}
-    if(!r.ok){await r.body?.cancel();throw new Error(r.status===404?'release_missing':r.status===403||r.status===429?'release_limited':'download_failed')}
+    if(!r.ok){await r.body?.cancel();throw new Error(r.status===401?'auth_invalid':r.status===429||(r.status===403&&(r.headers.get('x-ratelimit-remaining')==='0'||r.headers.has('retry-after')))?'release_limited':r.status===403||r.status===404?'access_denied':'download_failed')}
     return r;
   }throw new Error('invalid_source');
 }
-async function smallJSON(url){
-  const r=await publicFetch(url);let size=0;const chunks=[];
+async function smallJSON(url,options){
+  const r=await githubFetch(url,options);let size=0;const chunks=[];
   for await(const chunk of r.body){size+=chunk.length;if(size>512*1024)throw new Error('invalid_manifest');chunks.push(chunk)}
   return JSON.parse(Buffer.concat(chunks).toString());
 }
@@ -36,28 +38,53 @@ export function validateManifest(envelope,key,expectedVersion){
   if(m.asset!==`salmon-review-${m.version}-linux-amd64.tar.gz`)throw new Error('invalid_manifest');
   return m;
 }
-export async function manifestFor(version){
-  const key=await readFile(new URL('./public-key.pem',import.meta.url));
-  return validateManifest(await smallJSON(assetURL(version,'update.json')),key,version);
+async function releaseAsset(version,name,options){
+  if(!versionPattern.test(version))throw new Error('invalid_version');
+  const release=await smallJSON(`${apiRoot}/releases/tags/v${version}`,options);
+  const asset=release.assets?.find(a=>a.name===name);
+  if(release.draft||!Number.isSafeInteger(asset?.id)||asset.id<1)throw new Error('release_missing');
+  // Construct the API path from a numeric asset ID, never from response URLs.
+  return `${apiRoot}/releases/assets/${asset.id}`;
 }
-export async function latestRelease(){
-  const releases=await smallJSON(`https://api.github.com/repos/${repository}/releases?per_page=20`);
+export async function verifyAccess(token,transport=fetch){
+  const options={token,transport};
+  const repo=await smallJSON(apiRoot,options);
+  if(repo.full_name?.toLowerCase()!==repository.toLowerCase()||repo.private!==true||repo.permissions?.pull!==true)throw new Error('access_denied');
+  await smallJSON(`${apiRoot}/releases?per_page=1`,options);
+  const user=await smallJSON('https://api.github.com/user',options);
+  if(typeof user.login!=='string'||!user.login)throw new Error('auth_invalid');
+  return {login:user.login};
+}
+export async function manifestFor(version,options){
+  const key=await readFile(new URL('./public-key.pem',import.meta.url));
+  return validateManifest(await smallJSON(await releaseAsset(version,'update.json',options),{...options,asset:true}),key,version);
+}
+export async function latestRelease(options){
+  const releases=await smallJSON(`${apiRoot}/releases?per_page=20`,options);
   if(!Array.isArray(releases))throw new Error('invalid_manifest');
   const entries=releases.filter(r=>!r.draft&&/^v\d+\.\d+\.\d+$/.test(r.tag_name)&&r.assets?.some(a=>a.name==='update.json'));
   entries.sort((a,b)=>compareVersions(b.tag_name.slice(1),a.tag_name.slice(1)));
   if(!entries.length)throw new Error('release_missing');
-  const release=entries[0],manifest=await manifestFor(release.tag_name.slice(1));
+  const release=entries[0],manifest=await manifestFor(release.tag_name.slice(1),options);
   return {manifest,notes:String(release.body??'').slice(0,12000),url:`https://github.com/${repository}/releases/tag/v${manifest.version}`};
 }
-export async function downloadImage(m,file,onProgress=()=>{},fetcher=publicFetch){
+export async function downloadImage(m,file,onProgress=()=>{},fetcher=()=>{throw new Error('auth_required')}){
   const space=await statfs(path.dirname(file));
   if(space.bavail*space.bsize<m.bytes*2+100*1024**2)throw new Error('disk_space');
   const temporary=file+'.part';let handle;
   try{
     handle=await open(temporary,'w',0o600);const hash=createHash('sha256');let bytes=0,last=0;
-    const r=await fetcher(assetURL(m.version,m.asset),{timeout:30*60*1000});
+    const r=await fetcher(m,{timeout:30*60*1000});
     for await(const chunk of r.body){bytes+=chunk.length;if(bytes>m.bytes)throw new Error('invalid_download');hash.update(chunk);await handle.writeFile(chunk);if(Date.now()-last>750){await onProgress(Math.floor(bytes/m.bytes*100));last=Date.now()}}
     if(bytes!==m.bytes||hash.digest('hex')!==m.sha256)throw new Error('invalid_download');
     await handle.sync();await handle.close();handle=null;await rename(temporary,file);await onProgress(100);
   }finally{await handle?.close();await rm(temporary,{force:true})}
+}
+export function privateReleases(getToken){
+  const options=()=>({token:getToken()});
+  return {
+    releases:async()=>{await verifyAccess(getToken());return latestRelease(options())},
+    manifest:async version=>{await verifyAccess(getToken());return manifestFor(version,options())},
+    download:(m,file,progress)=>downloadImage(m,file,progress,async(_manifest,settings)=>githubFetch(await releaseAsset(m.version,m.asset,options()),{...options(),...settings,asset:true}))
+  };
 }

@@ -88,7 +88,7 @@ def main():
             update_image = output / f'salmon-review-{version}-linux-amd64.tar.gz'
             shutil.copy2(archive, update_image)
             update = {'format': 1, 'updaterProtocol': 1, 'dataFormat': 1,
-                      'repository': 'Awewlife/Salmon-review-releases', 'version': version,
+                      'repository': 'Awewlife/Salmon-review', 'version': version,
                       'commit': commit, 'platform': 'linux/amd64', 'image': image,
                       'imageIds': metadata['imageIds'], 'asset': update_image.name,
                       'bytes': update_image.stat().st_size, 'sha256': sha256(update_image)}

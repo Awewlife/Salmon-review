@@ -64,6 +64,12 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
       if(mutation){const value=Buffer.from(String(req.headers['x-salmon-csrf']??'')),expected=Buffer.from(csrf);if(value.length!==expected.length||!timingSafeEqual(value,expected))return send(res,403,publicError(new Error('forbidden')))}
       if(mutation&&tasks.updateLocked)return send(res,409,{code:'busy',message:'正在更新程序，请等待页面自动重新连接。'});
       if(req.method==='GET'&&url.pathname==='/api/update/status')return send(res,200,await updaterRequest('status'));
+      if(req.method==='POST'&&url.pathname==='/api/update/authorize'){
+        const body=await readBody(req);
+        if(typeof body.token!=='string'||body.token.length>255)return send(res,400,{message:'GitHub 凭据格式不正确。'});
+        return send(res,200,await updaterRequest('authorize',{token:body.token}));
+      }
+      if(req.method==='POST'&&url.pathname==='/api/update/disconnect')return send(res,200,await updaterRequest('disconnect',{}));
       if(req.method==='POST'&&url.pathname==='/api/update/check')return send(res,202,await updaterRequest('check',{}));
       if(req.method==='POST'&&url.pathname==='/api/update/install'){
         if(tasks.active||tasks.authBusy)throw new Error('busy');const body=await readBody(req);

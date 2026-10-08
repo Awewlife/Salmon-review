@@ -2,9 +2,9 @@
 
 ## 玩家怎么用
 
-这项功能需要先安装一次带更新组件的完整安装包。旧版只有主程序，刷新网页无法凭空安装更新组件。此开发版尚未公开发布二进制安装包，不能把本说明当成已可下载的发行版。
+这项功能需要先安装一次带更新组件的完整安装包。旧版只有主程序，刷新网页无法凭空安装更新组件。此开发版尚未发布带私有更新授权的二进制安装包，不能把本说明当成已可下载的发行版。
 
-启用后，侧栏会出现 **版本与更新**：每天自动检查一次，也可手动检查。发现新版后，先看更新内容，再点击 **更新到 x.y.z**。不会未经点击就安装。
+完成下方 GitHub 授权后，侧栏会出现 **版本与更新**：每天自动检查一次，也可手动检查。发现新版后，先看更新内容，再点击 **更新到 x.y.z**。不会未经点击就安装。
 
 下载期间继续使用原版；下载完成并通过校验后，程序会短暂暂停写入、备份并重启。保持 Docker Desktop 运行即可，网页会自动重连。战绩、设置和登录凭据沿用原数据卷；任天堂凭据本身到期仍需重新连接。
 
@@ -12,9 +12,26 @@
 
 安装包仍可以手动更新。继续使用相同项目名；新版启动器会识别网页已安装的更高版本，不会自动降级。手工执行旧版 `docker compose up` 不包含这个保护，应使用启动器。
 
+## 谁能更新，怎么连接
+
+原仓库 **Awewlife/Salmon-review 保持私有**，不再另设公开发行仓库。此阶段仅邀请少数可信协作者试用。
+
+1. 维护者在原仓库 Settings → Collaborators 邀请认可的 GitHub 用户；对方必须接受邀请。个人账号仓库的协作者拥有源码读写权限，**并非仅能下载更新**。目前尚未自动邀请任何用户。
+2. 玩家使用自己的 GitHub 账号打开原仓库，确认能够看到 Releases。只收到安装包、尚未获得仓库权限的人不能在线更新。
+3. 普通受邀协作者在 GitHub Settings → Developer settings → Personal access tokens → Tokens (classic) 创建自己的令牌，选择 `repo`，设置有效期，例如 30 天。**经典令牌可访问自己有权访问的多个私有仓库，权限不只限本项目，且可能包含写权限。** 本工具的更新实现只执行固定仓库的读取操作。不要使用维护者的令牌或把令牌发给他人。
+4. 打开本机网页“版本与更新”，把令牌粘贴到“GitHub 更新权限”，点击“验证并保存”，然后“检查更新”。若显示尚无带网页更新附件的版本，说明权限已通过，但维护者尚未上传签名更新附件。
+5. 到期后创建自己的新令牌，在同一位置替换。点击“移除本机更新凭据”只删除这台电脑保存的 GitHub 凭据；要彻底吊销令牌，还需在 GitHub 的令牌设置中删除它。
+
+仓库所有者自己测试时，可用细粒度令牌，仅选择 `Salmon-review`，授予 `Contents: Read-only`。GitHub 对外部/仓库协作者使用细粒度令牌存在限制，不能把这个方案写成适用于所有受邀玩家。
+
+维护者从仓库中移除协作者后，其后续检查和安装将不能通过权限验证。已安装版本、已下载副本以及尚未过期的 GitHub 临时下载链接无法远程收回；这不是远程停用软件或防转发机制。每次安装都重新向 GitHub 验证权限，不以页面缓存的“有新版”作为授权。
+
+权限依据：[个人仓库协作者权限](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository)、[GitHub 个人访问令牌说明与限制](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)。
+
 ## 下载、备份和权限
 
-- 固定公开源：`Awewlife/Salmon-review-releases`。不需要 GitHub 账号，不收集玩家的 GitHub 令牌。
+- 固定私有源：`Awewlife/Salmon-review`。通过 GitHub API 验证账号与仓库权限，再下载 Release 附件；没有匿名回退或其他公开源。
+- 每位玩家的 GitHub 令牌只保存到本机更新卷的 `github.json`，权限为仅更新组件用户可读写（0600）。这不是加密存储；有本机管理员或 Docker 权限的人仍能读取。令牌不回显到网页、不放进安装包，也不随战绩导出；下载跳转到 GitHub 文件服务器时不转发令牌。
 - 安装前验证内置 Ed25519 公钥对应的更新签名、文件大小、SHA-256、镜像 ID、平台和提交版本。页面不能指定任意下载地址、容器名或命令。
 - 只有独立 updater 容器挂载 Docker 控制接口；不开放 updater 的主机端口。主程序通过本地鉴权通道调用检查/安装操作。Docker 控制接口具有很高权限，因此仍应只安装来自可信维护者的更新组件。
 - updater 按自身 Compose 项目标签定位 app，同时验证数据卷和 127.0.0.1 端口绑定。
@@ -33,8 +50,10 @@
 python scripts/package-release.py --output <仓库外输出目录> --signing-key <私钥文件>
 ```
 
-除了完整 Windows 安装包、对应源码和许可材料，还生成单独的镜像归档与签名 `update.json`。完整上传到公开仓库同名版本的 Release 后，最后发布 Release；不要提前发布不完整附件。更新组件会从已发布版本中选取版本号最高且带 `update.json` 的版本，包括本项目的预发布版。
+除了完整 Windows 安装包、对应源码和许可材料，还生成单独的镜像归档与签名 `update.json`。完整上传到原私有仓库 `Awewlife/Salmon-review` 同名版本的 Release 后，最后发布 Release；不要提前发布不完整附件。更新组件会从已发布版本中选取版本号最高且带 `update.json` 的版本，包括本项目的预发布版。
 
 签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、容器内 `npm test`、`tests/installer.Tests.ps1`、`tests/run-updater-docker.ps1`。最后一项创建专用 `salmon-update-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。
 
-**当前公开安装包的阻碍：** `THIRD_PARTY_NOTICES.md` 记录的 `splatnet3-types` 无明确再分发许可问题仍未解决。此功能开发、公开下载入口准备和许可核对是不同事项；在获得适用许可或替换依赖之前，不上传包含该依赖的公开预构建镜像。
+**当前公开安装包的阻碍：** `THIRD_PARTY_NOTICES.md` 记录的 `splatnet3-types` 无明确再分发许可问题仍未解决。私有试用不代表依赖许可已经解决；功能开发与许可核对是不同事项；在获得适用许可或替换依赖之前，不上传包含该依赖的公开预构建镜像。
+
+现有 GitHub Actions 打包流程不持有更新签名私钥，单独运行它不会自动生成网页更新清单。当前须由维护者本地使用上述 `--signing-key` 命令生成镜像归档和 `update.json`，上传同一私有 Release 后再发布；没有清单的旧版本不会被网页列为可安装更新。
