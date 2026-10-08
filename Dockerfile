@@ -2,7 +2,7 @@ FROM node:22.23.2-bookworm-slim
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.source="https://github.com/Awewlife/Salmon-review" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
-      org.opencontainers.image.version="0.3.5" \
+      org.opencontainers.image.version="0.3.6" \
       org.opencontainers.image.revision=$VCS_REF
 WORKDIR /app
 ENV NODE_ENV=production BIND_ADDRESS=0.0.0.0 PORT=8787 DATA_DIR=/data
@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000
 COPY server ./server
 COPY dist ./dist
-COPY README.md LICENSE NOTICE THIRD_PARTY_NOTICES.md THIRD_PARTY_PACKAGES.json BETA_TESTING.md SECURITY.md CHANGELOG.md VALIDATION.md ./
+COPY README.md LICENSE NOTICE THIRD_PARTY_NOTICES.md THIRD_PARTY_PACKAGES.json BETA_TESTING.md SECURITY.md CHANGELOG.md VALIDATION.md UPDATING.md ./
 COPY scripts/generate-notices.mjs ./scripts/generate-notices.mjs
 RUN node scripts/generate-notices.mjs --check --bundle
 RUN mkdir -p /data && chown node:node /data

@@ -66,3 +66,13 @@
 - 容器内 46 项测试通过。覆盖网络失败后 4999/5000 毫秒边界、自动退避递增、重启保留、旧版等待兼容、限流两条路径及重连后仍生效、认证失效阻止重试和成功重连立即同步。
 - 前端验证 5 秒倒计时结束后无需等待下一次状态轮询即可恢复按钮；保留状态读取失败提示，不被倒计时更新覆盖。
 - 隔离浏览器页面模拟网络失败，确认显示“5 秒后可重试”并恢复为“立即同步”；没有调用真实账号同步或重新登录。
+# 0.3.6 development validation — 2026-10-08
+
+- Added score-trend switching, automatic/full-range axes and missing-data tests.
+- 59 Node container tests passed, including update signature/compatibility checks, download hash and length rejection, CSRF/internal endpoint isolation, maintenance write lock, backup content hashing and failed replacement recovery.
+- Windows launcher regression passed all 8 cases under both Windows PowerShell 5.1 and PowerShell 7; the added case prevents downgrading a version previously installed through the webpage.
+- Two Python release identity tests and JavaScript syntax checks passed.
+- Disposable `salmon-update-test` Compose integration verified actual container replacement, retained records/local fixture secret, writable app after restart, and recovery after simulated interruption and damaged fixture data. It did not use the player's volume. The image was locally supplied in this test, not downloaded from a public release.
+- Local `salmon-review-dev` preview uses the same original data volume. Hash of all 189 backup documents remained unchanged (179 archived records; 178 supported jobs).
+- Browser verified version/update dialog, real unauthenticated query of the public release source, and the honest no-release message. No frontend console errors observed.
+- Public release repository exists; original development repository remains private. No public image or installer was uploaded. Public image distribution remains blocked by the unresolved upstream license grant documented in THIRD_PARTY_NOTICES.md; a complete public-download-to-install acceptance test remains pending.

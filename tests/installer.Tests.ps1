@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $shell = (Get-Process -Id $PID).Path
-foreach ($scenario in @('classic','containerd','missing','replace','legacy','wrong','invalid')) {
+foreach ($scenario in @('classic','containerd','missing','replace','legacy','wrong','invalid','updated')) {
     $directory = Join-Path ([IO.Path]::GetTempPath()) ('salmon-installer-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $directory | Out-Null
     try {

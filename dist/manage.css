@@ -5,3 +5,9 @@
 
 #data-refresh-note { flex-basis:100%; margin:0; color:var(--muted); font-size:12px; }
 #data-refresh-note:empty { display:none; }
+#update-dialog{width:min(780px,calc(100vw - 32px));max-height:90vh;padding:0;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text)}
+#update-dialog::backdrop{background:#000a;backdrop-filter:blur(4px)}
+#update-dialog .manage-body{max-height:72vh;overflow:auto}
+#update-dialog .update-notes{white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere;color:var(--muted)}
+#update-dialog progress{width:100%;accent-color:var(--lime)}
+#update-dialog .manage-actions{display:flex;gap:12px;flex-wrap:wrap}

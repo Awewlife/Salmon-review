@@ -6,6 +6,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $oldPort = $env:SALMON_PORT
+$oldImage = $env:SALMON_IMAGE
 Push-Location -LiteralPath $PSScriptRoot
 try {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw '请先安装 Docker Desktop，然后重新打开本窗口。' }
@@ -69,6 +70,22 @@ try {
         $actualId = & docker image inspect --format '{{.Id}}' $release.image
         if ($LASTEXITCODE -ne 0 -or $acceptedImageIds -notcontains $actualId) { throw '导入的镜像与发布版本不符，已停止启动。请下载最新安装包；若仍失败，请反馈 docker image inspect 返回的镜像 Id。' }
     }
+    # Web updates recreate only this project's app. Preserve that installed image
+    # when an older extracted launcher is used again; never silently downgrade it.
+    $existing = @(& docker ps -a --filter "label=com.docker.compose.project=$ProjectName" --filter 'label=com.docker.compose.service=app' --format '{{.ID}}')
+    if ($LASTEXITCODE -ne 0) { throw '无法读取已安装版本。' }
+    foreach ($id in $existing) {
+        $details = (& docker inspect $id | ConvertFrom-Json)[0]
+        if ($details.Name -like '*-rollback-*') { continue }
+        $installedImage = $details.Config.Image
+        if ($installedImage -match '^salmon-review:([0-9]+\.[0-9]+\.[0-9]+)$') {
+            $installedVersion = $Matches[1]
+            if ([version]$installedVersion -gt [version]$release.version) {
+                $env:SALMON_IMAGE = $installedImage
+                Write-Host "保留网页已更新的版本 $installedVersion，不降回安装包版本。"
+            }
+        }
+    }
     Write-Host "正在启动项目 $ProjectName；数据卷名称会沿用此项目名。"
     & docker @composeArgs up -d --no-build --pull never
     if ($LASTEXITCODE -ne 0) { throw '启动失败。若端口被占用，请按 README 设置端口；不要删除数据卷。' }
@@ -93,5 +110,6 @@ try {
     exit 1
 } finally {
     $env:SALMON_PORT = $oldPort
+    $env:SALMON_IMAGE = $oldImage
     Pop-Location
 }

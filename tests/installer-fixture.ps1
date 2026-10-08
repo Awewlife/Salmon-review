@@ -5,7 +5,7 @@ $configId = 'sha256:' + ('b' * 64)
 $wrongId = 'sha256:' + ('c' * 64)
 $global:fixtureLoaded = $false
 $global:fixtureTrace = Join-Path $Directory 'trace.txt'
-$release = @{image='salmon-review:0.3.4'; imageId=$indexId; imageIds=@($indexId,$configId)}
+$release = @{version='0.3.4'; image='salmon-review:0.3.4'; imageId=$indexId; imageIds=@($indexId,$configId)}
 if ($Scenario -eq 'legacy') { $release.Remove('imageIds') }
 if ($Scenario -eq 'invalid') { $release.imageIds=@($indexId,'invalid') }
 $release | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Directory 'release.json') -Encoding UTF8
@@ -25,7 +25,7 @@ function docker {
     if ($values[0] -eq 'compose') {
         if ($values -contains 'version') { return 'Docker Compose fixture' }
         if ($values -contains 'config') { return '{"services":{"app":{"image":"salmon-review:0.3.4","pull_policy":"never","ports":[{"host_ip":"127.0.0.1","published":"18787"}]}}}' }
-        if ($values -contains 'up') { Add-Content -LiteralPath $global:fixtureTrace -Value 'up'; return }
+        if ($values -contains 'up') { Add-Content -LiteralPath $global:fixtureTrace -Value 'up'; if ($Scenario -eq 'updated' -and $env:SALMON_IMAGE -ne 'salmon-review:0.3.6') { throw 'Web update was downgraded' }; return }
         if ($values -contains 'ps') { return 'fixture-container' }
     }
     if ($values[0] -eq 'image') {
@@ -37,7 +37,8 @@ function docker {
         }
     }
     if ($values[0] -eq 'load') { $global:fixtureLoaded=$true; Add-Content -LiteralPath $global:fixtureTrace -Value 'load'; return }
-    if ($values[0] -eq 'inspect') { return 'running/healthy' }
+    if ($values[0] -eq 'ps') { if ($Scenario -eq 'updated') { return 'updated-container' }; return }
+    if ($values[0] -eq 'inspect') { if ($values -notcontains '--format') { return '[{"Name":"/fixture-app-1","Config":{"Image":"salmon-review:0.3.6"}}]' }; return 'running/healthy' }
     throw "Unexpected fake Docker call: $values"
 }
 & (Join-Path $Directory 'Start.ps1') -ProjectName fixture -NoBrowser

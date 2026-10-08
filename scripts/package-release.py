@@ -43,6 +43,7 @@ def image_ids(archive, image, inspected_id, revision):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
+    parser.add_argument('--signing-key', help='Private update-signing key outside the repository; enables web-update assets')
     args = parser.parse_args()
     output = Path(args.output).resolve()
     if output == ROOT or ROOT in output.parents:
@@ -65,7 +66,7 @@ def main():
         scratch = Path(temporary)
         package = scratch / package_name
         package.mkdir()
-        docs = ['README.md', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_PACKAGES.json', 'BETA_TESTING.md', 'SECURITY.md', 'CHANGELOG.md', 'compose.yaml']
+        docs = ['README.md', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_PACKAGES.json', 'BETA_TESTING.md', 'SECURITY.md', 'CHANGELOG.md', 'UPDATING.md', 'compose.yaml']
         for name in docs:
             shutil.copy2(ROOT / name, package / name)
         # BOM is intentional: Windows PowerShell 5.1 otherwise decodes Chinese as ANSI.
@@ -83,6 +84,18 @@ def main():
         metadata = {'version': version, 'commit': commit, 'image': image, 'imageId': info['Id'],
                     'imageIds': image_ids(archive, image, info['Id'], commit), 'platform': 'linux/amd64'}
         (package/'release.json').write_text(json.dumps(metadata, indent=2)+'\n', encoding='utf-8')
+        if args.signing_key:
+            update_image = output / f'salmon-review-{version}-linux-amd64.tar.gz'
+            shutil.copy2(archive, update_image)
+            update = {'format': 1, 'updaterProtocol': 1, 'dataFormat': 1,
+                      'repository': 'Awewlife/Salmon-review-releases', 'version': version,
+                      'commit': commit, 'platform': 'linux/amd64', 'image': image,
+                      'imageIds': metadata['imageIds'], 'asset': update_image.name,
+                      'bytes': update_image.stat().st_size, 'sha256': sha256(update_image)}
+            unsigned = scratch / 'unsigned-update.json'
+            unsigned.write_text(json.dumps(update, separators=(',', ':')), encoding='utf-8')
+            subprocess.run(['node', str(ROOT/'scripts/sign-update.mjs'), str(unsigned),
+                            str(Path(args.signing_key).resolve()), str(output/'update.json')], check=True)
         (package/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(package.iterdir())), encoding='ascii')
         with zipfile.ZipFile(output/(package_name+'.zip'), 'w', compression=zipfile.ZIP_DEFLATED) as result:
             for path in sorted(package.iterdir()):

@@ -1,6 +1,6 @@
 services:
   app:
-    image: salmon-review:0.3.5
+    image: ${SALMON_IMAGE:-salmon-review:0.3.6}
     pull_policy: never
     platform: linux/amd64
     init: true
@@ -8,11 +8,41 @@ services:
       - "127.0.0.1:${SALMON_PORT:-8787}:8787"
     volumes:
       - salmon-data:/data
+      - salmon-updates:/updates
+    environment:
+      UPDATE_DIR: /updates
     restart: unless-stopped
     stop_grace_period: 10s
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+  updater:
+    image: salmon-review:0.3.6
+    pull_policy: never
+    platform: linux/amd64
+    init: true
+    user: root
+    command: ["node", "server/updater/service.js"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - salmon-data:/data
+      - salmon-updates:/updates
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('fs');fetch('http://127.0.0.1:8790/status',{headers:{'X-Salmon-Updater':fs.readFileSync('/updates/channel.token','utf8')}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
 volumes:
   salmon-data:
+  salmon-updates:

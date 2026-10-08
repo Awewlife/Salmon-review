@@ -52,6 +52,16 @@ test('authentication failures pause automation; rate limits preserve Retry-After
   store.set('nextAttempt',0);store.set('manualNextAttempt',0);tasks.runner=async()=>{throw Object.assign(new Error('rate_limited'),{retryAfter:3600})};tasks.start();await tasks.completion;assert(tasks.status().nextAttempt>Date.now()+3590000);
   assert.equal(classify(new Error('upstream text containing SECRET')),'upstream');assert.equal(classify({response:{status:401}}),'auth_required');
 });
+test('web updater endpoints require CSRF; internal controls cannot be called by ordinary pages; maintenance blocks writes',async t=>{
+  const {base,csrf,tasks}=await setup(t);
+  assert.equal((await fetch(base+'/api/update/check',{method:'POST'})).status,403);
+  for(const route of ['prepare','validate','activate','cancel'])assert.equal((await fetch(base+'/api/update/'+route,{method:'POST',headers:{'X-Salmon-CSRF':csrf,'X-Salmon-Updater':'forged'}})).status,403);
+  assert.equal((await fetch(base+'/api/update/status').then(r=>r.json())).enabled,false);
+  tasks.updateLocked=true;
+  assert.throws(()=>tasks.start(),/busy/);
+  assert.equal((await fetch(base+'/api/settings',{method:'POST',headers:{'X-Salmon-CSRF':csrf,'Content-Type':'application/json'},body:JSON.stringify({autoMinutes:0})})).status,409);
+  assert.equal((await fetch(base+'/api/data')).status,200);
+});
 
 test('network failure permits manual retry at five seconds while automatic backoff grows and survives restart',async t=>{
   const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});

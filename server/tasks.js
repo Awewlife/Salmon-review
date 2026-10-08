@@ -36,7 +36,7 @@ export class Tasks{
   }
   status(){const last=this.store.db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 1').get()??null;return {active:this.active,last,lastSuccess:this.store.get('lastSuccess'),...this.retryTimes(last),autoMinutes:this.store.get('autoMinutes',0),paused:this.store.get('paused',null)}}
   start({automatic=false}={}){
-    if(this.active||this.authBusy)throw new Error('busy');
+    if(this.active||this.authBusy||this.updateLocked)throw new Error('busy');
     if(!this.account.read()||this.store.get('paused')==='auth_required')throw new Error('auth_required');
     if(automatic&&this.store.get('paused'))throw new Error(this.store.get('paused'));
     const retry=this.retryTimes();
@@ -75,7 +75,7 @@ export class Tasks{
   }
   schedule(){this.timer=setInterval(()=>{
     const minutes=this.store.get('autoMinutes',0),last=this.store.db.prepare('SELECT started FROM runs ORDER BY id DESC LIMIT 1').get();
-    if(minutes&&!this.active&&!this.authBusy&&!this.store.get('paused')&&Date.now()>=this.store.get('nextAttempt',0)&&(!last||Date.now()-Date.parse(last.started)>=minutes*60000)){
+    if(minutes&&!this.active&&!this.authBusy&&!this.updateLocked&&!this.store.get('paused')&&Date.now()>=this.store.get('nextAttempt',0)&&(!last||Date.now()-Date.parse(last.started)>=minutes*60000)){
       try{this.start({automatic:true})}catch(error){if(['auth_required'].includes(classify(error)))this.store.set('paused',classify(error))}
     }
   },15000);this.timer.unref()}

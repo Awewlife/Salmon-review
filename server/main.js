@@ -1,7 +1,8 @@
 import http from 'node:http';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {randomBytes,timingSafeEqual} from 'node:crypto';
+import {randomBytes,timingSafeEqual,createHash} from 'node:crypto';
+import {internalUpdater,updaterRequest,updateDirectory} from './update-client.js';
 import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
 import {Store} from './store.js';
 import {CliAccount} from './account.js';
@@ -10,15 +11,20 @@ import {publicError} from './errors.js';
 import {safeAssetUrl} from './normalize.js';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const staticFiles=new Map(['index.html','view-data.js','app.js','metrics.js','chart-dialog.js','style.css','manage.js','manage.css'].map(name=>['/'+name,path.join(root,'../dist',name)]));
+const staticFiles=new Map(['index.html','view-data.js','app.js','metrics.js','chart-dialog.js','grade-chart.js','style.css','manage.js','manage.css','update.js'].map(name=>['/'+name,path.join(root,'../dist',name)]));
 staticFiles.set('/LICENSE',path.join(root,'../LICENSE'));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 export async function createApp({directory=process.env.DATA_DIR??path.join(root,'../data'),runner=workerCall,accountOptions}={}){
   const store=new Store(directory),account=new CliAccount(directory,accountOptions),tasks=new Tasks(store,account,runner);
+  if(process.env.SALMON_UPDATE_TRIAL==='1'){
+    let installed=null;try{installed=JSON.parse(await readFile(updateDirectory+'/installed.json','utf8'))}catch{}
+    tasks.updateLocked=installed?.version!=='0.3.6';
+  }
   const csrf=randomBytes(32).toString('hex');const assetJobs=new Map();
   await mkdir(path.join(directory,'assets'),{recursive:true,mode:0o700});
   const send=(res,status,value,extra={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',...extra});res.end(JSON.stringify(value))};
-  const state=()=>({version:'0.3.5',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
+  const state=()=>({version:'0.3.6',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
+  const validation=()=>({version:state().version,records:state().records,jobs:store.snapshot().jobs.length,connected:state().connected,fingerprint:createHash('sha256').update(JSON.stringify(store.backup().documents)).digest('hex')});
   async function readBody(req){
     if(!String(req.headers['content-type']??'').startsWith('application/json'))throw new Error('bad_json');
     let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>64*1024*1024)throw new Error('too_large');chunks.push(chunk)}
@@ -48,8 +54,22 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
       // requests and unrecognized hosts are always rejected; writes also need CSRF.
       const site=req.headers['sec-fetch-site'];
       if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||site==='cross-site'||(site!=='same-origin'&&req.headers.origin&&req.headers.origin!=='http://'+host))return send(res,403,publicError(new Error('forbidden')));
+      if(req.method==='POST'&&['/api/update/prepare','/api/update/validate','/api/update/activate','/api/update/cancel'].includes(url.pathname)){
+        if(!await internalUpdater(req))return send(res,403,publicError(new Error('forbidden')));
+        if(url.pathname.endsWith('/prepare')){if(tasks.active||tasks.authBusy||account.pending)throw new Error('busy');tasks.updateLocked=true}
+        if(url.pathname.endsWith('/activate')||url.pathname.endsWith('/cancel'))tasks.updateLocked=false;
+        return send(res,200,validation());
+      }
       const mutation=req.method!=='GET'&&req.method!=='HEAD';
       if(mutation){const value=Buffer.from(String(req.headers['x-salmon-csrf']??'')),expected=Buffer.from(csrf);if(value.length!==expected.length||!timingSafeEqual(value,expected))return send(res,403,publicError(new Error('forbidden')))}
+      if(mutation&&tasks.updateLocked)return send(res,409,{code:'busy',message:'正在更新程序，请等待页面自动重新连接。'});
+      if(req.method==='GET'&&url.pathname==='/api/update/status')return send(res,200,await updaterRequest('status'));
+      if(req.method==='POST'&&url.pathname==='/api/update/check')return send(res,202,await updaterRequest('check',{}));
+      if(req.method==='POST'&&url.pathname==='/api/update/install'){
+        if(tasks.active||tasks.authBusy)throw new Error('busy');const body=await readBody(req);
+        if(typeof body.version!=='string'||!/^\d+\.\d+\.\d+$/.test(body.version))return send(res,400,{message:'版本号无效。'});
+        return send(res,202,await updaterRequest('install',{version:body.version}));
+      }
       if(req.method==='GET'&&url.pathname==='/api/status')return send(res,200,state());
       if(req.method==='GET'&&url.pathname==='/api/data')return send(res,200,store.snapshot());
       if(req.method==='GET'&&url.pathname==='/api/backup')return send(res,200,store.backup(),{'Content-Disposition':'attachment; filename="salmon-review-backup.json"'});

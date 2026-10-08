@@ -12,4 +12,6 @@ dist/data.js
 dist/assets/
 *.enc
 vault.key
+*private-key*.pem
+update-signing-key.pem
 splatnet3-coop-*.json
