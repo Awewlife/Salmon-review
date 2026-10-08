@@ -140,7 +140,7 @@ def main():
         for name in ['THIRD_PARTY_NOTICES.md','THIRD_PARTY_PACKAGES.json','LICENSE','NOTICE']:
             shutil.copy2(ROOT/name,third_party/name)
         shutil.make_archive(str(output/f'SalmonReview-v{version}-third-party'),'zip',third_party)
-        (output/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(output.glob('*.zip'))),encoding='ascii')
+        (output/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(output.iterdir()) if p.is_file() and p.name != 'SHA256SUMS.txt'),encoding='ascii')
         print(json.dumps({'version':version,'commit':commit,'imageId':info['Id'],'files':[{'name':p.name,'bytes':p.stat().st_size} for p in sorted(output.iterdir())]},indent=2))
 
 
