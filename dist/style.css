@@ -42,3 +42,27 @@
 .interrupted-detail p{margin-top:12px}
 
 .result.disconnected{background:#343a3e;color:#bbc3c8}
+
+#chart-wrap .score-chart-ranked{min-height:280px;max-height:460px}.score-rank-band{fill:#d5ef6806;pointer-events:none}.score-rank-band.alternate{fill:#d5ef680d}.score-axis-title{fill:var(--muted)}.score-chart-ranked .chart-text{font-size:12px}.score-wrap+.chart-axis-note{flex-wrap:wrap;gap:8px}
+
+.trend-display-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 18px}.trend-total-toggle{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);cursor:pointer}.trend-total-toggle[hidden]{display:none}.trend-total-toggle input{accent-color:var(--lime)}.team-total-swatch{display:inline-block;width:22px;border-top:2px dashed #a8b0b4}.trend-measure-note{font-size:12px;color:var(--muted)}.trend-team-summary{border-bottom:1px solid var(--line);padding:5px 0;margin-bottom:5px;color:var(--muted)}.trend-tip-share{display:inline-block;margin-left:12px;color:var(--lime)}.trend-tip-row .tip-assist{display:block;font-size:10px;margin-top:2px}.trend-tip-row>b{text-align:right}.team-total-line,.team-total-point{pointer-events:none}
+
+#trend-share-scale[hidden]{display:none}
+
+.trend-current{min-height:19px;margin:4px 0;color:var(--muted);font-size:12px}
+.trend-sync,.trend-quarter{pointer-events:none}
+.trend-chart-inner .trend-line-label{pointer-events:auto;cursor:default;outline:none}
+.trend-line-label path{pointer-events:none}
+.trend-line-label:focus rect,.trend-line-label.series-active rect{stroke:var(--lime);stroke-width:1.5}
+#trend-plots .series-muted{opacity:.22}
+#trend-plots.names-hidden .trend-line-label.series-active{display:block}
+
+.trend-plot{position:relative}.trend-tooltip{max-width:calc(100% - 8px);white-space:normal}
+
+#trend-plots .label-crowded{display:none}
+#trend-plots .label-crowded.series-active{display:block;pointer-events:none}
+
+#trend-plots .trend-line-label.series-muted{visibility:hidden}
+
+/* Keep both overview charts comfortably dense on wide screens. */
+#chart-wrap{width:100%;max-width:1120px;margin-inline:auto}

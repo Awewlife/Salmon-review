@@ -60,3 +60,25 @@ test('overview performance chart opens the selected match for pointer and keyboa
     assert.equal(c.location.hash,'job-normal');assert.equal(prevented,true);
   }
 });
+
+
+test('overview modes align every match horizontally at narrow and wide container widths',()=>{
+  const c=cache({getItem:()=>null,setItem(){}}),elements=new Map();
+  c.document={querySelector(selector){if(!elements.has(selector))elements.set(selector,{innerHTML:'',classList:{toggle(){}}});return elements.get(selector)}};
+  Object.assign(c.window,{innerWidth:1920,addEventListener(){},scrollTo(){}});c.location={hash:''};
+  vm.runInContext(source('metrics.js'),c);vm.runInContext(source('grade-chart.js'),c);
+  c.SalmonStats=c.window.SalmonStats;c.SalmonGradeChart=c.window.SalmonGradeChart;
+  vm.runInContext(source('app.js'),c);
+  const jobs=[620,60,80,40].map((gradePoint,i)=>({id:'job-'+i,index:i+1,gradePoint,gradeId:[8,4,4,5][i],grade:['传说','达人','达人','达人+1'][i],clear:true,continuousWithPrevious:i>0,players:[{key:'me',eggs:20+i,kills:10,deaths:0}]}));
+  const centers=svg=>[...svg.matchAll(/<rect class="chart-hit[^>]+>/g)].map(([tag])=>Number(tag.match(/ x="([^"]+)"/)[1])+Number(tag.match(/ width="([^"]+)"/)[1])/2);
+  for(const data of [jobs,jobs.map(j=>({...j,gradeId:8,grade:'传说'})),[jobs[0]]]){
+    for(const width of [310,760,1478]){
+      c.fixtureJobs=data;c.fixtureWidth=width;
+      const performance=vm.runInContext('chart(fixtureJobs,{width:fixtureWidth})',c),score=c.SalmonGradeChart.render(data,{width});
+      const a=centers(performance),b=centers(score);
+      assert.equal(a.length,data.length);assert.equal(b.length,data.length);
+      a.forEach((x,i)=>assert(Math.abs(x-b[i])<0.02,`node ${i} at width ${width}`));
+      assert(performance.includes(`viewBox="0 0 ${width} 280"`));assert.match(performance,/style="height:280px"/);
+    }
+  }
+});

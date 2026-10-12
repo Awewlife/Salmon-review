@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../dist/update.js',import.meta.url),'utf8');
 async function fixture(connected=true,intercept=()=>null){
   const elements=new Map(),timers=[],calls=[];
-  const element=id=>{if(!elements.has(id))elements.set(id,{open:false,hidden:true,textContent:'',value:'',innerHTML:'',addEventListener(){},showModal(){this.open=true},close(){this.open=false},querySelector:selector=>element(selector)});return elements.get(id)};
+  const element=id=>{if(!elements.has(id))elements.set(id,{open:false,hidden:true,textContent:'',value:'',innerHTML:'',addEventListener(type,fn){this['on'+type]=fn},showModal(){this.open=true},close(){this.open=false},querySelector:selector=>element(selector)});return elements.get(id)};
   let state={enabled:true,phase:'idle',auth:{connected},available:false,busy:false};
   const c={window:{},document:{querySelector:element},location:{reload(){}},AbortSignal,setInterval:fn=>timers.push(fn),fetch:async(url,options)=>{
     calls.push({url,options});
@@ -80,4 +80,35 @@ test('failed authorization can be retried with the old error cleared until the n
   await request;
   assert.match(f.element('#update-dialog').innerHTML,/新一次校验失败/);
   assert.doesNotMatch(f.element('#update-dialog').innerHTML,/正在校验/);
+});
+
+test('cancel control shows progress, prevents duplicates and enables retry when cleanup finishes',async()=>{
+  let finish;
+  const f=await fixture(true,url=>url==='/api/update/cancel-install'?new Promise(resolve=>finish=resolve):null);
+  f.setState({phase:'downloading',canCancel:true,cancelSupported:true,busy:true,available:false,latest:'0.3.8'});
+  await f.c.window.SalmonUpdates.open();const dialog=f.element('#update-dialog');
+  assert.match(dialog.innerHTML,/id="cancel-update"[^>]*>取消更新/);
+  const request=f.element('#cancel-update').onclick();await f.flush();
+  assert.match(dialog.innerHTML,/正在取消更新并清理下载文件/);
+  await f.element('#cancel-update').onclick();assert.equal(f.calls.filter(c=>c.url==='/api/update/cancel-install').length,1);
+  f.setState({phase:'cancelling',canCancel:false});finish({ok:true,json:async()=>({accepted:true})});await request;
+  assert.match(dialog.innerHTML,/id="cancel-update"[^>]*disabled[^>]*>正在取消/);
+  f.setState({phase:'cancelled',busy:false,available:true});f.timers[0]();await f.flush();
+  assert.doesNotMatch(dialog.innerHTML,/id="cancel-update"/);
+  assert.match(dialog.innerHTML,/id="install-update"[^>]*class="button primary"\s*>/);
+  await f.element('#install-update').onclick();assert.equal(f.calls.filter(c=>c.url==='/api/update/install').length,1);
+});
+test('older updater and installation phases do not advertise unsafe cancellation',async()=>{
+  const f=await fixture();await f.c.window.SalmonUpdates.open();
+  f.setState({phase:'downloading',busy:true});f.timers[0]();await f.flush();
+  assert.match(f.element('#update-dialog').innerHTML,/当前更新组件不支持取消/);
+  assert.doesNotMatch(f.element('#update-dialog').innerHTML,/id="cancel-update"/);
+  f.setState({phase:'loading',cancelSupported:true,canCancel:false});f.timers[0]();await f.flush();
+  assert.match(f.element('#update-dialog').innerHTML,/已进入安装或恢复阶段，无法取消/);
+});
+
+test('cleanup warning remains visible separately from successful update status',async()=>{
+  const f=await fixture();f.setState({retentionSupported:true,phase:'success',message:'更新成功',cleanup:{pending:true,message:'旧文件清理暂未完成',legacyBackups:1}});
+  await f.c.window.SalmonUpdates.open();const html=f.element('#update-dialog').innerHTML;
+  assert.match(html,/更新成功/);assert.match(html,/最近两份已校验备份/);assert.match(html,/旧文件清理暂未完成/);assert.match(html,/1 份旧备份缺少校验记录/);
 });

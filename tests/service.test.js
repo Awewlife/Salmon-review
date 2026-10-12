@@ -9,6 +9,19 @@ import {Tasks,workerCall} from '../server/tasks.js';
 import {classify} from '../server/errors.js';
 import {fixture} from './fixtures.js';
 async function setup(t){const directory=mkdtempSync(path.join(os.tmpdir(),'salmon-http-'));const app=await createApp({directory});await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+app.server.address().port;const status=await fetch(base+'/api/status').then(r=>r.json());t.after(async()=>{await app.close();rmSync(directory,{recursive:true,force:true})});return {...app,base,csrf:status.csrf}}
+test('diagnostics reads aggregate local health without writing or disclosing settings, paths or credentials',async t=>{
+  const {base,store,csrf,tasks}=await setup(t),f=fixture();
+  store.import([f.record,f.summary]);store.set('diagnostic-secret','SECRET_TOKEN_VALUE');
+  const changes=()=>store.db.prepare('SELECT total_changes() AS n').get().n;
+  const before=changes(),runBefore=tasks.status().last;
+  const res=await fetch(base+'/api/diagnostics'),report=await res.json();
+  assert.equal(res.status,200);assert.equal(report.database.ok,true);assert.equal(report.database.records,1);assert.equal(report.database.schemaVersion,1);
+  assert.equal(report.storage.permissions,true);assert(report.storage.databaseBytes>0);assert(report.storage.totalBytes>0);assert.equal(report.updaterConfigured,false);
+  assert.equal(changes(),before);assert.deepEqual(tasks.status().last,runBefore);
+  const serialized=JSON.stringify(report);for(const secret of ['SECRET_TOKEN_VALUE',csrf,store.directory,'raw','owner','settings'])assert(!serialized.includes(secret));
+  assert.equal((await fetch(base+'/api/diagnostics',{headers:{Origin:'https://attacker.example'}})).status,403);
+  assert.equal((await fetch(base+'/diagnostics.js')).status,200);
+});
 test('HTTP lifecycle: empty startup, safe import, dynamic frontend, backup, restart-safe data',async t=>{
   const {base,csrf}=await setup(t);const f=fixture();const post=(url,body,headers={})=>fetch(base+url,{method:'POST',headers:{'Content-Type':'application/json','X-Salmon-CSRF':csrf,...headers},body:JSON.stringify(body)});
   assert.equal((await fetch(base+'/api/data').then(r=>r.json())).jobs.length,0);
@@ -54,7 +67,7 @@ test('authentication failures pause automation; rate limits preserve Retry-After
 });
 test('web updater endpoints require CSRF; internal controls cannot be called by ordinary pages; maintenance blocks writes',async t=>{
   const {base,csrf,tasks}=await setup(t);
-  for(const route of ['check','authorize','disconnect'])assert.equal((await fetch(base+'/api/update/'+route,{method:'POST'})).status,403);
+  for(const route of ['check','authorize','disconnect','cancel-install'])assert.equal((await fetch(base+'/api/update/'+route,{method:'POST'})).status,403);
   for(const route of ['prepare','validate','activate','cancel'])assert.equal((await fetch(base+'/api/update/'+route,{method:'POST',headers:{'X-Salmon-CSRF':csrf,'X-Salmon-Updater':'forged'}})).status,403);
   assert.equal((await fetch(base+'/api/update/status').then(r=>r.json())).enabled,false);
   tasks.updateLocked=true;

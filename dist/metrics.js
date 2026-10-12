@@ -20,6 +20,32 @@ window.SalmonStats={
     const sample=clearedOnly?jobs.filter(j=>j.clear):jobs;
     return {count:sample.length,value:sample.length?sample.reduce((n,j)=>n+j.players.find(p=>p.me).kills,0)/sample.length:null};
   },
+  teamTotal(job,metric){
+    const players=job.players??[];
+    if(job.interrupted||players.length!==4||new Set(players.map(p=>p.key)).size!==4||players.some(p=>typeof p.key!=='string'||!p.key||!Number.isFinite(p[metric])||p[metric]<0))return null;
+    return players.reduce((sum,p)=>sum+p[metric],0);
+  },
+  share(job,key,metric){
+    const total=this.teamTotal(job,metric),player=job.players?.find(p=>p.key===key);
+    if(total===null||!player)return null;
+    // Display convention agreed for valid all-zero results, not for missing data.
+    return total===0?0:player[metric]/total*100;
+  },
+  valueSegments(jobs,valueOf){
+    const segments=[];let current=[];
+    jobs.forEach((job,index)=>{
+      const value=valueOf(job);
+      if(value===null||(index>0&&job.continuousWithPrevious!==true)){
+        if(current.length)segments.push(current);current=[];
+      }
+      if(value!==null)current.push({index,value});
+    });
+    if(current.length)segments.push(current);
+    return segments;
+  },
+  trendSegments(jobs,key,metric,mode='quantity'){
+    return mode==='share'?this.valueSegments(jobs,job=>this.share(job,key,metric)):this.segments(jobs,key,metric);
+  },
   suspectedTeammates(jobs){
     const people=new Map();
     [...jobs].sort((a,b)=>a.time.localeCompare(b.time)).forEach((j,i)=>{

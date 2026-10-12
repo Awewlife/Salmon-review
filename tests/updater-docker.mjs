@@ -5,6 +5,8 @@ import {Updater} from '../server/updater/service.js';
 import {fixture} from './fixtures.js';
 import {appHTTP} from '../server/updater/app-http.js';
 const u=new Updater({attempts:3});
+// This fixture may inspect Docker but must never clean production images on the shared host.
+u.retention.images=async()=>0;
 const self=await u.docker.inspect(process.env.HOSTNAME);
 assert.equal(self.Config.Labels['com.docker.compose.project'],'salmon-update-test');
 assert.equal(self.Mounts.find(m=>m.Destination==='/data').Name,'salmon-update-test_salmon-data');

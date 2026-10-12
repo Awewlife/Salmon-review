@@ -2,6 +2,7 @@ import http from 'node:http';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,timingSafeEqual,createHash} from 'node:crypto';
+import {readDiagnostics} from './diagnostics.js';
 import {internalUpdater,updaterRequest,updateDirectory} from './update-client.js';
 import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
 import {Store} from './store.js';
@@ -11,19 +12,19 @@ import {publicError} from './errors.js';
 import {safeAssetUrl} from './normalize.js';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const staticFiles=new Map(['index.html','view-data.js','app.js','metrics.js','chart-dialog.js','grade-chart.js','style.css','manage.js','manage.css','update.js'].map(name=>['/'+name,path.join(root,'../dist',name)]));
+const staticFiles=new Map(['index.html','view-data.js','app.js','metrics.js','chart-dialog.js','grade-chart.js','style.css','manage.js','manage.css','update.js','diagnostics.js'].map(name=>['/'+name,path.join(root,'../dist',name)]));
 staticFiles.set('/LICENSE',path.join(root,'../LICENSE'));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 export async function createApp({directory=process.env.DATA_DIR??path.join(root,'../data'),runner=workerCall,accountOptions}={}){
   const store=new Store(directory),account=new CliAccount(directory,accountOptions),tasks=new Tasks(store,account,runner);
   if(process.env.SALMON_UPDATE_TRIAL==='1'){
     let installed=null;try{installed=JSON.parse(await readFile(updateDirectory+'/installed.json','utf8'))}catch{}
-    tasks.updateLocked=installed?.version!=='0.3.8';
+    tasks.updateLocked=installed?.version!=='0.3.9';
   }
   const csrf=randomBytes(32).toString('hex');const assetJobs=new Map();
   await mkdir(path.join(directory,'assets'),{recursive:true,mode:0o700});
   const send=(res,status,value,extra={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',...extra});res.end(JSON.stringify(value))};
-  const state=()=>({version:'0.3.8',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
+  const state=()=>({version:'0.3.9',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
   const validation=()=>({version:state().version,records:state().records,jobs:store.snapshot().jobs.length,connected:state().connected,fingerprint:createHash('sha256').update(JSON.stringify(store.backup().documents)).digest('hex')});
   async function readBody(req){
     if(!String(req.headers['content-type']??'').startsWith('application/json'))throw new Error('bad_json');
@@ -71,11 +72,13 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
       }
       if(req.method==='POST'&&url.pathname==='/api/update/disconnect')return send(res,200,await updaterRequest('disconnect',{}));
       if(req.method==='POST'&&url.pathname==='/api/update/check')return send(res,202,await updaterRequest('check',{}));
+      if(req.method==='POST'&&url.pathname==='/api/update/cancel-install')return send(res,202,await updaterRequest('cancel-install',{}));
       if(req.method==='POST'&&url.pathname==='/api/update/install'){
         if(tasks.active||tasks.authBusy)throw new Error('busy');const body=await readBody(req);
         if(typeof body.version!=='string'||!/^\d+\.\d+\.\d+$/.test(body.version))return send(res,400,{message:'版本号无效。'});
         return send(res,202,await updaterRequest('install',{version:body.version}));
       }
+      if(req.method==='GET'&&url.pathname==='/api/diagnostics')return send(res,200,await readDiagnostics(store,{updaterConfigured:!!updateDirectory}));
       if(req.method==='GET'&&url.pathname==='/api/status')return send(res,200,state());
       if(req.method==='GET'&&url.pathname==='/api/data')return send(res,200,store.snapshot());
       if(req.method==='GET'&&url.pathname==='/api/backup')return send(res,200,store.backup(),{'Content-Disposition':'attachment; filename="salmon-review-backup.json"'});

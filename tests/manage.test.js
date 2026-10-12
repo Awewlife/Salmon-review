@@ -10,6 +10,7 @@ async function page({open=true,connected=false}={}){
   class Element{
     constructor(){this.value='';this.textContent='';this.disabled=false;this.hidden=false;this.classes=new Set();this.classList={toggle:(key,on)=>on?this.classes.add(key):this.classes.delete(key)}}
     set innerHTML(value){this.markup=value;for(const [,id] of value.matchAll(/id="([^"]+)"/g))elements.set(id,new Element())}
+    querySelector(selector){return elements.get(selector.slice(1))??null}
     querySelectorAll(){return [...elements.values()]}
     removeAttribute(key){delete this[key]}
     showModal(){this.open=true}
@@ -23,7 +24,7 @@ async function page({open=true,connected=false}={}){
   const intervals=[], replacements=[];let timeOffset=0;
   class Clock extends Date {static now(){return Date.now()+timeOffset}}
   let readTransport=async url=>url==='/api/status'?structuredClone(status):{excluded:[]};
-  const context={Date:Clock,AbortSignal,document:{querySelector:selector=>elements.get(selector.slice(1))??null},window:{SALMON_DATA:{excluded:[]},hasLoadedData:()=>true,replaceData(data){replacements.push(data)}},setInterval(fn,ms){intervals.push({fn,ms})},fetch:async(url,options)=>{
+  const context={Date:Clock,AbortSignal,document:{querySelector:selector=>elements.get(selector.slice(1))??null},window:{SalmonDiagnostics:{open(){elements.set('diagnosis-opened',true)}},SALMON_DATA:{excluded:[]},hasLoadedData:()=>true,replaceData(data){replacements.push(data)}},setInterval(fn,ms){intervals.push({fn,ms})},fetch:async(url,options)=>{
     if(url==='/api/status'||url==='/api/data')return {ok:true,json:async()=>readTransport(url)};
     const result=await transport(url,JSON.parse(options.body));return {ok:!result.error,json:async()=>result.error??result};
   }};
@@ -131,4 +132,21 @@ test('rate limit keeps manual controls disabled and expired credentials offer di
   await p.get('quick-connect').onclick();assert.equal(p.get('account-section').focused,true);
   p.status.sync.paused=null;await p.poll();assert.equal(p.get('quick-sync').disabled,false);assert.equal(p.get('sync-now').disabled,false);
   assert.equal(p.get('quick-connect').hidden,true);
+});
+
+
+test('settings expose diagnostics immediately while service is pending or unavailable',async()=>{
+  const p=await page({open:false}),read=deferred();p.setRead(()=>read.promise);
+  const opening=p.get('nav-manage').onclick();
+  assert.equal(p.get('manage-dialog').open,true);assert.match(p.get('manage-loading').textContent||p.get('manage-dialog').markup,/正在读取/);
+  p.get('open-diagnostics').onclick();assert.equal(p.get('diagnosis-opened'),true);
+  read.reject(new Error('network'));await opening;
+  assert.equal(p.get('manage-dialog').open,true);assert.match(p.get('manage-loading').textContent,/诊断并导出/);
+});
+
+test('closing settings during a pending read does not reopen them',async()=>{
+  const p=await page({open:false}),read=deferred();p.setRead(()=>read.promise);
+  const opening=p.get('nav-manage').onclick();p.get('close-manage').onclick();
+  read.resolve(structuredClone(p.status));await opening;
+  assert.equal(p.get('manage-dialog').open,false);
 });

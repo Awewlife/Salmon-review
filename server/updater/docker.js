@@ -20,6 +20,8 @@ export class Docker{
   remove(id){return this.request('DELETE',`/containers/${encodeURIComponent(id)}?v=false&force=false`)}
   create(name,config){return this.request('POST','/containers/create?name='+encodeURIComponent(name),config)}
   load(file){return this.request('POST','/images/load?quiet=true',file,{stream:true,timeout:30*60*1000})}
+  images(filters){return this.request('GET','/images/json?all=true&filters='+encodeURIComponent(JSON.stringify(filters)))}
+  removeImage(name){return this.request('DELETE','/images/'+encodeURIComponent(name)+'?force=false&noprune=true')}
   image(name){return this.request('GET','/images/'+encodeURIComponent(name)+'/json')}
 }
 export function candidateConfig(old,manifest,transaction){

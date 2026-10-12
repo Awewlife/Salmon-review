@@ -6,7 +6,7 @@
   <meta name="description" content="按排班查看打工表现、逐场记录和复盘建议。">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff6846'/%3E%3Cpath d='M9 9h14v5H14v3h9v6H9v-5h9v-3H9z' fill='%231b1d20'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="manage.css">
-  <script defer src="view-data.js"></script><script defer src="metrics.js"></script><script defer src="chart-dialog.js"></script><script defer src="grade-chart.js"></script><script defer src="app.js"></script><script defer src="manage.js"></script><script defer src="update.js"></script>
+  <script defer src="view-data.js"></script><script defer src="metrics.js"></script><script defer src="chart-dialog.js"></script><script defer src="grade-chart.js"></script><script defer src="app.js"></script><script defer src="diagnostics.js"></script><script defer src="manage.js"></script><script defer src="update.js"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -19,6 +19,7 @@
   </aside>
   <div class="workspace"><header class="topbar"><div class="breadcrumbs" id="breadcrumbs">工作台 <span>/</span> 排班总览</div><div class="topbar-note"><span class="live-dot"></span> 本地运行版 <span class="topbar-divider"></span> <span>UTC+8</span></div></header><div id="sync-strip"><div class="sync-summary"><span id="sync-status" role="status">正在读取同步状态…</span><button id="quick-connect" class="sync-connect" hidden>未连接账号</button><span id="sync-last"></span></div><button id="quick-sync" class="button sync-action" disabled>立即同步</button><p id="data-refresh-note" role="status"></p><p id="sync-feedback" role="status" hidden></p></div><div id="update-notice" role="status" hidden><span id="update-notice-text"></span><button id="notice-open-update" class="button">查看更新</button><button id="dismiss-update-notice" class="button">稍后</button></div><main id="app"></main><footer>数据来自 SplatNet 3 · nxapi 本地导出 <span>仅在本机保存战绩 · 支持备份导出 · <a href="https://github.com/Awewlife/Salmon-review" target="_blank" rel="noreferrer noopener">源码</a> · <a href="/LICENSE" target="_blank" rel="noreferrer noopener">AGPL-3.0-or-later</a></span></footer></div>
   <dialog id="manage-dialog" aria-labelledby="manage-title"></dialog>
+  <dialog id="diagnostic-dialog" aria-labelledby="diagnostic-title"></dialog>
   <dialog id="update-dialog" aria-labelledby="update-title"></dialog>
   <dialog id="trend-dialog" aria-labelledby="trend-title"></dialog>
 </body></html>

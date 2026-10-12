@@ -6,19 +6,20 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {Docker,candidateConfig,sameProjectApp} from './docker.js';
 import {atomicJSON,json,backupData,restoreData} from './files.js';
 import {privateReleases,verifyAccess,compareVersions} from './release.js';
+import {Retention} from './retention.js';
 import {appHTTP} from './app-http.js';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const messages={release_missing:'目前还没有可用的私有更新。',release_limited:'下载源暂时限制请求，请稍后重试。',download_failed:'下载未完成，旧版继续运行；请检查网络后重试。',invalid_signature:'更新签名校验失败，已拒绝安装。',invalid_manifest:'此更新与当前安装方式不兼容，请下载完整安装包。',invalid_download:'下载文件校验失败，旧版继续运行。',disk_space:'磁盘空间不足，已停止更新。',project_mismatch:'无法确认原有项目和数据卷，已停止更新。',busy:'正在同步、导入或登录，请完成后重试更新。',no_update:'目前没有比当前版本更新的可安装版本。',unhealthy:'新版启动或数据检查未通过。',backup_failed:'数据备份未完成，已停止更新。',recovery_failed:'自动恢复未完成。已保留旧容器和备份，请勿删除数据卷；请查看 Docker 中更新组件日志并联系维护者。'};
 function publicMessage(e){return messages[e?.message]??'更新未完成，请检查网络、磁盘空间和 Docker 状态后重试。'}
-Object.assign(messages,{release_missing:'已连接私有仓库，目前还没有带网页更新附件的新版。',auth_required:'请先连接你自己的 GitHub 更新权限。',auth_invalid:'GitHub 凭据已失效或格式不正确，请重新连接。',access_denied:'无法访问私有发行版，请确认已接受仓库邀请，且凭据拥有所需权限。'});
+Object.assign(messages,{cannot_cancel:'已进入安装阶段，无法取消；完成后将自动连接，失败会尝试恢复旧版。',release_missing:'已连接私有仓库，目前还没有带网页更新附件的新版。',auth_required:'请先连接你自己的 GitHub 更新权限。',auth_invalid:'GitHub 凭据已失效或格式不正确，请重新连接。',access_denied:'无法访问私有发行版，请确认已接受仓库邀请，且凭据拥有所需权限。'});
 export class Updater{
   constructor({directory='/updates',docker=new Docker(),releases,manifest,download,verify=verifyAccess,backup=backupData,restore=restoreData,attempts=45}={}){
-    this.credential=null;
+    this.credential=null;this.retention=new Retention(directory,docker);
     const client=privateReleases(()=>this.credential?.token);
     Object.assign(this,{directory,docker,releases:releases??client.releases,manifest:manifest??client.manifest,download:download??client.download,verify,backup,restore,attempts});this.busy=false;this.info={phase:'idle',progress:0,message:messages.auth_required};this.latest=null;
   }
   file(name){return path.join(this.directory,name)}
-  async save(patch){this.info={...this.info,...patch,updated:Date.now()};await atomicJSON(this.file('status.json'),this.info)}
+  async save(patch){this.info={...this.info,...patch,updated:Date.now()};const snapshot=this.info;this.saveQueue=(this.saveQueue??Promise.resolve()).catch(()=>{}).then(()=>atomicJSON(this.file('status.json'),snapshot));await this.saveQueue}
   async discover(){
     const self=await this.docker.inspect(process.env.HOSTNAME);
     const project=self.Config.Labels?.['com.docker.compose.project'];if(!project)throw new Error('project_mismatch');
@@ -45,11 +46,30 @@ export class Updater{
     if(!this.credential&&!await json(this.file('transaction.json')))await this.save({phase:'idle',authRequired:true,available:false,latest:null,notes:null,url:null,checked:null,message:messages.auth_required});
     const journal=await json(this.file('transaction.json'));
     if(journal){this.busy=true;try{if(journal.committed){await this.finishCleanup(journal);await this.save({phase:'success',message:'更新完成。'})}else await this.recover(journal)}finally{this.busy=false}}
-    else if(['checking','downloading','verifying','loading'].includes(this.info.phase))await this.save({phase:'failed',message:'上次更新已中断，旧版仍保留，可重新检查更新。'});
+    else if(['checking','downloading','verifying','loading','cancelling'].includes(this.info.phase))await this.save({phase:'failed',message:'上次更新已中断，旧版仍保留，可重新检查更新。'});
+    if(!await json(this.file('transaction.json'))&&(this.info.cleanupTask||this.info.cleanup?.pending))await this.maintain();
+  }
+  async maintain(journal){
+    try{
+      if(journal)await this.save({cleanupTask:journal});
+      if(await json(this.file('transaction.json')))return;
+      if(this.info.cleanupTask){await this.retention.record(this.info.cleanupTask);await this.save({cleanupTask:null})}
+      const cleanup=await this.retention.cleanup();await this.save({cleanup});
+    }catch{await this.save({cleanup:{pending:true,message:'旧文件清理暂未完成，当前版本可正常使用，将在下次检查更新时重试。'}}).catch(()=>{})}
+  }
+  canCancel(){return this.busy&&!!this.installController&&!this.installController.signal.aborted&&['verifying','downloading'].includes(this.info.phase)}
+  async cancelInstall(){
+    if(this.info.phase==='cancelling')return {accepted:true};
+    if(!this.canCancel())throw new Error('cannot_cancel');
+    // Abort synchronously before any await so installation cannot race past the boundary.
+    this.installController.abort(new Error('cancelled'));
+    await this.save({phase:'cancelling',message:'正在取消更新并清理下载文件…'});
+    return {accepted:true};
   }
   async check(){
     if(this.busy||this.info.phase==='blocked')return this.status();this.busy=true;
     try{
+      if(this.info.cleanupTask||this.info.cleanup?.pending)await this.maintain();
       await this.save({phase:'checking',message:'正在验证 GitHub 权限并检查私有发行版…'});
       const app=await this.discover(),current=app.Config.Labels?.['org.opencontainers.image.version'];
       this.latest=await this.releases();const {manifest:m,notes,url}=this.latest;
@@ -58,7 +78,7 @@ export class Updater{
     }catch(e){await this.save({phase:'failed',available:false,authRequired:['auth_required','auth_invalid','access_denied'].includes(e.message),latest:null,notes:null,url:null,checked:Date.now(),message:publicMessage(e)})}finally{this.busy=false}
     return this.status();
   }
-  status(){const {phase,current,latest,available,notes,url,checked,message,progress,updated,authRequired}=this.info;return {enabled:true,phase,current,latest,available,notes,url,checked,message,progress,updated,busy:this.busy,auth:{connected:!!this.credential,login:this.credential?.login??null,required:!this.credential||!!authRequired}}}
+  status(){const {phase,current,latest,available,notes,url,checked,message,progress,updated,authRequired}=this.info;return {enabled:true,phase,current,latest,available,notes,url,checked,message,progress,updated,busy:this.busy,cleanup:this.info.cleanup??null,retentionSupported:true,cancelSupported:true,canCancel:this.canCancel(),auth:{connected:!!this.credential,login:this.credential?.login??null,required:!this.credential||!!authRequired}}}
   async authorize(token){
     if(this.busy||this.info.phase==='blocked')throw new Error('busy');
     if(typeof token!=='string'||!/^[-A-Za-z0-9_]{20,255}$/.test(token.trim()))throw new Error('auth_invalid');
@@ -81,29 +101,32 @@ export class Updater{
   async install(version){
     if(this.busy||this.info.phase==='blocked')throw new Error('busy');
     if(!this.info.available||version!==this.info.latest)throw new Error('no_update');
-    this.busy=true;this.completion=this.run(version).finally(()=>{this.busy=false});return {accepted:true};
+    this.busy=true;this.installController=new AbortController();this.completion=this.run(version,this.installController.signal).finally(()=>{this.installController=null;this.busy=false});return {accepted:true};
   }
-  async run(version){
+  async run(version,signal){
     let journal=null,old=null,prepared=false;
     const imageFile=this.file('download.tar.gz');
     try{
       await this.save({phase:'verifying',progress:0,available:false,message:'正在核对更新签名…'});
-      const m=await this.manifest(version);old=await this.discover();
+      signal.throwIfAborted();
+      const m=await this.manifest(version,{signal});signal.throwIfAborted();old=await this.discover();signal.throwIfAborted();
       if(compareVersions(m.version,old.Config.Labels['org.opencontainers.image.version'])<=0)throw new Error('no_update');
       await this.save({phase:'downloading',message:'正在下载新版，仍可使用当前版本。'});
-      await this.download(m,imageFile,progress=>this.save({progress}));
+      signal.throwIfAborted();
+      await this.download(m,imageFile,progress=>signal.aborted?undefined:this.save({progress}),{signal});
+      signal.throwIfAborted();
       await this.save({phase:'loading',message:'文件已校验，正在导入镜像…'});await this.docker.load(imageFile);
       const image=await this.docker.image(m.image);
       if(!m.imageIds.includes(image.Id)||image.Os!=='linux'||image.Architecture!=='amd64'||image.Config.Labels?.['org.opencontainers.image.revision']!==m.commit||image.Config.Labels?.['org.opencontainers.image.version']!==m.version)throw new Error('invalid_download');
       old=await this.discover();
-      const id=randomBytes(12).toString('hex');journal={id,oldId:old.Id,name:old.Name.slice(1),backup:this.file('backups/'+id),backupComplete:false,version,created:Date.now()};
+      const id=randomBytes(12).toString('hex');journal={id,oldId:old.Id,oldVersion:old.Config.Labels['org.opencontainers.image.version'],name:old.Name.slice(1),backup:this.file('backups/'+id),backupComplete:false,version,created:Date.now()};
       // Persist intent before locking writes, so a crash cannot leave the old
       // app locked without a recovery journal.
       await atomicJSON(this.file('transaction.json'),journal);
       const before=await this.appCall(old,'prepare');prepared=true;journal.before=before;
       await atomicJSON(this.file('transaction.json'),journal);
       await this.save({phase:'backing_up',message:'正在暂停写入并备份本机数据…'});
-      await this.docker.stop(old.Id);await this.backup('/data',journal.backup);journal.backupComplete=true;await atomicJSON(this.file('transaction.json'),journal);
+      await this.docker.stop(old.Id);const backupResult=await this.backup('/data',journal.backup);journal.backupDigest=backupResult?.sha256;journal.backupComplete=true;await atomicJSON(this.file('transaction.json'),journal);
       await this.save({phase:'restarting',message:'正在启动新版，页面将自动重新连接…'});
       await this.docker.rename(old.Id,journal.name+'-rollback-'+id);
       const candidate=await this.docker.create(journal.name,candidateConfig(old,m,id));journal.newId=candidate.Id;await atomicJSON(this.file('transaction.json'),journal);
@@ -124,18 +147,27 @@ export class Updater{
       await this.finishCleanup(journal);
       await this.save({phase:'success',current:version,available:false,progress:100,message:'更新成功，战绩和账号设置已保留。'});
     }catch(e){
+      if(signal.aborted&&!journal){
+        try{
+          await rm(imageFile,{force:true});await rm(imageFile+'.part',{force:true});
+          await this.save({phase:'cancelled',progress:0,available:true,message:'已取消更新并清理下载文件，当前版本继续运行，可立即重试。'});
+        }catch{await this.save({phase:'failed',available:false,message:'下载已停止，但临时文件清理失败；请检查磁盘权限后重新检查更新。'})}
+        return;
+      }
       console.warn(JSON.stringify({event:'update_failed',code:messages[e.message]?e.message:'update_failed'}));
       if(journal){try{if(journal.committed){await this.appCall(await this.docker.inspect(journal.newId),'activate');await this.finishCleanup(journal);await this.save({phase:'success',current:version,message:'新版已启动，更新完成。'})}else await this.recover(journal,publicMessage(e))}catch{await this.save({phase:'blocked',message:messages.recovery_failed})}}
       else{if(prepared&&old)await this.appCall(old,'cancel').catch(()=>{});await this.save({phase:'failed',authRequired:['auth_required','auth_invalid','access_denied'].includes(e.message),message:publicMessage(e)})}
     }finally{await rm(imageFile,{force:true}).catch(()=>{})}
   }
   async finishCleanup(journal){
-    // Keep the last backup on this computer; never publish it with releases.
+    // Queue maintenance durably before removing the committed recovery journal.
+    await this.save({cleanupTask:journal}).catch(()=>{});
     await atomicJSON(this.file('installed.json'),{version:journal.version,image:`salmon-review:${journal.version}`});
     await chmod(this.file('installed.json'),0o444);
     if(journal.newId)await this.appCall(await this.docker.inspect(journal.newId),'activate');
     await this.docker.remove(journal.oldId).catch(()=>{});
     await rm(this.file('transaction.json'),{force:true});
+    await this.maintain();
   }
   async recover(journal,reason='上次更新中断。'){
     await this.save({phase:'rolling_back',message:reason+' 正在恢复旧版…'});
@@ -167,6 +199,7 @@ export async function serve(updater){
       if(req.url==='/authorize')return send(200,await updater.authorize(body.token));
       if(req.url==='/disconnect')return send(200,await updater.disconnect());
       if(req.url==='/check'){if(!updater.busy)void updater.check();return send(202,{accepted:true})}
+      if(req.url==='/cancel-install')return send(202,await updater.cancelInstall());
       if(req.url==='/install')return send(202,await updater.install(body.version));
       send(404,{message:'not_found'});
     }catch(e){send(409,{message:publicMessage(e)})}

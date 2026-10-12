@@ -11,7 +11,9 @@ export async function backupData(data,backup){
   const bytes=await inspectTree(data),space=await statfs(path.dirname(backup));
   if(space.bavail*space.bsize<bytes*2+100*1024**2)throw new Error('disk_space');
   await cp(data,backup,{recursive:true,errorOnExist:true,force:false,preserveTimestamps:true});
-  if(await inspectTree(backup)!==bytes||await treeHash(data)!==await treeHash(backup))throw new Error('backup_failed');
+  const sha256=await treeHash(backup);
+  if(await inspectTree(backup)!==bytes||await treeHash(data)!==sha256)throw new Error('backup_failed');
+  return {sha256};
 }
 export async function treeHash(root){
   const hash=createHash('sha256');

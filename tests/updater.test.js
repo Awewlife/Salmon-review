@@ -112,3 +112,49 @@ test('private manifest resolves numeric asset ID through API with octet-stream n
   await assert.rejects(manifestFor('0.3.6',{token:fixtureToken,transport}),/invalid_signature/);
   assert.equal(requests.length,2);assert.equal(requests[0].headers.Accept,'application/vnd.github+json');assert.equal(requests[1].url,`https://api.github.com/repos/${repository}/releases/assets/42`);assert.equal(requests[1].headers.Accept,'application/octet-stream');
 });
+
+const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve}};
+test('cancel during manifest request aborts it, leaves old app untouched and permits immediate retry',async t=>{
+  const {u,trace,directory}=await fixture(t),entered=deferred();
+  u.manifest=async(version,{signal})=>{entered.resolve();return new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}))};
+  await u.install('0.3.6');await entered.promise;
+  assert.equal(u.status().canCancel,true);
+  await u.cancelInstall();await u.completion;
+  assert.equal(u.status().phase,'cancelled');assert.equal(u.status().busy,false);assert.equal(u.status().available,true);
+  assert.deepEqual(trace,[]);await assert.rejects(readFile(path.join(directory,'transaction.json')),/ENOENT/);
+  u.manifest=async()=>manifest;
+  await u.install('0.3.6');await u.completion;
+  assert.equal(u.status().phase,'success');assert.ok(trace.includes('start:new'));
+});
+test('cancel aborts stalled HTTP body and removes partial file before retry becomes available',async t=>{
+  const {u,trace,directory}=await fixture(t),started=deferred();
+  u.download=(m,file,progress,{signal})=>downloadImage(m,file,progress,async()=>githubFetch('https://api.github.com/user',{
+    token:fixtureToken,signal,transport:async(url,options)=>new Response(new ReadableStream({start(controller){
+      controller.enqueue(new Uint8Array([1]));options.signal.addEventListener('abort',()=>controller.error(options.signal.reason),{once:true});started.resolve();
+    }}))
+  }),{signal});
+  await u.install('0.3.6');await started.promise;await u.cancelInstall();await u.completion;
+  assert.deepEqual(trace,[]);assert.equal(u.status().phase,'cancelled');assert.equal(u.status().busy,false);
+  for(const name of ['download.tar.gz','download.tar.gz.part','transaction.json'])await assert.rejects(readFile(path.join(directory,name)),/ENOENT/);
+  assert.equal(JSON.parse(await readFile(path.join(directory,'status.json'),'utf8')).phase,'cancelled');
+});
+test('cancel at the end of download wins over image load, but installation cannot be interrupted',async t=>{
+  const {u,trace}=await fixture(t),finished=deferred(),release=deferred();
+  u.download=async()=>{finished.resolve();await release.promise};
+  await u.install('0.3.6');await finished.promise;await u.cancelInstall();release.resolve();await u.completion;
+  assert.deepEqual(trace,[]);assert.equal(u.status().phase,'cancelled');
+  const loading=deferred(),loaded=deferred();u.download=async()=>{};
+  u.docker.load=async()=>{loading.resolve();await loaded.promise};
+  await u.install('0.3.6');await loading.promise;
+  assert.equal(u.status().canCancel,false);await assert.rejects(u.cancelInstall(),/cannot_cancel/);
+  loaded.resolve();await u.completion;assert.equal(u.status().phase,'success');
+});
+
+test('maintenance failure never rolls back a successful update and persists a retry warning',async t=>{
+  const {u,trace}=await fixture(t);
+  let calls=0;u.retention.record=async()=>{calls++};u.retention.cleanup=async()=>{throw new Error('docker unavailable')};
+  await u.install('0.3.6');await u.completion;
+  assert.equal(u.info.phase,'success');assert.equal(u.status().cleanup.pending,true);assert.ok(!trace.includes('restore'));
+  u.retention.cleanup=async()=>({pending:false,message:''});u.releases=async()=>({manifest,notes:'',url:''});
+  await u.check();assert.equal(u.status().cleanup.pending,false);assert.equal(calls,1);
+});

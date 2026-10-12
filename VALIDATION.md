@@ -106,3 +106,12 @@
 - Syntax checks, license inventory verification (170 packages), two Python packaging tests and the Windows PowerShell 5.1 installer regression passed. Dependency audit reported zero vulnerabilities.
 - Browser checks confirmed four loaded weapon images in the narrow shift card, normal/interrupted chart nodes opening their corresponding records, the concise interruption legend, and solid lines passing through interruption markers in the overview and three detail charts.
 - Existing local preview continued to use the original data volume. No user records, credentials or signing keys are included in release assets; packaging exports a newly built image and committed source.
+
+
+## v0.3.9 release preparation — 2026-10-12
+
+- 121 Node 22 container tests passed, including contribution-share semantics, zero totals, chart scales and exports, cross-chart focus, mixed-rank coordinates, shared horizontal plot bounds, diagnostic privacy/cancellation/timeouts, and updater cancellation/retention rules.
+- JavaScript syntax checks, the 170-package license inventory check, two Python package tests, and all eight installer scenarios under both Windows PowerShell 5.1 and PowerShell 7 passed. Dependency audit reported zero vulnerabilities.
+- Disposable Compose integration passed real app replacement, record/fixture-secret preservation, restart after activation, and interrupted replacement recovery. The test disables production image cleanup and removes only its own test project and volumes.
+- Browser checks verified diagnosis and JSON export, retry reading, 309 saved records, bounded mixed-rank height, aligned match positions across overview modes, equal wide-screen margins, and no narrow-screen horizontal overflow. Direct Edge automation was client-blocked; browser layout checks used the embedded Chromium browser.
+- Release assets are built from committed source in GitHub's existing private draft workflow. The update manifest is signed locally with the existing external key; user data, login credentials and the private signing key are not packaged.

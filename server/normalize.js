@@ -8,6 +8,11 @@ export function playerKey(id){
   return hash(decoded.includes(':')?decoded.split(':').at(-1):id).slice(0,24);
 }
 const text=(value,fallback='未知')=>typeof value==='string'?value.slice(0,300):fallback;
+function gradeId(raw){
+  if(typeof raw?.id!=='string')return null;
+  const match=Buffer.from(raw.id,'base64').toString('utf8').match(/^CoopGrade-([0-8])$/);
+  return match?Number(match[1]):null;
+}
 export function safeAssetUrl(value){
   try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&(/\.nintendo\.net$|\.nintendo\.com$/).test(u.hostname)?u.href:null}catch{return null}
 }
@@ -51,7 +56,7 @@ export function normalize(raw,group,asset){
   }
   return {id:'job-'+hash(raw.id).slice(0,24),shift:group?.id??'unassigned',time:raw.playedTime,rule,supported:reasons.length===0,reasons,interrupted,
     stage:item(raw.coopStage,asset),hazard:number(raw.dangerRate)===null?null:Math.round(raw.dangerRate*1000)/10,clear:raw.resultWave===0,failedWave:raw.resultWave,
-    grade:text(raw.afterGrade?.name,'—'),gradePoint:number(raw.afterGradePoint),eggs,power:sum(players.map(p=>p.power)),kills:sum(bosses.map(b=>b.team)),playerKills:sum(players.map(p=>p.kills)),players,waves,bosses,
+    grade:text(raw.afterGrade?.name,'—'),gradeId:gradeId(raw.afterGrade),gradePoint:number(raw.afterGradePoint),eggs,power:sum(players.map(p=>p.power)),kills:sum(bosses.map(b=>b.team)),playerKills:sum(players.map(p=>p.kills)),players,waves,bosses,
     king:raw.bossResult?{...item(raw.bossResult.boss,asset),clear:raw.bossResult.hasDefeatBoss===true}:null,scales:raw.scale??null,
     jobPoint:number(raw.jobPoint),jobScore:number(raw.jobScore),jobRate:number(raw.jobRate),jobBonus:number(raw.jobBonus),eggReconciliationDelta:eggs!==null&&playerEggs!==null?playerEggs-eggs:0};
 }

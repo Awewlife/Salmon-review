@@ -1,7 +1,7 @@
 'use strict';
 (()=>{
   let state=null,lastRun=null,busy=false,authPhase='idle',authAttempt=null;
-  let refreshing=null,dataRefresh=Promise.resolve(),loadedVersion=null,needsData=true;
+  let openGeneration=0,refreshing=null,dataRefresh=Promise.resolve(),loadedVersion=null,needsData=true;
   const dialog=document.querySelector('#manage-dialog');
   const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stamp=value=>value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'尚无';
@@ -94,7 +94,15 @@
   }
   window.openManage=async({section}={})=>{
     if(busy){if(!dialog.open)dialog.showModal();return}
-    try{await refresh()}catch{quickReport('无法连接本地服务，请检查容器状态。',true);return}
+    const generation=++openGeneration;
+    dialog.innerHTML=`<header class="manage-header"><div><div class="eyebrow">LOCAL DATA</div><h2 id="manage-title">数据与同步</h2></div><button class="close-chat" id="close-manage" aria-label="关闭数据管理">×</button></header><div class="manage-body"><p id="manage-loading" role="status">正在读取本地服务状态…</p><button class="button" id="open-diagnostics">一键诊断与导出</button><button class="button" id="retry-manage">重新加载设置</button></div>`;
+    document.querySelector('#close-manage').onclick=()=>dialog.close();
+    document.querySelector('#open-diagnostics').onclick=()=>window.SalmonDiagnostics.open();
+    document.querySelector('#retry-manage').onclick=()=>window.openManage({section});
+    dialog.onclick=e=>{if(e.target===dialog)dialog.close()};
+    if(!dialog.open)dialog.showModal();
+    try{await refresh()}catch{if(generation===openGeneration){const message=dialog.querySelector('#manage-loading');if(message)message.textContent='本地服务或战绩读取未完成。可以先诊断并导出结果，再检查 Docker 容器状态。'}return}
+    if(generation!==openGeneration||!dialog.open)return;
     dialog.innerHTML=`<header class="manage-header"><div><div class="eyebrow">LOCAL DATA</div><h2 id="manage-title">数据与同步</h2></div><button class="close-chat" id="close-manage" aria-label="关闭数据管理">×</button></header>
     <div class="manage-body"><p class="manage-message" id="manage-message" role="status">一个实例保存一位玩家的数据。导入、同步和升级均保留已归档场次。</p>
     <section><h3>导入已有记录</h3><p>选择 nxapi 导出的打工详情与排班汇总 JSON。可多选；没有汇总的记录会先保存，等待归类。重复导入会自动去重。</p><label class="file-picker">选择 JSON 文件<input id="import-files" type="file" accept=".json,application/json" multiple></label><button class="button primary" id="import-records">导入所选文件</button></section>
@@ -111,9 +119,11 @@
     </ol>
     <div id="auth-steps" hidden><p id="auth-expiry"></p><label for="auth-link">③ 粘贴按钮的返回链接</label><input id="auth-link" type="password" autocomplete="off" spellcheck="false" aria-describedby="auth-link-help" placeholder="npf71b963c1b7b6d119://auth…"><p id="auth-link-help">链接仅提交给本机服务，无需发到聊天窗口。</p><button class="button primary" id="finish-auth" disabled>完成连接</button></div>
     <details class="auth-faq"><summary>没有看到按钮，或链接提示无效？</summary><p>请使用这次生成的登录页面，重新复制“选择此账号”按钮的完整链接。若已跳转到 App、链接过期或关掉了登录页面，点击“重新生成登录链接”再试。</p><p>登录和刷新由 nxapi 处理，无需配置客户端 ID。登录缓存保存在本机数据卷；认证过程需要向第三方认证服务发送短期令牌。</p></details></section>
-    <section><h3>同步设置</h3><p id="sync-details"></p><button class="button primary" id="sync-now">立即同步</button><label class="auto-label">自动同步<select id="auto-sync"><option value="0">关闭</option><option value="15">每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每小时</option><option value="120">每 2 小时</option></select></label><p>容器运行时生效。上游认证或接口异常时自动暂停；仍可查看已保存的战绩。</p></section>
+    <section id="sync-settings" tabindex="-1"><h3>同步设置</h3><p id="sync-details"></p><button class="button primary" id="sync-now">立即同步</button><label class="auto-label">自动同步<select id="auto-sync"><option value="0">关闭</option><option value="15">每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每小时</option><option value="120">每 2 小时</option></select></label><p>容器运行时生效。上游认证或接口异常时自动暂停；仍可查看已保存的战绩。</p></section>
+    <section><h3>诊断与排查</h3><p>检查本地服务、战绩读取、同步与更新状态，导出不含账号凭据和战绩明细的诊断报告。</p><button class="button" id="open-diagnostics">一键诊断与导出</button></section>
     <section><h3>版本与更新</h3><p id="manage-update-status">启动时自动检查新版，也可以在这里手动检查和更新。</p><button class="button" id="open-update">查看版本与更新</button></section><section><h3>备份与恢复</h3><p>备份包含原始战绩和排班汇总，不包含登录凭据或图片缓存。恢复会合并同账号记录，不覆盖现有记录。备份含玩家昵称，请妥善保存。</p><a class="button" href="/api/backup" download>下载数据备份</a><label class="file-picker">选择备份<input id="restore-file" type="file" accept=".json,application/json"></label><button class="button" id="restore-backup">恢复并合并</button></section>
     <section><h3>暂未纳入统计的记录</h3><p>缺少排班、结算字段不完整或未支持的模式会保留原始数据；不会按零分参与均值。</p><div id="excluded-records"></div></section></div>`;
+    document.querySelector('#open-diagnostics').onclick=()=>window.SalmonDiagnostics.open();
     document.querySelector('#auto-sync').value=state.sync.autoMinutes;
     document.querySelector('#open-update').onclick=()=>window.SalmonUpdates?.open();window.SalmonUpdates?.paintEntry();
     paintExcluded();
@@ -140,7 +150,8 @@
     document.querySelector('#sync-now').onclick=()=>startSync();
     document.querySelector('#auto-sync').onchange=e=>{const autoMinutes=Number(e.target.value);operation(async()=>{await request('/api/settings',{autoMinutes});report(autoMinutes?'自动同步设置已保存。':'自动同步已关闭。')})};
     document.querySelector('#restore-backup').onclick=()=>operation(async()=>{const file=document.querySelector('#restore-file').files[0];if(!file)throw new Error('请选择备份文件。');if(file.size>60*1024*1024)throw new Error('备份超过此版本的 60 MB 网页导入限制。');const result=await request('/api/restore',JSON.parse(await file.text()));report(`恢复完成，新增 ${result.added} 场；原有记录保留。`);await refreshData()});
-    paintStatus();if(!dialog.open)dialog.showModal();
+    paintStatus();
+    if(section==='sync'){const sync=document.querySelector('#sync-settings');sync.scrollIntoView({block:'start'});sync.focus({preventScroll:true})}
     if(section==='account'){const account=document.querySelector('#account-section');account.scrollIntoView({block:'start'});account.focus({preventScroll:true})}
   };
   document.querySelector('#nav-manage').onclick=()=>window.openManage();
@@ -148,6 +159,7 @@
   document.querySelector('#quick-sync').onclick=()=>startSync(true);
   document.querySelector('#data-refresh-note').textContent=window.hasLoadedData()?'暂显示本标签页上次读取的战绩，正在后台更新。':'';
   refresh().catch(()=>{});
-  setInterval(()=>refresh().catch(()=>{}),4000);
+  window.SalmonManage={refresh:async()=>{if(refreshing)await refreshing.catch(()=>{});needsData=true;await refresh()}};
+  setInterval(()=>{if(!window.SalmonDiagnostics?.running)return refresh().catch(()=>{})},4000);
   setInterval(()=>{if(state){paintRetryButtons();if(dialog.open)paintAuth()}},1000);
 })();
