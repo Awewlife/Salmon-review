@@ -112,3 +112,14 @@ test('cleanup warning remains visible separately from successful update status',
   await f.c.window.SalmonUpdates.open();const html=f.element('#update-dialog').innerHTML;
   assert.match(html,/更新成功/);assert.match(html,/最近两份已校验备份/);assert.match(html,/旧文件清理暂未完成/);assert.match(html,/1 份旧备份缺少校验记录/);
 });
+
+
+test('bundle handoff and component swap show versions, disable cancellation and wait for final release',async()=>{
+  const f=await fixture();await f.c.window.SalmonUpdates.open();
+  for(const phase of ['handoff','updating_updater']){
+    f.setState({phase,busy:true,cancelSupported:true,canCancel:false,selfUpdateSupported:true,updaterVersion:'0.3.10'});f.timers[0]();await f.flush();
+    const html=f.element('#update-dialog').innerHTML;
+    assert.match(html,/更新组件 0.3.10/);assert.match(html,/主程序和更新组件会一起更新/);
+    assert.match(html,/已进入安装或恢复阶段，无法取消/);assert.doesNotMatch(html,/id="cancel-update"/);
+  }
+});

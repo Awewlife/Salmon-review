@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {version} from './version.js';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomBytes,timingSafeEqual,createHash} from 'node:crypto';
@@ -19,12 +20,12 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
   const store=new Store(directory),account=new CliAccount(directory,accountOptions),tasks=new Tasks(store,account,runner);
   if(process.env.SALMON_UPDATE_TRIAL==='1'){
     let installed=null;try{installed=JSON.parse(await readFile(updateDirectory+'/installed.json','utf8'))}catch{}
-    tasks.updateLocked=installed?.version!=='0.3.9';
+    tasks.updateLocked=installed?.version!==version;
   }
   const csrf=randomBytes(32).toString('hex');const assetJobs=new Map();
   await mkdir(path.join(directory,'assets'),{recursive:true,mode:0o700});
   const send=(res,status,value,extra={})=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',...extra});res.end(JSON.stringify(value))};
-  const state=()=>({version:'0.3.9',csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
+  const state=()=>({version,csrf,connected:!!account.read(),authBackend:'nxapi-cli',records:store.db.prepare('SELECT count(*) AS n FROM records').get().n,owner:!!store.get('owner'),lastImport:store.get('lastImport'),sync:tasks.status()});
   const validation=()=>({version:state().version,records:state().records,jobs:store.snapshot().jobs.length,connected:state().connected,fingerprint:createHash('sha256').update(JSON.stringify(store.backup().documents)).digest('hex')});
   async function readBody(req){
     if(!String(req.headers['content-type']??'').startsWith('application/json'))throw new Error('bad_json');

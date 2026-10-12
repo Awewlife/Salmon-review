@@ -115,3 +115,12 @@
 - Disposable Compose integration passed real app replacement, record/fixture-secret preservation, restart after activation, and interrupted replacement recovery. The test disables production image cleanup and removes only its own test project and volumes.
 - Browser checks verified diagnosis and JSON export, retry reading, 309 saved records, bounded mixed-rank height, aligned match positions across overview modes, equal wide-screen margins, and no narrow-screen horizontal overflow. Direct Edge automation was client-blocked; browser layout checks used the embedded Chromium browser.
 - Release assets are built from committed source in GitHub's existing private draft workflow. The update manifest is signed locally with the existing external key; user data, login credentials and the private signing key are not packaged.
+
+
+## v0.3.10 更新组件自更新 — 2026-10-12
+
+- 128 项 Node 测试通过（包括 Docker 内 Node 22.23.2），语法检查与 170 个锁定依赖的许可清单校验通过；Python 打包测试 2 项通过。
+- Windows PowerShell 5.1、PowerShell 7 各通过 10 个启动器场景：保留两个组件较新版本、不可变镜像 ID、未完成更新锁、旧格式兼容及错误归档拒绝。
+- 隔离 `salmon-bundle-test` 项目验证：交接日志写入后重启，助手仍能创建并替换两个服务；新版更新组件故障时恢复两个原容器与备份；助手提交前中断后恢复旧版；提交后中断只完成更新且保留新增写入；助手结束并可清理。测试只使用合成战绩与虚构凭据，不读取生产卷，禁用测试助手对全主机旧镜像的清理。
+- 针对 Docker Desktop 返回内部代理 socket 的情况，按原有 bind 挂载继承 Docker 接口，不依赖宿主 Source 路径固定为 `/var/run/docker.sock`。
+- 更新协议改为 2；旧组件会拒绝不兼容清单并提示完整包迁移。真实断电未执行；通过停止/重新启动助手覆盖持久化日志恢复路径。

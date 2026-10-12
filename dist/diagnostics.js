@@ -6,7 +6,7 @@
   const version=v=>typeof v==='string'&&/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?$/.test(v)&&v.length<50?v:null;
   const stamp=v=>typeof v==='string'&&/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(v)&&Number.isFinite(Date.parse(v))?v:null;
   const errors=['auth_required','upstream_disabled','rate_limited','network','upstream','interrupted','busy','cooldown','forbidden','internal','disk','account_mismatch'];
-  const phases=['idle','checking','available','verifying','downloading','loading','backing_up','restarting','success','failed','blocked','rolling_back','cancelled','cancelling'];
+  const phases=['idle','checking','available','verifying','downloading','loading','handoff','updating_updater','backing_up','restarting','success','failed','blocked','rolling_back','cancelled','cancelling'];
   const reasons={auth_required:'需要重新连接账号',upstream_disabled:'上游暂时禁止认证',rate_limited:'请求受限，请遵守等待时间',network:'上次任务遇到网络错误',upstream:'上游接口异常或版本不兼容',interrupted:'上次任务中断',disk:'磁盘空间或访问权限异常',account_mismatch:'账号与本地战绩不一致',unknown:'原因未提供或未识别',timeout:'请求超时',cancelled:'已取消',invalid_response:'返回格式异常',http_error:'接口返回错误',database_read_failed:'数据库读取失败',unavailable:'不可用'};
   const updateReasons=[['auth_required','请先连接你自己的 GitHub 更新权限。'],['auth_invalid','GitHub 凭据已失效或格式不正确，请重新连接。'],['access_denied','无法访问私有发行版，请确认已接受仓库邀请，且凭据拥有所需权限。'],['download_failed','下载未完成，旧版继续运行；请检查网络后重试。'],['invalid_manifest','此更新与当前安装方式不兼容，请下载完整安装包。'],['busy','正在同步、导入或登录，请完成后重试更新。'],['disk_space','磁盘空间不足，已停止更新。'],['invalid_signature','更新签名校验失败，已拒绝安装。'],['invalid_download','下载文件校验失败，旧版继续运行。'],['backup_failed','数据备份未完成，已停止更新。'],['unhealthy','新版启动或数据检查未通过。'],['release_limited','下载源暂时限制请求，请稍后重试。'],['release_missing','已连接私有仓库，目前还没有带网页更新附件的新版。'],['project_mismatch','无法确认原有项目和数据卷，已停止更新。'],['recovery_failed','自动恢复未完成。已保留旧容器和备份，请勿删除数据卷；请查看 Docker 中更新组件日志并联系维护者。']];
   const safeStatus=v=>{
@@ -70,7 +70,7 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date=v=>v?new Date(v).toLocaleString('zh-CN',{hour12:false}):'无记录';
   const size=n=>n===null?'未知':n>=1024**3?(n/1024**3).toFixed(1)+' GiB':(n/1024**2).toFixed(1)+' MiB';
-  const phaseNames={idle:'空闲',checking:'检查版本',available:'有新版',verifying:'校验签名',downloading:'下载',loading:'导入镜像',backing_up:'备份数据',restarting:'启动新版',success:'完成',failed:'失败',blocked:'恢复受阻',rolling_back:'恢复旧版',cancelled:'已取消',cancelling:'取消中',unknown:'未提供'};
+  const phaseNames={idle:'空闲',checking:'检查版本',available:'有新版',verifying:'校验签名',downloading:'下载',loading:'导入镜像',handoff:'交接更新助手',updating_updater:'更新组件',backing_up:'备份数据',restarting:'启动新版',success:'完成',failed:'失败',blocked:'恢复受阻',rolling_back:'恢复旧版',cancelled:'已取消',cancelling:'取消中',unknown:'未提供'};
   function detail(c){
     if(c.status==='running')return '正在读取，请稍候…';
     if(c.code)return `${reasons[c.code]??(c.code==='service_unavailable'?'本地服务未响应，跳过战绩读取':'检查未完成')}${c.httpStatus?'（HTTP '+c.httpStatus+'）':''}。`;
@@ -84,7 +84,7 @@
     const configured=report?.checks.find(x=>x.id==='storage')?.details?.updaterConfigured;
     if(!d.enabled)return configured===false?'此安装方式未启用网页更新。':'未能确认更新组件状态，请检查 Docker 中的 updater 容器。';
     const reason=updateReasons.find(([code])=>code===d.reason)?.[1];
-    return `阶段：${phaseNames[d.phase]} · ${d.busy?'任务进行中':'当前空闲'}${d.busy&&['verifying','downloading','loading','backing_up','restarting'].includes(d.phase)&&d.progress!==null?' · 进度 '+Math.min(100,d.progress)+'%':''}。${d.authRequired?'需要连接 GitHub 更新权限。':''}${reason??(d.reason?'未能识别失败原因。':'')}${d.updated?'状态更新于 '+date(d.updated)+'。':''}${d.cleanupPending?'旧文件清理尚未完成。':''}本次只读取组件状态，未请求下载源。`;
+    return `阶段：${phaseNames[d.phase]} · ${d.busy?'任务进行中':'当前空闲'}${d.busy&&['verifying','downloading','loading','handoff','updating_updater','backing_up','restarting'].includes(d.phase)&&d.progress!==null?' · 进度 '+Math.min(100,d.progress)+'%':''}。${d.authRequired?'需要连接 GitHub 更新权限。':''}${reason??(d.reason?'未能识别失败原因。':'')}${d.updated?'状态更新于 '+date(d.updated)+'。':''}${d.cleanupPending?'旧文件清理尚未完成。':''}本次只读取组件状态，未请求下载源。`;
   }
   function paint(){
     document.querySelector('#diagnostic-run').disabled=running;

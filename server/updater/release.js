@@ -34,7 +34,7 @@ export function validateManifest(envelope,key,expectedVersion){
   const payload=Buffer.from(envelope.payload,'base64');
   if(!verify(null,payload,key,Buffer.from(envelope.signature,'base64')))throw new Error('invalid_signature');
   const m=JSON.parse(payload);
-  if(m.format!==1||m.updaterProtocol!==1||m.dataFormat!==1||m.platform!=='linux/amd64'||!versionPattern.test(m.version)||m.version!==expectedVersion||m.repository!==repository||m.image!==`salmon-review:${m.version}`||!/^\w{40}$/.test(m.commit)||!Number.isSafeInteger(m.bytes)||m.bytes<1||m.bytes>2*1024**3||!/^[a-f0-9]{64}$/.test(m.sha256)||!Array.isArray(m.imageIds)||!m.imageIds.length||!m.imageIds.every(id=>/^sha256:[a-f0-9]{64}$/.test(id)))throw new Error('invalid_manifest');
+  if(m.format!==1||![1,2].includes(m.updaterProtocol)||m.dataFormat!==1||m.platform!=='linux/amd64'||!versionPattern.test(m.version)||m.version!==expectedVersion||m.repository!==repository||m.image!==`salmon-review:${m.version}`||!/^\w{40}$/.test(m.commit)||!Number.isSafeInteger(m.bytes)||m.bytes<1||m.bytes>2*1024**3||!/^[a-f0-9]{64}$/.test(m.sha256)||!Array.isArray(m.imageIds)||!m.imageIds.length||!m.imageIds.every(id=>/^sha256:[a-f0-9]{64}$/.test(id)))throw new Error('invalid_manifest');
   if(m.asset!==`salmon-review-${m.version}-linux-amd64.tar.gz`)throw new Error('invalid_manifest');
   return m;
 }

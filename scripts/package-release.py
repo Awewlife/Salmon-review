@@ -87,7 +87,7 @@ def main():
         if args.signing_key:
             update_image = output / f'salmon-review-{version}-linux-amd64.tar.gz'
             shutil.copy2(archive, update_image)
-            update = {'format': 1, 'updaterProtocol': 1, 'dataFormat': 1,
+            update = {'format': 1, 'updaterProtocol': 2, 'dataFormat': 1,
                       'repository': 'Awewlife/Salmon-review', 'version': version,
                       'commit': commit, 'platform': 'linux/amd64', 'image': image,
                       'imageIds': metadata['imageIds'], 'asset': update_image.name,

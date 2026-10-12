@@ -55,7 +55,7 @@ jobs:
               metadata=json.loads(z.read(prefix+'release.json'))
               with z.open(prefix+'salmon-review-image.tar.gz') as src,image.open('wb') as dst:
                   shutil.copyfileobj(src,dst)
-          payload={'format':1,'updaterProtocol':1,'dataFormat':1,'repository':'Awewlife/Salmon-review','version':v,'commit':metadata['commit'],'platform':'linux/amd64','image':metadata['image'],'imageIds':metadata['imageIds'],'asset':image.name,'bytes':image.stat().st_size,'sha256':hashlib.file_digest(image.open('rb'),'sha256').hexdigest()}
+          payload={'format':1,'updaterProtocol':2,'dataFormat':1,'repository':'Awewlife/Salmon-review','version':v,'commit':metadata['commit'],'platform':'linux/amd64','image':metadata['image'],'imageIds':metadata['imageIds'],'asset':image.name,'bytes':image.stat().st_size,'sha256':hashlib.file_digest(image.open('rb'),'sha256').hexdigest()}
           (out.parent/'unsigned-update.json').write_text(json.dumps(payload,separators=(',',':')))
           PY
       - name: Upload complete unsigned assets to draft only

@@ -13,8 +13,9 @@ test('only authentic compatible manifests and fixed release URLs are accepted',(
   const {privateKey,publicKey}=generateKeyPairSync('ed25519');
   const envelope=m=>{const b=Buffer.from(JSON.stringify(m));return {payload:b.toString('base64'),signature:sign(null,b,privateKey).toString('base64')}};
   assert.equal(validateManifest(envelope(manifest),publicKey,'0.3.6').version,'0.3.6');
+  assert.equal(validateManifest(envelope({...manifest,updaterProtocol:2}),publicKey,'0.3.6').updaterProtocol,2);
   assert.throws(()=>validateManifest({...envelope(manifest),payload:Buffer.from('{}').toString('base64')},publicKey,'0.3.6'),/invalid_signature/);
-  for(const patch of [{version:'9.0.0'},{dataFormat:2},{updaterProtocol:2},{asset:'../../evil'},{image:'other:latest'},{repository:'attacker/repo'},{bytes:3*1024**3}])assert.throws(()=>validateManifest(envelope({...manifest,...patch}),publicKey,'0.3.6'));
+  for(const patch of [{version:'9.0.0'},{dataFormat:2},{updaterProtocol:3},{asset:'../../evil'},{image:'other:latest'},{repository:'attacker/repo'},{bytes:3*1024**3}])assert.throws(()=>validateManifest(envelope({...manifest,...patch}),publicKey,'0.3.6'));
   assert.equal(compareVersions('0.3.10','0.3.9'),1);assert.throws(()=>compareVersions('latest','0.3.5'));
 });
 const old=()=>({Id:'old',Name:'/sample-app-1',Config:{Image:'salmon-review:0.3.5',User:'node',Env:['UPDATE_DIR=/updates'],Labels:{'org.opencontainers.image.version':'0.3.5','com.docker.compose.project':'sample','com.docker.compose.service':'app'}},Mounts:[{Type:'volume',Name:'sample_salmon-data',Destination:'/data'}],HostConfig:{PortBindings:{'8787/tcp':[{HostIp:'127.0.0.1',HostPort:'8787'}]}},NetworkSettings:{Networks:{sample_default:{Aliases:['app'],IPAddress:'172.0.0.2'}}},State:{Running:true,Status:'running'}});
@@ -157,4 +158,13 @@ test('maintenance failure never rolls back a successful update and persists a re
   assert.equal(u.info.phase,'success');assert.equal(u.status().cleanup.pending,true);assert.ok(!trace.includes('restore'));
   u.retention.cleanup=async()=>({pending:false,message:''});u.releases=async()=>({manifest,notes:'',url:''});
   await u.check();assert.equal(u.status().cleanup.pending,false);assert.equal(calls,1);
+});
+
+
+test('repeated rollback never restores a backup after the old app has reopened for writes',async t=>{
+  const {u,trace,directory}=await fixture(t);
+  const journal={id:'rollbackfixture',oldId:'old',name:'sample-app-1',backupComplete:true,dataRestored:true,backup:'/updates/backups/fixture'};
+  await u.recover(journal);
+  assert.ok(!trace.includes('restore'));assert.ok(!trace.includes('stop:old'));assert.ok(trace.includes('cancel:old'));
+  await assert.rejects(readFile(path.join(directory,'transaction.json')),/ENOENT/);
 });

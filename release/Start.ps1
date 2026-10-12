@@ -7,6 +7,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $oldPort = $env:SALMON_PORT
 $oldImage = $env:SALMON_IMAGE
+$oldUpdaterImage = $env:SALMON_UPDATER_IMAGE
+$env:SALMON_IMAGE = $null
+$env:SALMON_UPDATER_IMAGE = $null
 Push-Location -LiteralPath $PSScriptRoot
 try {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw '请先安装 Docker Desktop，然后重新打开本窗口。' }
@@ -70,37 +73,58 @@ try {
         $actualId = & docker image inspect --format '{{.Id}}' $release.image
         if ($LASTEXITCODE -ne 0 -or $acceptedImageIds -notcontains $actualId) { throw '导入的镜像与发布版本不符，已停止启动。请下载最新安装包；若仍失败，请反馈 docker image inspect 返回的镜像 Id。' }
     }
-    # Web updates recreate only this project's app. Preserve that installed image
-    # when an older extracted launcher is used again; never silently downgrade it.
-    $existing = @(& docker ps -a --filter "label=com.docker.compose.project=$ProjectName" --filter 'label=com.docker.compose.service=app' --format '{{.ID}}')
-    if ($LASTEXITCODE -ne 0) { throw '无法读取已安装版本。' }
-    foreach ($id in $existing) {
+    # Protect a transaction before Compose can replace any service. A helper
+    # exists throughout both component swaps, including the rename window.
+    $helpers = @(& docker ps -a --filter "label=com.docker.compose.project=$ProjectName" --filter 'label=com.docker.compose.service=update-helper' --format '{{.ID}}')
+    if ($LASTEXITCODE -ne 0) { throw '无法检查更新助手状态。' }
+    foreach ($id in $helpers) {
         $details = (& docker inspect $id | ConvertFrom-Json)[0]
-        if ($details.Name -like '*-rollback-*') { continue }
-        $installedImage = $details.Config.Image
-        if ($installedImage -match '^salmon-review:([0-9]+\.[0-9]+\.[0-9]+)$') {
-            $installedVersion = $Matches[1]
-            if ([version]$installedVersion -gt [version]$release.version) {
-                $env:SALMON_IMAGE = $installedImage
-                Write-Host "保留网页已更新的版本 $installedVersion，不降回安装包版本。"
+        if ($details.State.Status -ne 'exited') { throw '网页更新或恢复正在进行，请保持 Docker 运行，稍后再启动。' }
+        # Even a cleanly exited helper may have retained a blocked journal.
+        $volume = @($details.Mounts | Where-Object { $_.Destination -eq '/updates' -and $_.Type -eq 'volume' })
+        if ($volume.Count -ne 1) { throw '无法确认更新卷，请勿删除数据卷。' }
+        & docker run --rm --network none --read-only --user root --mount "type=volume,source=$($volume[0].Name),target=/updates,readonly" $release.image node -e "process.exit(require('fs').existsSync('/updates/bundle.json')?42:0)"
+        if ($LASTEXITCODE -ne 0) { throw '更新恢复尚未完成，请勿覆盖组件或删除数据卷。' }
+    }
+    foreach ($service in @('app','updater')) {
+        $existing = @(& docker ps -a --filter "label=com.docker.compose.project=$ProjectName" --filter "label=com.docker.compose.service=$service" --format '{{.ID}}')
+        if ($LASTEXITCODE -ne 0) { throw '无法读取已安装版本。' }
+        foreach ($id in $existing) {
+            $details = (& docker inspect $id | ConvertFrom-Json)[0]
+            if ($details.Name -like '*-rollback-*') { throw '检测到未完成的更新恢复，请勿覆盖组件或删除数据卷。' }
+            # Check the durable lock even if power failed before helper creation.
+            $updateVolumes = @($details.Mounts | Where-Object { $_.Destination -eq '/updates' -and $_.Type -eq 'volume' })
+            if ($updateVolumes.Count -eq 1) {
+                & docker run --rm --network none --read-only --user root --mount "type=volume,source=$($updateVolumes[0].Name),target=/updates,readonly" $release.image node -e "const fs=require('fs');process.exit(fs.existsSync('/updates/bundle.json')||fs.existsSync('/updates/transaction.json')?42:0)"
+                if ($LASTEXITCODE -ne 0) { throw '网页更新或恢复尚未完成，请稍后再启动。' }
+            }
+            $installedImage = $details.Config.Image
+            $installedVersion = ''
+            if ($installedImage -match '^salmon-review:([0-9]+\.[0-9]+\.[0-9]+)$') { $installedVersion=$Matches[1] }
+            elseif ($installedImage -match '^sha256:[a-f0-9]{64}$' -and $details.Config.Labels.'org.opencontainers.image.version' -match '^([0-9]+\.[0-9]+\.[0-9]+)$') { $installedVersion=$Matches[1] }
+            if ($installedVersion -and [version]$installedVersion -gt [version]$release.version) {
+                if ($service -eq 'app') { $env:SALMON_IMAGE=$installedImage } else { $env:SALMON_UPDATER_IMAGE=$installedImage }
+                Write-Host "保留网页已更新的 $service 版本 $installedVersion，不降回安装包版本。"
             }
         }
     }
     Write-Host "正在启动项目 $ProjectName；数据卷名称会沿用此项目名。"
     & docker @composeArgs up -d --no-build --pull never
     if ($LASTEXITCODE -ne 0) { throw '启动失败。若端口被占用，请按 README 设置端口；不要删除数据卷。' }
-    $container = & docker @composeArgs ps --quiet app
-    if ($LASTEXITCODE -ne 0 -or -not $container) { throw '未找到运行容器。' }
-    Write-Host '正在等待服务就绪……'
-    $ready = $false
-    for ($attempt=0; $attempt -lt 60; $attempt++) {
-        $health = & docker inspect --format '{{.State.Status}}/{{.State.Health.Status}}' $container
-        if ($LASTEXITCODE -ne 0) { break }
-        if ($health -eq 'running/healthy') { $ready=$true; break }
-        if ($health -match '^(exited|dead)/' -or $health -match '/unhealthy$') { break }
-        Start-Sleep -Seconds 2
+    Write-Host '正在等待主程序和更新组件就绪……'
+    foreach ($service in @('app','updater')) {
+        $container = & docker @composeArgs ps --quiet $service
+        if ($LASTEXITCODE -ne 0 -or -not $container) { throw "未找到 $service 运行容器。" }
+        $ready = $false
+        for ($attempt=0; $attempt -lt 60; $attempt++) {
+            $health = & docker inspect --format '{{.State.Status}}/{{.State.Health.Status}}' $container
+            if ($LASTEXITCODE -ne 0) { break }
+            if ($health -eq 'running/healthy') { $ready=$true; break }
+            if ($health -match '^(exited|dead)/' -or $health -match '/unhealthy$') { break }
+            Start-Sleep -Seconds 2
+        }
+        if (-not $ready) { throw "$service 尚未就绪。请运行 docker compose -p $ProjectName ps 查看状态，再按 README 排查。" }
     }
-    if (-not $ready) { throw "服务尚未就绪。请运行 docker compose -p $ProjectName ps 查看状态，再按 README 排查。" }
     $url = 'http://127.0.0.1:' + $listen.published + '/'
     Write-Host "启动成功：$url" -ForegroundColor Green
     Write-Host '首次使用请在网页连接自己的任天堂账号。安装已完成，登录与同步仍需联网。'
@@ -111,5 +135,6 @@ try {
 } finally {
     $env:SALMON_PORT = $oldPort
     $env:SALMON_IMAGE = $oldImage
+    $env:SALMON_UPDATER_IMAGE = $oldUpdaterImage
     Pop-Location
 }

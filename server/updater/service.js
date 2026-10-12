@@ -7,16 +7,18 @@ import {Docker,candidateConfig,sameProjectApp} from './docker.js';
 import {atomicJSON,json,backupData,restoreData} from './files.js';
 import {privateReleases,verifyAccess,compareVersions} from './release.js';
 import {Retention} from './retention.js';
+import {Bundle,bundleProtocol} from './bundle.js';
 import {appHTTP} from './app-http.js';
+import {version as updaterVersion} from '../version.js';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const messages={release_missing:'目前还没有可用的私有更新。',release_limited:'下载源暂时限制请求，请稍后重试。',download_failed:'下载未完成，旧版继续运行；请检查网络后重试。',invalid_signature:'更新签名校验失败，已拒绝安装。',invalid_manifest:'此更新与当前安装方式不兼容，请下载完整安装包。',invalid_download:'下载文件校验失败，旧版继续运行。',disk_space:'磁盘空间不足，已停止更新。',project_mismatch:'无法确认原有项目和数据卷，已停止更新。',busy:'正在同步、导入或登录，请完成后重试更新。',no_update:'目前没有比当前版本更新的可安装版本。',unhealthy:'新版启动或数据检查未通过。',backup_failed:'数据备份未完成，已停止更新。',recovery_failed:'自动恢复未完成。已保留旧容器和备份，请勿删除数据卷；请查看 Docker 中更新组件日志并联系维护者。'};
 function publicMessage(e){return messages[e?.message]??'更新未完成，请检查网络、磁盘空间和 Docker 状态后重试。'}
 Object.assign(messages,{cannot_cancel:'已进入安装阶段，无法取消；完成后将自动连接，失败会尝试恢复旧版。',release_missing:'已连接私有仓库，目前还没有带网页更新附件的新版。',auth_required:'请先连接你自己的 GitHub 更新权限。',auth_invalid:'GitHub 凭据已失效或格式不正确，请重新连接。',access_denied:'无法访问私有发行版，请确认已接受仓库邀请，且凭据拥有所需权限。'});
 export class Updater{
-  constructor({directory='/updates',docker=new Docker(),releases,manifest,download,verify=verifyAccess,backup=backupData,restore=restoreData,attempts=45}={}){
-    this.credential=null;this.retention=new Retention(directory,docker);
+  constructor({directory='/updates',docker=new Docker(),releases,manifest,download,verify=verifyAccess,backup=backupData,restore=restoreData,attempts=45,helper=false}={}){
+    this.helper=helper;this.credential=null;this.retention=new Retention(directory,docker);
     const client=privateReleases(()=>this.credential?.token);
-    Object.assign(this,{directory,docker,releases:releases??client.releases,manifest:manifest??client.manifest,download:download??client.download,verify,backup,restore,attempts});this.busy=false;this.info={phase:'idle',progress:0,message:messages.auth_required};this.latest=null;
+    Object.assign(this,{directory,docker,releases:releases??client.releases,manifest:manifest??client.manifest,download:download??client.download,verify,backup,restore,attempts});this.bundle=new Bundle(this);this.busy=false;this.info={phase:'idle',progress:0,message:messages.auth_required};this.latest=null;
   }
   file(name){return path.join(this.directory,name)}
   async save(patch){this.info={...this.info,...patch,updated:Date.now()};const snapshot=this.info;this.saveQueue=(this.saveQueue??Promise.resolve()).catch(()=>{}).then(()=>atomicJSON(this.file('status.json'),snapshot));await this.saveQueue}
@@ -35,6 +37,16 @@ export class Updater{
     if(response.status!==200)throw new Error(response.status===409?'busy':'unhealthy');return response.body;
   }
   async init(){
+    // A service generation participating in a bundle must not migrate shared
+    // state, recover app journals, or accept writes while the helper owns it.
+    const bundle=await json(this.bundle.file());
+    if(bundle||this.helper){
+      this.token=(await readFile(this.file('channel.token'),'utf8')).trim();
+      this.info=await json(this.file('status.json'),this.info);
+      this.credential=await json(this.file('github.json'));
+      if(!this.helper){this.delegated=true;this.busy=true;await this.bundle.refresh()}
+      return;
+    }
     await mkdir(this.directory,{recursive:true,mode:0o700});await mkdir(this.file('backups'),{recursive:true,mode:0o700});
     // App can read the channel token and installed version but cannot replace
     // the root-owned transaction journal or backup directory.
@@ -52,7 +64,7 @@ export class Updater{
   async maintain(journal){
     try{
       if(journal)await this.save({cleanupTask:journal});
-      if(await json(this.file('transaction.json')))return;
+      if(await json(this.file('transaction.json'))||await json(this.bundle.file()))return;
       if(this.info.cleanupTask){await this.retention.record(this.info.cleanupTask);await this.save({cleanupTask:null})}
       const cleanup=await this.retention.cleanup();await this.save({cleanup});
     }catch{await this.save({cleanup:{pending:true,message:'旧文件清理暂未完成，当前版本可正常使用，将在下次检查更新时重试。'}}).catch(()=>{})}
@@ -78,7 +90,7 @@ export class Updater{
     }catch(e){await this.save({phase:'failed',available:false,authRequired:['auth_required','auth_invalid','access_denied'].includes(e.message),latest:null,notes:null,url:null,checked:Date.now(),message:publicMessage(e)})}finally{this.busy=false}
     return this.status();
   }
-  status(){const {phase,current,latest,available,notes,url,checked,message,progress,updated,authRequired}=this.info;return {enabled:true,phase,current,latest,available,notes,url,checked,message,progress,updated,busy:this.busy,cleanup:this.info.cleanup??null,retentionSupported:true,cancelSupported:true,canCancel:this.canCancel(),auth:{connected:!!this.credential,login:this.credential?.login??null,required:!this.credential||!!authRequired}}}
+  status(){const {phase,current,latest,available,notes,url,checked,message,progress,updated,authRequired}=this.info;return {enabled:true,updaterVersion,bundleProtocol,selfUpdateSupported:true,phase,current,latest,available,notes,url,checked,message,progress,updated,busy:this.busy,cleanup:this.info.cleanup??null,retentionSupported:true,cancelSupported:true,canCancel:this.canCancel(),auth:{connected:!!this.credential,login:this.credential?.login??null,required:!this.credential||!!authRequired}}}
   async authorize(token){
     if(this.busy||this.info.phase==='blocked')throw new Error('busy');
     if(typeof token!=='string'||!/^[-A-Za-z0-9_]{20,255}$/.test(token.trim()))throw new Error('auth_invalid');
@@ -101,23 +113,26 @@ export class Updater{
   async install(version){
     if(this.busy||this.info.phase==='blocked')throw new Error('busy');
     if(!this.info.available||version!==this.info.latest)throw new Error('no_update');
-    this.busy=true;this.installController=new AbortController();this.completion=this.run(version,this.installController.signal).finally(()=>{this.installController=null;this.busy=false});return {accepted:true};
+    this.busy=true;this.installController=new AbortController();this.completion=this.run(version,this.installController.signal).finally(()=>{this.installController=null;this.busy=!!this.delegated});return {accepted:true};
   }
   async run(version,signal){
     let journal=null,old=null,prepared=false;
     const imageFile=this.file('download.tar.gz');
     try{
-      await this.save({phase:'verifying',progress:0,available:false,message:'正在核对更新签名…'});
+      if(!this.helper)await this.save({phase:'verifying',progress:0,available:false,message:'正在核对更新签名…'});
       signal.throwIfAborted();
       const m=await this.manifest(version,{signal});signal.throwIfAborted();old=await this.discover();signal.throwIfAborted();
       if(compareVersions(m.version,old.Config.Labels['org.opencontainers.image.version'])<=0)throw new Error('no_update');
-      await this.save({phase:'downloading',message:'正在下载新版，仍可使用当前版本。'});
-      signal.throwIfAborted();
-      await this.download(m,imageFile,progress=>signal.aborted?undefined:this.save({progress}),{signal});
-      signal.throwIfAborted();
-      await this.save({phase:'loading',message:'文件已校验，正在导入镜像…'});await this.docker.load(imageFile);
-      const image=await this.docker.image(m.image);
+      if(!this.helper){
+        await this.save({phase:'downloading',message:'正在下载新版，仍可使用当前版本。'});
+        signal.throwIfAborted();
+        await this.download(m,imageFile,progress=>signal.aborted?undefined:this.save({progress}),{signal});
+        signal.throwIfAborted();
+        await this.save({phase:'loading',message:'文件已校验，正在导入镜像…'});await this.docker.load(imageFile);
+      }
+      const image=await this.docker.image(this.bundleState?.imageId??m.image);
       if(!m.imageIds.includes(image.Id)||image.Os!=='linux'||image.Architecture!=='amd64'||image.Config.Labels?.['org.opencontainers.image.revision']!==m.commit||image.Config.Labels?.['org.opencontainers.image.version']!==m.version)throw new Error('invalid_download');
+      if(m.updaterProtocol===bundleProtocol&&!this.helper){await this.bundle.begin(m,image.Id);return}
       old=await this.discover();
       const id=randomBytes(12).toString('hex');journal={id,oldId:old.Id,oldVersion:old.Config.Labels['org.opencontainers.image.version'],name:old.Name.slice(1),backup:this.file('backups/'+id),backupComplete:false,version,created:Date.now()};
       // Persist intent before locking writes, so a crash cannot leave the old
@@ -129,7 +144,7 @@ export class Updater{
       await this.docker.stop(old.Id);const backupResult=await this.backup('/data',journal.backup);journal.backupDigest=backupResult?.sha256;journal.backupComplete=true;await atomicJSON(this.file('transaction.json'),journal);
       await this.save({phase:'restarting',message:'正在启动新版，页面将自动重新连接…'});
       await this.docker.rename(old.Id,journal.name+'-rollback-'+id);
-      const candidate=await this.docker.create(journal.name,candidateConfig(old,m,id));journal.newId=candidate.Id;await atomicJSON(this.file('transaction.json'),journal);
+      const candidate=await this.docker.create(journal.name,candidateConfig(old,this.bundleState?{...m,image:this.bundleState.imageId}:m,id));journal.newId=candidate.Id;await atomicJSON(this.file('transaction.json'),journal);
       await this.docker.start(candidate.Id);
       let ready=false;
       for(let i=0;i<this.attempts;i++){
@@ -141,12 +156,14 @@ export class Updater{
         }catch{}await sleep(2000);
       }
       if(!ready)throw new Error('unhealthy');
+      if(this.bundleState)await this.bundle.replace(this.bundleState);
       // Commit before enabling writes: recovery must never discard new user data.
       journal.committed=true;await atomicJSON(this.file('transaction.json'),journal);
       await this.appCall(await this.docker.inspect(candidate.Id),'activate');
       await this.finishCleanup(journal);
-      await this.save({phase:'success',current:version,available:false,progress:100,message:'更新成功，战绩和账号设置已保留。'});
+      await this.save({phase:'success',current:version,available:false,progress:100,message:this.bundleState?'主程序和更新组件已更新，战绩和账号设置已保留。':'更新成功，战绩和账号设置已保留。'});
     }catch(e){
+      if(this.delegated)return; // The durable helper transaction owns recovery from handoff onward.
       if(signal.aborted&&!journal){
         try{
           await rm(imageFile,{force:true});await rm(imageFile+'.part',{force:true});
@@ -160,9 +177,10 @@ export class Updater{
     }finally{await rm(imageFile,{force:true}).catch(()=>{})}
   }
   async finishCleanup(journal){
+    if(this.bundleState)await this.bundle.commit(this.bundleState);
     // Queue maintenance durably before removing the committed recovery journal.
     await this.save({cleanupTask:journal}).catch(()=>{});
-    await atomicJSON(this.file('installed.json'),{version:journal.version,image:`salmon-review:${journal.version}`});
+    await atomicJSON(this.file('installed.json'),{version:journal.version,image:`salmon-review:${journal.version}`,...(this.bundleState?{updaterVersion:journal.version,updaterImage:this.bundleState.imageId,bundleProtocol}: {})});
     await chmod(this.file('installed.json'),0o444);
     if(journal.newId)await this.appCall(await this.docker.inspect(journal.newId),'activate');
     await this.docker.remove(journal.oldId).catch(()=>{});
@@ -171,27 +189,39 @@ export class Updater{
   }
   async recover(journal,reason='上次更新中断。'){
     await this.save({phase:'rolling_back',message:reason+' 正在恢复旧版…'});
+    if(this.bundleState)await this.bundle.removeNew(this.bundleState);
     const candidates=await this.docker.list({label:[`salmon-review.update-transaction=${journal.id}`]});
     for(const c of candidates){const app=await this.docker.inspect(c.Id);if(app.State.Running)await this.docker.stop(c.Id);await this.docker.remove(c.Id)}
     const old=await this.docker.inspect(journal.oldId);
-    if(old.State.Running&&journal.backupComplete)await this.docker.stop(old.Id);
-    if(journal.backupComplete)await this.restore('/data',journal.backup);
+    if(journal.backupComplete&&!journal.dataRestored){
+      if(old.State.Running)await this.docker.stop(old.Id);
+      await this.restore('/data',journal.backup);
+      // Never replay a restored backup after the old app becomes writable.
+      journal.dataRestored=true;await atomicJSON(this.file('transaction.json'),journal);
+    }
     if(old.Name!=='/'+journal.name)await this.docker.rename(old.Id,journal.name);
-    if(!old.State.Running||journal.backupComplete)await this.docker.start(old.Id);
+    if(!(await this.docker.inspect(old.Id)).State.Running)await this.docker.start(old.Id);
     let restored=false;
     for(let i=0;i<20;i++){try{await this.appCall(await this.docker.inspect(old.Id),'cancel');restored=true;break}catch{}await sleep(1000)}
     if(!restored)throw new Error('recovery_failed');
+    if(this.bundleState)await this.bundle.restore(this.bundleState);
     await rm(this.file('transaction.json'),{force:true});
     await this.save({phase:'failed',available:false,message:reason+' 已恢复旧版和更新前的数据，可继续使用。'});
   }
 }
 export async function serve(updater){
   await updater.init();
+  let refreshing=false,nextCleanup=0;
+  const timer=setInterval(async()=>{
+    if(refreshing)return;refreshing=true;
+    try{await updater.bundle.refresh();if(!updater.busy&&Date.now()>nextCleanup){nextCleanup=Date.now()+30000;await updater.bundle.cleanupHelpers();if(updater.info.cleanupTask||updater.info.cleanup?.pending)await updater.maintain()}}catch{}finally{refreshing=false}
+  },2000);timer.unref();
   const server=http.createServer(async(req,res)=>{
     const send=(status,value)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value))};
     const actual=Buffer.from(String(req.headers['x-salmon-updater']??'')),expected=Buffer.from(updater.token);
     if(actual.length!==expected.length||!timingSafeEqual(actual,expected))return send(403,{message:'forbidden'});
     try{
+      if(updater.delegated)await updater.bundle.refresh();
       if(req.method==='GET'&&req.url==='/status')return send(200,updater.status());
       if(req.method!=='POST')return send(404,{message:'not_found'});
       let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>1024)return send(413,{message:'too_large'})}
@@ -204,6 +234,7 @@ export async function serve(updater){
       send(404,{message:'not_found'});
     }catch(e){send(409,{message:publicMessage(e)})}
   });
+  server.on('close',()=>clearInterval(timer));
   server.listen(8790,'0.0.0.0');
   return server;
 }

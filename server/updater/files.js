@@ -1,8 +1,8 @@
-import {mkdir,writeFile,readFile,rename,cp,readdir,rm,lstat,chmod,chown,statfs} from 'node:fs/promises';
+import {mkdir,open,writeFile,readFile,rename,cp,readdir,rm,lstat,chmod,chown,statfs} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
-export async function atomicJSON(file,value){await mkdir(path.dirname(file),{recursive:true,mode:0o700});const tmp=file+'.tmp';await writeFile(tmp,JSON.stringify(value),{mode:0o600});await rename(tmp,file)}
+export async function atomicJSON(file,value){await mkdir(path.dirname(file),{recursive:true,mode:0o700});const tmp=file+'.tmp';const handle=await open(tmp,'w',0o600);try{await handle.writeFile(JSON.stringify(value));await handle.sync()}finally{await handle.close()}await rename(tmp,file);if(process.platform!=='win32'){const directory=await open(path.dirname(file),'r');try{await directory.sync()}finally{await directory.close()}}}
 export async function json(file,fallback=null){try{return JSON.parse(await readFile(file,'utf8'))}catch(e){if(e.code==='ENOENT')return fallback;throw e}}
 export async function inspectTree(root){
   let bytes=0;for(const name of await readdir(root)){const f=path.join(root,name),s=await lstat(f);if(s.isSymbolicLink()||(!s.isFile()&&!s.isDirectory()))throw new Error('unsafe_data_file');bytes+=s.isDirectory()?await inspectTree(f):s.size}return bytes;
