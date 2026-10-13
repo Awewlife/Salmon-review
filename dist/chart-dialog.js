@@ -19,7 +19,7 @@ function trendExportSvg(jobs,people,metrics,showNames,stage,{mode='quantity',sho
     const y=top+i*(plotHeight+50),m=TREND_METRICS[metric];
     return `<text x="30" y="${y}" style="font-size:18px;font-weight:700">${m.label} · ${mode==='share'?'占比（%）':m.unit}</text>`+largeChart(jobs,people,metric,{interactive:false,showNames,mode,showTotal,shareScale,showQuarter}).replace('<svg viewBox=',`<svg x="30" y="${y+12}" width="1100" height="${plotHeight}" viewBox=`);
   }).join('');
-  return {width,height,svg:`<svg xmlns="http://www.w3.org/2000/svg" fill="#eff3ed" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>${style}</style><rect width="100%" height="100%" fill="#202528"/><text x="30" y="38" style="font-size:23px;font-weight:700">SALMON REVIEW · ${esc(stage)}</text><text x="30" y="66">${rangeLabel} · ${esc(date(jobs[0].time,true))} — ${esc(date(jobs.at(-1).time,true))}（UTC+8）</text><text x="30" y="94" class="muted">实心：通过　空心：未通过　灰色空心圆：掉线　同色：同一玩家</text>${legend}${plots}<text x="30" y="${height-66}" class="muted">${mode==='share'?'占比':'数量'} · 四人合计按当场四人的个人结算求和，不随显示玩家变化；搬蛋不含协助，被救援不等同全部倒地。</text><text x="30" y="${height-42}" class="muted">${mode==='share'?'全队为 0 时按 0% 展示并连接；掉线或缺少结算不计算占比；缺场、队友缺席处断线。':'掉线以灰色空心点标在 0 并连接，不计入统计；团队合计不包含掉线；缺席或缺场仍断线。'}</text><text x="30" y="${height-18}" class="muted">场次编号沿用本期本地记录顺序；仅导出所选范围和玩家。数据来源：SplatNet 3 结算记录。</text></svg>`};
+  return {width,height,svg:`<svg xmlns="http://www.w3.org/2000/svg" fill="#eff3ed" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>${style}</style><rect width="100%" height="100%" fill="#202528"/><text x="30" y="38" style="font-size:23px;font-weight:700">SALMON REVIEW · ${esc(stage)}</text><text x="30" y="66">${rangeLabel} · ${esc(date(jobs[0].time,true))} — ${esc(date(jobs.at(-1).time,true))}（UTC+8）</text><text x="30" y="94" class="muted">实心：通过　空心：未通过　灰色空心圆：掉线　同色：同一玩家</text>${legend}${plots}<text x="30" y="${height-66}" class="muted">${mode==='share'?'占比':'数量'} · 四人合计按当场四人的个人结算求和，不随显示玩家变化；搬蛋不含协助，被救援不等同全部倒地。</text><text x="30" y="${height-42}" class="muted">${mode==='share'?'全队为 0 时按 0% 展示；掉线按零刻度标记连接，不计算占比；缺场或队友缺席仍断线。':'掉线标在 0，个人曲线与均分参考线经过此处，不计入统计；团队合计不包含掉线；缺场仍断线。'}</text><text x="30" y="${height-18}" class="muted">场次编号沿用本期本地记录顺序；仅导出所选范围和玩家。数据来源：SplatNet 3 结算记录。</text></svg>`};
 }
 async function exportTrend(format){
   const status=document.querySelector('#trend-export-status'),buttons=[...document.querySelectorAll('[data-export-trend]')];
@@ -91,7 +91,7 @@ function renderTrend(){
   document.querySelector('#trend-total-control').hidden=mode==='share';
   document.querySelector('#show-trend-total').checked=showTotal;
   document.querySelector('#trend-measure-note').textContent=mode==='share'?'占当场四人合计 · 全队为 0 时显示 0%':'团队合计按当场四人的个人结算求和';
-  document.querySelector('#trend-footnote').textContent=`同色为同一玩家；搬蛋不含协助；被救援不等同全部倒地。${mode==='share'?'占比以当场四人合计为分母，不随显示玩家变化；全队为 0 时按 0% 展示并连接。灰色空心圆表示掉线，不计算占比，曲线在此断开。':'灰色空心圆表示掉线，个人曲线按场次经过零刻度的掉线标记，不计入统计；团队合计不包含掉线。'}缺场、结算缺失或队友缺席处断线。点击场次查看详情。${shift().loaded<shift().total?'本期仅保存部分场次，识别与对比覆盖已保存的连续片段。':''}`;
+  document.querySelector('#trend-footnote').textContent=`同色为同一玩家；搬蛋不含协助；被救援不等同全部倒地。${mode==='share'?'占比以当场四人合计为分母，不随显示玩家变化；全队为 0 时按 0% 展示并连接。灰色空心圆表示掉线，曲线经过零刻度标记，不计算占比。':'灰色空心圆表示掉线，个人曲线与均分参考线按场次经过零刻度的掉线标记，不计入统计；团队合计不包含掉线。'}缺场、结算缺失或队友缺席处断线。点击场次查看详情。${shift().loaded<shift().total?'本期仅保存部分场次，识别与对比覆盖已保存的连续片段。':''}`;
   const toggle=document.querySelector('#include-teammates');
   toggle.textContent=include?'移除队友对比':`加入疑似组队队友（${teammates.length}）`;
   toggle.setAttribute('aria-pressed',String(include));
@@ -207,7 +207,7 @@ function largeChart(jobs,people,metric,{interactive=true,showNames=true,mode='qu
   const W=1100,H=260,L=mode==='share'?56:42,R=160,T=18,B=34;
   const lines=people.map(p=>({...p,metric,segments:SalmonStats.trendSegments(jobs,p.key,metric,mode)}));
   if(mode==='quantity'&&showTotal)lines.push({key:'team-total',name:'团队合计',color:'#a8b0b4',total:true,segments:SalmonStats.valueSegments(jobs,j=>SalmonStats.teamTotal(j,metric))});
-  const quarterSegments=showQuarter&&mode==='quantity'?SalmonStats.valueSegments(jobs,j=>{const total=SalmonStats.teamTotal(j,metric);return total===null?null:total/4}):[];
+  const quarterSegments=showQuarter&&mode==='quantity'?SalmonStats.valueSegments(jobs,j=>{if(j.interrupted)return 0;const total=SalmonStats.teamTotal(j,metric);return total===null?null:total/4}):[];
   const peak=Math.max(0,...lines.flatMap(line=>line.segments.flat().map(p=>p.value)),...quarterSegments.flat().map(p=>p.value));
   const max=mode==='share'?(shareScale==='fixed'?100:([40,60,80,100].find(limit=>limit>=peak+Math.max(5,peak*.1))??100)):metric==='deaths'?Math.max(5,Math.ceil(peak/5)*5):Math.max(10,Math.ceil(peak/10)*10);
   const tickStep=mode==='share'?(max<=60?10:20):max/5,tickCount=Math.round(max/tickStep)+1;

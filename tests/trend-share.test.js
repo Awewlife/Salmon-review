@@ -51,7 +51,7 @@ test('incomplete or interrupted records are not valid zero totals or shares',()=
   const duplicate=structuredClone(valid);duplicate.players[1].key='p0';variants.push(duplicate);
   for(const j of variants){assert.equal(c.SalmonStats.teamTotal(j,'kills'),null);assert.equal(c.SalmonStats.share(j,'p0','kills'),null)}
   const jobs=[row([1,1,1,1],0),{...row([0,0,0,0],1),interrupted:true},row([2,1,1,0],2)];
-  assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0','kills','share')).map(s=>s.map(p=>p.index)),[[0],[2]]);
+  assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0','kills','share')).map(s=>s.map(p=>p.index)),[[0,1,2]]);
   assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0','kills','quantity')).map(s=>s.map(p=>p.index)),[[0,1,2]]);
   const svg=c.largeChart(jobs,people,'kills',{mode:'share'});
   assert.match(svg,/class="interruption-marker"/);assert.doesNotMatch(svg,/data-point-job="match-1"/);
@@ -94,7 +94,7 @@ test('exports use current mode and total option for all three plots and retain s
   const share=c.trendExportSvg(jobs.slice(1),people,metrics,false,'场地',{mode:'share',showTotal:true,shareScale:'fixed'}).svg;
   assert.equal((share.match(/>100%<\/text>/g)||[]).length,3);assert.match(share,/第 2—3 场/);
   assert.doesNotMatch(share,/team-total-line|data-line-label|chart-hit|NaN|Infinity|match-0/);
-  assert.match(share,/全队为 0 时按 0% 展示并连接/);
+  assert.match(share,/全队为 0 时按 0% 展示/);
   const quantity=c.trendExportSvg(jobs,people,metrics,true,'场地',{showTotal:true}).svg;
   assert.equal((quantity.match(/data-team-total="true"/g)||[]).length,3);
   assert.match(quantity,/团队合计（四人）/);assert.match(quantity,/被救援次数 · 次/);
@@ -192,12 +192,34 @@ test('quantity quarter reference uses all four players and scales with visible r
   assert.doesNotMatch(one,/>25% 均分参考<\/text>/);
 });
 
-test('quantity quarter reference preserves gaps and singleton records without inventing interrupted totals',()=>{
+test('quantity quarter reference connects interruption anchors but preserves missing settlements',()=>{
   const c=setup(),jobs=[row([1,1,1,1],0),{...row([0,0,0,0],1),interrupted:true},row([2,2,2,2],2),row([2,2,2],3),row([3,3,3,3],4)];
   const svg=c.largeChart(jobs,people,'deaths',{showQuarter:true});
   const reference=svg.match(/<g class="trend-quarter"[\s\S]*?<\/g>/)[0];
-  assert.equal((reference.match(/quarter-line/g)||[]).length,3);
-  assert.equal((reference.match(/<circle/g)||[]).length,3);
+  assert.equal((reference.match(/quarter-line/g)||[]).length,2);
+  assert.equal((reference.match(/<circle/g)||[]).length,1);
   assert.doesNotMatch(reference,/NaN|Infinity/);
   assert.doesNotMatch(c.trendTooltip(jobs[1],people,'deaths',{showQuarter:true}),/均分参考：/);
+});
+
+
+test('share lines and quantity reference pass through consecutive interruption anchors in preview and export',()=>{
+  const c=setup(),jobs=[row([1,1,1,1],0),{...row([0,0,0,0],1),interrupted:true},{...row([0,0,0,0],2),interrupted:true},row([2,2,2,2],3)];
+  for(const metric of ['eggs','kills','deaths']){
+    assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0',metric,'share')),[[{index:0,value:25},{index:1,value:0},{index:2,value:0},{index:3,value:25}]]);
+    assert.equal(c.SalmonStats.share(jobs[1],'p0',metric),null);
+    for(const mode of ['share','quantity']){
+      const svg=c.largeChart(jobs,people.slice(0,1),metric,{mode,showQuarter:true});
+      const line=mode==='share'?svg.match(/data-player-line="p0"[^>]+points="([^"]+)"/)[1]:svg.match(/class="chart-line quarter-line"[^>]+points="([^"]+)"/)[1];
+      const points=line.split(' ');assert.equal(points.length,4);
+      assert.equal(points[1].split(',')[1],'226');assert.equal(points[2].split(',')[1],'226');
+      const exported=c.trendExportSvg(jobs,people.slice(0,1),[metric],false,'场地',{mode,showQuarter:true}).svg;
+      assert.ok(exported.includes(`points="${line}"`));
+      assert.equal((exported.match(/class="interruption-marker"/g)||[]).length,2);
+    }
+  }
+  jobs[2].continuousWithPrevious=false;
+  assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0','eggs','share')).map(s=>s.map(p=>p.index)),[[0,1],[2,3]]);
+  jobs[2].continuousWithPrevious=true;jobs[1].players=[];
+  assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0','eggs','share')).map(s=>s.map(p=>p.index)),[[0],[2,3]]);
 });

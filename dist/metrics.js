@@ -44,7 +44,8 @@ window.SalmonStats={
     return segments;
   },
   trendSegments(jobs,key,metric,mode='quantity'){
-    return mode==='share'?this.valueSegments(jobs,job=>this.share(job,key,metric)):this.segments(jobs,key,metric);
+    // Interrupted zeros are drawing anchors only; share() still returns null.
+    return mode==='share'?this.valueSegments(jobs,job=>job.interrupted&&job.players?.some(p=>p.key===key)?0:this.share(job,key,metric)):this.segments(jobs,key,metric);
   },
   suspectedTeammates(jobs){
     const people=new Map();
