@@ -36,6 +36,8 @@ Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具
 
 安装包适用于 **Intel / AMD 64 位 Windows 电脑**。请先按 [Docker 官方安装说明](https://docs.docker.com/desktop/setup/install/windows-install/)核对系统要求。
 
+使用 Docker Desktop 的 Linux 容器模式，通常保持默认设置即可。建议使用默认的 WSL 2 后端；如果提示 WSL 缺失或版本过低，请按提示安装或更新。无需另行安装 Ubuntu 等 Linux 发行版。
+
 1. 安装 Docker Desktop。
 2. 按安装程序提示完成系统组件安装或重启。
 3. 打开 Docker Desktop。
