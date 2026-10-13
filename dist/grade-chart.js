@@ -131,5 +131,5 @@ window.SalmonGradeChart=(()=>{
     }else if(previous)comparison='前一场记录不连续或缺少分数';
     return `<strong>${job.interrupted?'对局中断':'第 '+esc(job.index)+' 场 · '+(job.clear?'通过':'未通过')}</strong><br>结束分数：<b>${esc(job.grade)} ${job.gradePoint??'未提供'}</b>${comparison?`<br>${comparison}`:''}${job.interrupted?'<br>本场无有效波次结算，不计入表现统计。':''}<br><small>点击查看该场详情</small>`;
   }
-  return {model,render,tooltip,plotInsets};
+  return {model,render,tooltip,plotInsets,rankOf};
 })();

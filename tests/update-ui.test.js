@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../dist/update.js',import.meta.url),'utf8');
+test('current release notice waits for update component to finish its transaction',async()=>{
+  const f=await fixture(false),versions=[];
+  f.c.window.SalmonReleaseNotes={observe:version=>versions.push(version)};
+  f.setState({busy:true,phase:'updating_updater'});f.timers[0]();await f.flush();
+  assert.equal(versions.length,0);
+  f.setState({busy:false,phase:'success'});f.timers[1]();await f.flush();
+  assert.deepEqual(versions,['0.3.6']);
+});
 async function fixture(connected=true,intercept=()=>null){
   const elements=new Map(),timers=[],calls=[];
   const element=id=>{if(!elements.has(id))elements.set(id,{open:false,hidden:true,textContent:'',value:'',innerHTML:'',addEventListener(type,fn){this['on'+type]=fn},showModal(){this.open=true},close(){this.open=false},querySelector:selector=>element(selector)});return elements.get(id)};

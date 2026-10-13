@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 
 const source=name=>readFileSync(new URL('../dist/'+name,import.meta.url),'utf8');
 const snapshot={jobs:[],shifts:[],player:'测试玩家',generated:'2026-09-30T00:00:00Z',excluded:[]};
-function cache(storage){const c={window:{},sessionStorage:storage};vm.createContext(c);vm.runInContext(source('view-data.js'),c);return c}
+function cache(storage){const c={window:{},sessionStorage:storage};vm.createContext(c);vm.runInContext(source('view-data.js'),c);vm.runInContext(source('preferences.js'),c);return c}
 
 test('tab display cache restores only a valid snapshot and tolerates corrupt or unavailable storage',()=>{
   let saved=null;const storage={getItem:()=>saved,setItem:(key,value)=>{saved=value}};
