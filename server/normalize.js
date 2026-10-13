@@ -17,6 +17,16 @@ export function safeAssetUrl(value){
   try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&(/\.nintendo\.net$|\.nintendo\.com$/).test(u.hostname)?u.href:null}catch{return null}
 }
 export function item(raw,asset=()=> ''){return {name:text(raw?.name),image:asset(safeAssetUrl(raw?.image?.url))}}
+export function appearance(player,asset){
+  if(!player?.nameplate&&!player?.uniform)return null;
+  const color=player.nameplate?.background?.textColor;
+  const textColor=color&&['r','g','b','a'].every(k=>Number.isFinite(color[k])&&color[k]>=0&&color[k]<=1)
+    ?`rgba(${['r','g','b'].map(k=>Math.round(color[k]*255)).join(',')},${color.a})`:null;
+  return {byname:text(player.byname,''),nameId:text(player.nameId,''),
+    uniform:player.uniform?item(player.uniform,asset):null,
+    nameplate:player.nameplate?{background:asset(safeAssetUrl(player.nameplate.background?.image?.url)),textColor,
+      badges:Array.isArray(player.nameplate.badges)?player.nameplate.badges.slice(0,3).map(b=>b?asset(safeAssetUrl(b.image?.url)):null):[]}:null};
+}
 function special(raw,asset){
   let id=raw?.weaponId;
   if(!Number.isInteger(id)&&typeof raw?.id==='string'){
@@ -33,7 +43,7 @@ export function validateRecord(raw){
 export function normalize(raw,group,asset){
   validateRecord(raw);
   const players=[raw.myResult,...raw.memberResults].map((p,i)=>({
-    key:playerKey(p.player?.id),name:text(p.player?.name),me:i===0,
+    key:playerKey(p.player?.id),name:text(p.player?.name),me:i===0,appearance:appearance(p.player,asset),
     eggs:number(p.goldenDeliverCount),assist:number(p.goldenAssistCount),power:number(p.deliverCount),kills:number(p.defeatEnemyCount),rescues:number(p.rescueCount),deaths:number(p.rescuedCount),
     weapons:(p.weapons??[]).map(w=>item(w,asset)),special:special(p.specialWeapon,asset)
   }));
