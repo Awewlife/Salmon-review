@@ -90,7 +90,7 @@ window.SalmonGradeChart=(()=>{
   }
   const insets=(mixed,width)=>({left:mixed?(width<500?76:90):44,right:mixed?(width<500?16:72):45});
   const plotInsets=(jobs,width=760)=>insets(model(jobs).mixed,width);
-  function render(jobs,{width=760}={}){
+  function render(jobs,{width=760,interactive=true}={}){
     const m=model(jobs);
     if(!m.count)return '<div class="score-empty" role="status">本期暂无可用的结束分数，仍可切回表现趋势。</div>';
     const {left:L,right:R}=insets(m.mixed,width);
@@ -119,7 +119,7 @@ window.SalmonGradeChart=(()=>{
       ${m.points.filter(p=>p.coordinate!==null).map(p=>`<circle class="chart-point score-point ${p.job.interrupted?'node-interrupted':p.job.clear?'node-cleared':'node-failed'}" cx="${n(x(p.position))}" cy="${n(y(p.coordinate))}" r="3.8"/>`).join('')}
       ${m.points.filter(p=>p.job.interrupted&&p.value===null).map(p=>`<circle class="interruption-marker" cx="${n(x(p.position))}" cy="${H-B}" r="4" fill="#202528" stroke="#a8b0b4" stroke-width="1.8"><title>对局中断，未提供结束分数</title></circle>`).join('')}
       ${labels}
-      ${m.points.map(p=>`${p.value!==null||p.job.interrupted?`<rect class="chart-hit score-hit" data-score-job="${esc(p.job.id)}" x="${n(x(p.position)-Math.min(32,(W-L-R)/Math.max(1,jobs.length-1))/2)}" y="${T-8}" width="${n(Math.min(32,(W-L-R)/Math.max(1,jobs.length-1)))}" height="${H-B-T+22}" tabindex="0" role="link" aria-label="${p.job.interrupted?'对局中断':'第 '+esc(p.job.index)+' 场'}，${esc(p.job.grade)} ${p.value??'未提供'} 分，查看详情"/>`:''}${p.position===0||p.position===jobs.length-1||(p.position+1)%labelEvery===0?`<text class="chart-text" x="${n(x(p.position))}" y="${H-9}" text-anchor="middle">${esc(p.job.index)}</text>`:''}`).join('')}
+      ${m.points.map(p=>`${interactive&&(p.value!==null||p.job.interrupted)?`<rect class="chart-hit score-hit" data-score-job="${esc(p.job.id)}" x="${n(x(p.position)-Math.min(32,(W-L-R)/Math.max(1,jobs.length-1))/2)}" y="${T-8}" width="${n(Math.min(32,(W-L-R)/Math.max(1,jobs.length-1)))}" height="${H-B-T+22}" tabindex="0" role="link" aria-label="${p.job.interrupted?'对局中断':'第 '+esc(p.job.index)+' 场'}，${esc(p.job.grade)} ${p.value??'未提供'} 分，查看详情"/>`:''}${p.position===0||p.position===jobs.length-1||(p.position+1)%labelEvery===0?`<text class="chart-text" x="${n(x(p.position))}" y="${H-9}" text-anchor="middle">${esc(p.job.index)}</text>`:''}`).join('')}
     </svg>`;
   }
   function tooltip(jobs,index){
