@@ -36,3 +36,17 @@ test('zero, absent data, per-type aggregation and raw discrepancies remain expli
   assert.doesNotMatch(unsafe,/<script>/);assert.match(unsafe,/&lt;script&gt;/);
   assert.match(api.render(api.calculate([])),/没有可统计/);
 });
+
+test('export preserves selected range, all rows, exclusions, zero ratios and escaped metadata',()=>{
+  const shift={stage:{name:'<场地&>'},start:'2026-10-17T08:00:00Z',end:'2026-10-19T00:00:00Z'};
+  const jobs=[job(999,1000,{index:1}),job(4,10,{index:2}),job(100,100,{index:3,interrupted:true}),job(0,0,{index:4})];
+  jobs[1].players[1].name='<玩家>';
+  const output=api.svg(jobs,shift,1,3);
+  assert.match(output.svg,/4 \/ 10 只/);assert.match(output.svg,/40%/);assert.match(output.svg,/本期第 2—4 场/);
+  assert.match(output.svg,/统计 2 场 · 排除 1 场掉线/);assert.doesNotMatch(output.svg,/999/);
+  assert.match(output.svg,/&lt;场地&amp;&gt;/);assert.match(output.svg,/&lt;玩家&gt;/);
+  assert.match(output.svg,/2026\/10\/17 16:00/);assert.match(output.svg,/不含普通小怪和头目/);
+  const many=job(0,0,{index:1,bosses:Array.from({length:25},(_,i)=>({name:'怪物'+i,me:0,appeared:0}))});
+  const tall=api.svg([many],shift);assert.match(tall.svg,/怪物24/);assert(tall.height>25*42);
+  assert.doesNotMatch(tall.svg,/NaN|Infinity/);assert.throws(()=>api.svg([],shift),/no_results/);
+});
