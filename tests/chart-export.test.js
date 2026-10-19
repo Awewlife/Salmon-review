@@ -38,6 +38,18 @@ test('export controls allow no selection and disable generation while empty or b
   assert.ok(buttons.every(button=>button.disabled));
 });
 
+test('drag ordering moves across multiple positions, preserves every chart and leaves input unchanged',()=>{
+  const c=setup(),order=['eggs','kills','deaths','power'];
+  assert.deepEqual(Array.from(c.moveTrendExportChart(order,'power',0)),['power','eggs','kills','deaths']);
+  assert.deepEqual(Array.from(c.moveTrendExportChart(order,'eggs',3)),['kills','deaths','power','eggs']);
+  assert.deepEqual(Array.from(c.moveTrendExportChart(order,'power',1)),['eggs','power','kills','deaths']);
+  assert.deepEqual(Array.from(c.moveTrendExportChart(order,'kills',1)),order);
+  assert.deepEqual(Array.from(c.moveTrendExportChart(order,'eggs',-1)),order);
+  assert.deepEqual(Array.from(c.moveTrendExportChart(order,'power',99)),order);
+  assert.deepEqual(Array.from(c.moveTrendExportChart(order,'missing',0)),order);
+  assert.deepEqual(order,['eggs','kills','deaths','power']);
+});
+
 test('range exports retain original indices and gap markers, rescale using only selected records and escape names',()=>{
   const c=setup();vm.runInContext('trendState={jobs,from:2,to:4}; chosen=trendRangeJobs(); output=trendExportSvg(chosen,people,["eggs","kills","deaths"],true,"场地<&")',c);
   assert.deepEqual(Array.from(c.chosen,j=>j.index),[3,4,5]);

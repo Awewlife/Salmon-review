@@ -3,7 +3,13 @@ let trendState;
 const TREND_METRICS={eggs:{label:'搬蛋',short:'搬蛋',unit:'颗'},kills:{label:'巨大鲑鱼击杀',short:'击杀',unit:'只'},deaths:{label:'被救援次数',short:'被救援次数',unit:'次'},power:{label:'红蛋',short:'红蛋',unit:'颗',preference:'showPower'}};
 function trendVisibleMetrics(preferences=trendState){return Object.keys(TREND_METRICS).filter(key=>!TREND_METRICS[key].preference||preferences[TREND_METRICS[key].preference]===true)}
 function trendExportMetrics(state=trendState){return state.exportChartOrder.filter(key=>state.exportChartSelection.includes(key))}
-function trendExportOptions(state){return state.exportChartOrder.map((key,index)=>`<li><label><input type="checkbox" data-export-chart="${key}" ${state.exportChartSelection.includes(key)?'checked':''}>${TREND_METRICS[key].label}</label><span class="trend-export-move"><button type="button" class="button" data-export-move="${key}" data-direction="-1" aria-label="上移${TREND_METRICS[key].label}" ${index===0?'disabled':''}>上移</button><button type="button" class="button" data-export-move="${key}" data-direction="1" aria-label="下移${TREND_METRICS[key].label}" ${index===state.exportChartOrder.length-1?'disabled':''}>下移</button></span></li>`).join('')}
+function moveTrendExportChart(order,key,index){
+  if(!order.includes(key)||!Number.isInteger(index))return [...order];
+  const result=order.filter(item=>item!==key);
+  result.splice(Math.max(0,Math.min(result.length,index)),0,key);
+  return result;
+}
+function trendExportOptions(state){return state.exportChartOrder.map(key=>`<li data-export-row="${key}"><label><input type="checkbox" data-export-chart="${key}" ${state.exportChartSelection.includes(key)?'checked':''}>${TREND_METRICS[key].label}</label><button type="button" class="trend-export-drag" data-export-drag="${key}" aria-label="拖动排序：${TREND_METRICS[key].label}" aria-describedby="trend-export-help" title="拖动排序，或使用键盘上、下方向键"><span aria-hidden="true">⠿</span></button></li>`).join('')}
 function updateTrendExportButtons(){
   const count=trendExportMetrics().length;
   document.querySelectorAll('[data-export-trend]').forEach(button=>button.disabled=!!trendState.exportBusy||count===0);
@@ -23,13 +29,52 @@ function renderTrendExportOptions(){
     trendState.exportChartSelection=[...list.querySelectorAll('[data-export-chart]:checked')].map(box=>box.dataset.exportChart);
     changed();
   });
-  list.querySelectorAll('[data-export-move]').forEach(button=>button.onclick=()=>{
-    const key=button.dataset.exportMove,direction=Number(button.dataset.direction),order=trendState.exportChartOrder,index=order.indexOf(key),next=index+direction;
-    if(next<0||next>=order.length)return;
-    [order[index],order[next]]=[order[next],order[index]];
+  const commit=(key,index)=>{
+    const before=trendState.exportChartOrder;
+    const order=moveTrendExportChart(before,key,index);
+    if(order.every((item,i)=>item===before[i]))return;
+    trendState.exportChartOrder=order;
     changed();renderTrendExportOptions();
-    const moved=list.querySelector(`[data-export-move="${key}"][data-direction="${direction}"]`);
-    (moved.disabled?list.querySelector(`[data-export-chart="${key}"]`):moved).focus();
+    list.querySelector(`[data-export-drag="${key}"]`).focus({preventScroll:true});
+    document.querySelector('#trend-export-reorder-status').textContent=`${TREND_METRICS[key].label}已移至第 ${order.indexOf(key)+1} 位`;
+  };
+  list.querySelectorAll('[data-export-drag]').forEach(handle=>{
+    const key=handle.dataset.exportDrag,row=handle.closest('li');
+    let drag=null;
+    const clear=()=>{
+      const pointerId=drag?.pointerId;drag=null;
+      list.querySelectorAll('li').forEach(item=>item.classList.remove('export-dragging','export-drop-before','export-drop-after'));
+      if(pointerId!=null&&handle.hasPointerCapture(pointerId))handle.releasePointerCapture(pointerId);
+    };
+    handle.onpointerdown=e=>{
+      if(!e.isPrimary||e.button!==0)return;
+      handle.focus({preventScroll:true});
+      drag={pointerId:e.pointerId,startY:e.clientY,index:trendState.exportChartOrder.indexOf(key),moved:false};
+      handle.setPointerCapture(e.pointerId);
+    };
+    handle.onpointermove=e=>{
+      if(!drag||e.pointerId!==drag.pointerId)return;
+      if(!drag.moved&&Math.abs(e.clientY-drag.startY)<4)return;
+      drag.moved=true;row.classList.add('export-dragging');
+      const peers=[...list.querySelectorAll('li')].filter(item=>item!==row);
+      drag.index=peers.filter(item=>{const box=item.getBoundingClientRect();return e.clientY>box.top+box.height/2}).length;
+      peers.forEach(item=>item.classList.remove('export-drop-before','export-drop-after'));
+      if(drag.index<peers.length)peers[drag.index].classList.add('export-drop-before');
+      else peers.at(-1)?.classList.add('export-drop-after');
+    };
+    handle.onpointerup=e=>{
+      if(!drag||e.pointerId!==drag.pointerId)return;
+      const {index,moved}=drag;clear();
+      if(moved)commit(key,index);
+    };
+    handle.onpointercancel=handle.onlostpointercapture=clear;
+    handle.onkeydown=e=>{
+      if(e.key==='Escape'&&drag){e.preventDefault();e.stopPropagation();clear();return}
+      if(drag||!['ArrowUp','ArrowDown','Home','End'].includes(e.key))return;
+      e.preventDefault();
+      const order=trendState.exportChartOrder,index=order.indexOf(key);
+      commit(key,e.key==='Home'?0:e.key==='End'?order.length-1:index+(e.key==='ArrowUp'?-1:1));
+    };
   });
   updateTrendExportButtons();
 }
@@ -91,7 +136,7 @@ function openTrend(){
   trendState.exportChartOrder??=Object.keys(TREND_METRICS);
   trendState.exportChartSelection??=trendVisibleMetrics();
   const dialog=document.querySelector('#trend-dialog');
-  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期趋势详情</h2><p class="subtext">分项趋势 · 队友对比 · 图表导出</p><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭趋势详情">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场；掉线不打断，也不计场数，仅作疑似识别</p></div><div id="trend-people"></div><div class="trend-display-controls"><div class="chart-mode-switch" role="group" aria-label="趋势数值类型"><button data-trend-mode="quantity" aria-pressed="true">数量</button><button data-trend-mode="share" aria-pressed="false">占比</button></div><label class="trend-total-toggle" id="trend-total-control"><input type="checkbox" id="show-trend-total"><span class="team-total-swatch" aria-hidden="true"></span>团队合计（四人）</label><div class="chart-mode-switch" id="trend-share-scale" role="group" aria-label="占比纵轴范围" hidden><button data-share-scale="auto" aria-pressed="true">自动缩放</button><button data-share-scale="fixed" aria-pressed="false">0–100%</button></div><label class="trend-total-toggle" id="trend-quarter-control" title="四人均分参考，不代表及格线"><input type="checkbox" id="show-trend-quarter">25% 参考线</label><details class="trend-more-charts"><summary>更多图表</summary><div class="trend-more-options">${Object.entries(TREND_METRICS).filter(([,metric])=>metric.preference).map(([key,metric])=>`<label><input type="checkbox" data-extra-chart="${key}" ${trendState[metric.preference]?'checked':''}>${metric.label}</label>`).join('')}</div></details><span class="trend-measure-note" id="trend-measure-note"></span></div><details class="trend-range" aria-label="选择连续场次与导出"><summary><span>场次筛选与导出</span><span id="trend-range-summary"></span></summary><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><fieldset class="trend-export-selection"><legend>导出图表</legend><p>勾选要导出的图表，并调整顺序；不影响页面显示。</p><ul id="trend-export-charts"></ul><p id="trend-export-count" aria-live="polite"></p></fieldset><div class="trend-export-controls"><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></details><div id="trend-plots"></div><p class="trend-footnote" id="trend-footnote"></p></div>`;
+  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期趋势详情</h2><p class="subtext">分项趋势 · 队友对比 · 图表导出</p><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭趋势详情">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场；掉线不打断，也不计场数，仅作疑似识别</p></div><div id="trend-people"></div><div class="trend-display-controls"><div class="chart-mode-switch" role="group" aria-label="趋势数值类型"><button data-trend-mode="quantity" aria-pressed="true">数量</button><button data-trend-mode="share" aria-pressed="false">占比</button></div><label class="trend-total-toggle" id="trend-total-control"><input type="checkbox" id="show-trend-total"><span class="team-total-swatch" aria-hidden="true"></span>团队合计（四人）</label><div class="chart-mode-switch" id="trend-share-scale" role="group" aria-label="占比纵轴范围" hidden><button data-share-scale="auto" aria-pressed="true">自动缩放</button><button data-share-scale="fixed" aria-pressed="false">0–100%</button></div><label class="trend-total-toggle" id="trend-quarter-control" title="四人均分参考，不代表及格线"><input type="checkbox" id="show-trend-quarter">25% 参考线</label><details class="trend-more-charts"><summary>更多图表</summary><div class="trend-more-options">${Object.entries(TREND_METRICS).filter(([,metric])=>metric.preference).map(([key,metric])=>`<label><input type="checkbox" data-extra-chart="${key}" ${trendState[metric.preference]?'checked':''}>${metric.label}</label>`).join('')}</div></details><span class="trend-measure-note" id="trend-measure-note"></span></div><details class="trend-range" aria-label="选择连续场次与导出"><summary><span>场次筛选与导出</span><span id="trend-range-summary"></span></summary><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><fieldset class="trend-export-selection"><legend>导出图表</legend><p id="trend-export-help">勾选图表，拖动右侧手柄排序；也可聚焦手柄后按 ↑ / ↓ 调整。</p><ul id="trend-export-charts"></ul><p id="trend-export-count" aria-live="polite"></p><span id="trend-export-reorder-status" class="export-sort-status" role="status"></span></fieldset><div class="trend-export-controls"><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></details><div id="trend-plots"></div><p class="trend-footnote" id="trend-footnote"></p></div>`;
   document.querySelector('#close-trend').onclick=()=>dialog.close();
   document.querySelectorAll('[data-trend-mode]').forEach(button=>button.onclick=()=>{trendState.mode=button.dataset.trendMode;window.SalmonPreferences.save({mode:trendState.mode});document.querySelector('#trend-export-status').textContent='';renderTrend()});
   document.querySelectorAll('[data-share-scale]').forEach(button=>button.onclick=()=>{trendState.shareScale=button.dataset.shareScale;window.SalmonPreferences.save({shareScale:trendState.shareScale});document.querySelector('#trend-export-status').textContent='';renderTrend()});
