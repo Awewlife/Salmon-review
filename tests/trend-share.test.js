@@ -11,13 +11,13 @@ function setup(){
   return c;
 }
 const row=(values,i=0)=>({id:'match-'+i,index:i+1,time:'2026-10-12T00:00:00Z',continuousWithPrevious:i>0,clear:true,
-  eggs:999,kills:999,players:values.map((v,i)=>({key:'p'+i,name:i?'队友'+i:'我<&',me:i===0,eggs:v,kills:v,deaths:v,assist:99}))});
+  eggs:999,kills:999,players:values.map((v,i)=>({key:'p'+i,name:i?'队友'+i:'我<&',me:i===0,eggs:v,kills:v,deaths:v,power:v,assist:99}))});
 const people=[{key:'p0',name:'我<&',self:true,color:'#d5ef68'},{key:'p1',name:'队友1',color:'#81cbd9'}];
 const plain=v=>JSON.parse(JSON.stringify(v));
 
 test('all metrics use all four personal settlements, never official team fields, assists or visible players',()=>{
   const c=setup(),j=row([10,20,30,40]),before=JSON.stringify(j);
-  for(const metric of ['eggs','kills','deaths']){
+  for(const metric of ['eggs','kills','deaths','power']){
     assert.equal(c.SalmonStats.teamTotal(j,metric),100);
     assert.equal(c.SalmonStats.share(j,'p0',metric),10);
     assert.equal(j.players.reduce((sum,p)=>sum+c.SalmonStats.share(j,p.key,metric),0),100);
@@ -31,7 +31,7 @@ test('all metrics use all four personal settlements, never official team fields,
 
 test('valid all-zero results are connected 0 percent points, distinct from an individual zero',()=>{
   const c=setup(),jobs=[row([2,2,0,0],0),row([0,0,0,0],1),row([1,1,1,1],2)];
-  for(const metric of ['eggs','kills','deaths']){
+  for(const metric of ['eggs','kills','deaths','power']){
     const s=c.SalmonStats.trendSegments(jobs,'p0',metric,'share');
     assert.deepEqual(plain(s),[[{index:0,value:50},{index:1,value:0},{index:2,value:25}]]);
     assert.equal(c.SalmonStats.share(jobs[0],'p2',metric),0);
@@ -205,7 +205,7 @@ test('quantity quarter reference connects interruption anchors but preserves mis
 
 test('share lines and quantity reference pass through consecutive interruption anchors in preview and export',()=>{
   const c=setup(),jobs=[row([1,1,1,1],0),{...row([0,0,0,0],1),interrupted:true},{...row([0,0,0,0],2),interrupted:true},row([2,2,2,2],3)];
-  for(const metric of ['eggs','kills','deaths']){
+  for(const metric of ['eggs','kills','deaths','power']){
     assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0',metric,'share')),[[{index:0,value:25},{index:1,value:0},{index:2,value:0},{index:3,value:25}]]);
     assert.equal(c.SalmonStats.share(jobs[1],'p0',metric),null);
     for(const mode of ['share','quantity']){
@@ -222,4 +222,24 @@ test('share lines and quantity reference pass through consecutive interruption a
   assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0','eggs','share')).map(s=>s.map(p=>p.index)),[[0,1],[2,3]]);
   jobs[2].continuousWithPrevious=true;jobs[1].players=[];
   assert.deepEqual(plain(c.SalmonStats.trendSegments(jobs,'p0','eggs','share')).map(s=>s.map(p=>p.index)),[[0],[2,3]]);
+});
+
+
+test('optional charts default to the original three and visible export options follow preferences',()=>{
+  const c=setup();
+  assert.deepEqual(plain(c.trendVisibleMetrics({})),['eggs','kills','deaths']);
+  assert.deepEqual(plain(c.trendVisibleMetrics({showPower:true})),['eggs','kills','deaths','power']);
+  assert.doesNotMatch(c.trendExportOptions({showPower:false}),/value="power"/);
+  assert.match(c.trendExportOptions({showPower:true}),/4 张长图/);
+  assert.match(c.trendExportOptions({showPower:true}),/value="power">红蛋/);
+  const jobs=[row([500,1000,1500,2000])];
+  const quantity=c.trendExportSvg(jobs,people,c.trendVisibleMetrics({showPower:true}),true,'场地',{showTotal:true,showQuarter:true});
+  const base=c.trendExportSvg(jobs,people,c.trendVisibleMetrics({}),true,'场地');
+  assert.equal(quantity.height-base.height,310);
+  assert.match(quantity.svg,/红蛋 · 颗/);assert.doesNotMatch(base.svg,/红蛋 · 颗/);
+  const single=c.trendExportSvg(jobs,people,['power'],true,'场地',{mode:'share',showQuarter:true});
+  assert.match(single.svg,/红蛋 · 占比（%）/);assert.match(single.svg,/25% 均分参考/);
+  assert.equal(c.SalmonStats.share(jobs[0],'p0','power'),10);
+  assert.match(c.trendTooltip(jobs[0],people,'power'),/5,?000|5000/);
+  assert.doesNotMatch(single.svg,/NaN|Infinity/);
 });

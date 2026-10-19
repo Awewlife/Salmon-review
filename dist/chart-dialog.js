@@ -1,6 +1,8 @@
 'use strict';
 let trendState;
-const TREND_METRICS={eggs:{label:'搬蛋',short:'搬蛋',unit:'颗'},kills:{label:'巨大鲑鱼击杀',short:'击杀',unit:'只'},deaths:{label:'被救援次数',short:'被救援次数',unit:'次'}};
+const TREND_METRICS={eggs:{label:'搬蛋',short:'搬蛋',unit:'颗'},kills:{label:'巨大鲑鱼击杀',short:'击杀',unit:'只'},deaths:{label:'被救援次数',short:'被救援次数',unit:'次'},power:{label:'红蛋',short:'红蛋',unit:'颗',preference:'showPower'}};
+function trendVisibleMetrics(preferences=trendState){return Object.keys(TREND_METRICS).filter(key=>!TREND_METRICS[key].preference||preferences[TREND_METRICS[key].preference]===true)}
+function trendExportOptions(preferences){const metrics=trendVisibleMetrics(preferences);return `<option value="all">当前显示的全部图表（${metrics.length} 张长图）</option>`+metrics.map(key=>`<option value="${key}">${TREND_METRICS[key].label}</option>`).join('')}
 function trendRangeJobs(){return trendState.jobs.slice(trendState.from,trendState.to+1)}
 function trendMarker(x,y,color,clear=true,attributes=''){
   return `<circle class="chart-point ${clear?'node-cleared':'node-failed'}" ${attributes} cx="${x}" cy="${y}" r="4" fill="${clear?color:'#202528'}" stroke="${color}" stroke-width="1.8"/>`;
@@ -24,8 +26,9 @@ function trendExportSvg(jobs,people,metrics,showNames,stage,{mode='quantity',sho
 async function exportTrend(format){
   const status=document.querySelector('#trend-export-status'),buttons=[...document.querySelectorAll('[data-export-trend]')];
   const jobs=trendRangeJobs(),people=trendPeople().filter(p=>(p.self||(trendState.include&&trendState.selected.has(p.key)))&&jobs.some(j=>j.players.some(v=>v.key===p.key)));
-  const metric=document.querySelector('#trend-export-metric').value,metrics=metric==='all'?Object.keys(TREND_METRICS):[metric];
-  const output=trendExportSvg(jobs,people,metrics,trendState.showNames,shift().stage.name,trendState);
+  const metric=document.querySelector('#trend-export-metric').value,metrics=metric==='all'?trendVisibleMetrics():[metric];
+  const state=trendState,revision=state.revision;
+  const output=trendExportSvg(jobs,people,metrics,state.showNames,shift().stage.name,state);
   const filename=`salmon-${jobs[0].time.slice(0,10)}-${jobs[0].index}-${jobs.at(-1).index}-${metric}-${trendState.mode}.${format}`;
   buttons.forEach(b=>b.disabled=true);status.textContent='正在生成图片…';
   try{
@@ -38,11 +41,13 @@ async function exportTrend(format){
       ctx.drawImage(image,0,0,canvas.width,canvas.height);
       blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('image_encode');
     }
+    if(trendState!==state||state.revision!==revision||!status.isConnected||!document.querySelector('#trend-dialog').open)return;
     if(trendState.exportUrl)URL.revokeObjectURL(trendState.exportUrl);
     const url=URL.createObjectURL(blob);trendState.exportUrl=url;
     status.innerHTML=`已生成所选 ${jobs.length} 条记录的图片。<a href="${url}" download="${filename}">下载刚生成的 ${format.toUpperCase()}</a>`;
     status.querySelector('a').click();
     const preview=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
+    if(trendState!==state||state.revision!==revision||!status.isConnected||!document.querySelector('#trend-dialog').open)return;
     const details=document.createElement('details');details.innerHTML='<summary>预览导出图片</summary>';
     const picture=document.createElement('img');picture.src=preview;picture.alt=`所选 ${jobs.length} 条记录导出预览`;picture.style.cssText='display:block;max-width:100%;height:auto;margin-top:12px';details.append(picture);status.append(details);
   }catch{status.textContent='图片生成失败，请重试或改用 SVG 格式。'}
@@ -53,12 +58,13 @@ function openTrend(){
   const jobs=chartMatches(),teammates=SalmonStats.suspectedTeammates(jobs);
   trendState={jobs,teammates,selected:new Set(),include:false,...window.SalmonPreferences.get(),from:0,to:jobs.length-1};
   const dialog=document.querySelector('#trend-dialog');
-  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期趋势详情</h2><p class="subtext">分项趋势 · 队友对比 · 图表导出</p><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭趋势详情">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场；掉线不打断，也不计场数，仅作疑似识别</p></div><div id="trend-people"></div><div class="trend-display-controls"><div class="chart-mode-switch" role="group" aria-label="趋势数值类型"><button data-trend-mode="quantity" aria-pressed="true">数量</button><button data-trend-mode="share" aria-pressed="false">占比</button></div><label class="trend-total-toggle" id="trend-total-control"><input type="checkbox" id="show-trend-total"><span class="team-total-swatch" aria-hidden="true"></span>团队合计（四人）</label><div class="chart-mode-switch" id="trend-share-scale" role="group" aria-label="占比纵轴范围" hidden><button data-share-scale="auto" aria-pressed="true">自动缩放</button><button data-share-scale="fixed" aria-pressed="false">0–100%</button></div><label class="trend-total-toggle" id="trend-quarter-control" title="四人均分参考，不代表及格线"><input type="checkbox" id="show-trend-quarter">25% 参考线</label><span class="trend-measure-note" id="trend-measure-note"></span></div><details class="trend-range" aria-label="选择连续场次与导出"><summary><span>场次筛选与导出</span><span id="trend-range-summary"></span></summary><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><div class="trend-export-controls"><label>导出内容<select id="trend-export-metric"><option value="all">全部三张图（长图）</option>${Object.entries(TREND_METRICS).map(([key,m])=>`<option value="${key}">${m.label}</option>`).join('')}</select></label><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></details><div id="trend-plots"></div><p class="trend-footnote" id="trend-footnote"></p></div>`;
+  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期趋势详情</h2><p class="subtext">分项趋势 · 队友对比 · 图表导出</p><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭趋势详情">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场；掉线不打断，也不计场数，仅作疑似识别</p></div><div id="trend-people"></div><div class="trend-display-controls"><div class="chart-mode-switch" role="group" aria-label="趋势数值类型"><button data-trend-mode="quantity" aria-pressed="true">数量</button><button data-trend-mode="share" aria-pressed="false">占比</button></div><label class="trend-total-toggle" id="trend-total-control"><input type="checkbox" id="show-trend-total"><span class="team-total-swatch" aria-hidden="true"></span>团队合计（四人）</label><div class="chart-mode-switch" id="trend-share-scale" role="group" aria-label="占比纵轴范围" hidden><button data-share-scale="auto" aria-pressed="true">自动缩放</button><button data-share-scale="fixed" aria-pressed="false">0–100%</button></div><label class="trend-total-toggle" id="trend-quarter-control" title="四人均分参考，不代表及格线"><input type="checkbox" id="show-trend-quarter">25% 参考线</label><details class="trend-more-charts"><summary>更多图表</summary><div class="trend-more-options">${Object.entries(TREND_METRICS).filter(([,metric])=>metric.preference).map(([key,metric])=>`<label><input type="checkbox" data-extra-chart="${key}" ${trendState[metric.preference]?'checked':''}>${metric.label}</label>`).join('')}</div></details><span class="trend-measure-note" id="trend-measure-note"></span></div><details class="trend-range" aria-label="选择连续场次与导出"><summary><span>场次筛选与导出</span><span id="trend-range-summary"></span></summary><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><div class="trend-export-controls"><label>导出内容<select id="trend-export-metric">${trendExportOptions(trendState)}</select></label><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></details><div id="trend-plots"></div><p class="trend-footnote" id="trend-footnote"></p></div>`;
   document.querySelector('#close-trend').onclick=()=>dialog.close();
   document.querySelectorAll('[data-trend-mode]').forEach(button=>button.onclick=()=>{trendState.mode=button.dataset.trendMode;window.SalmonPreferences.save({mode:trendState.mode});document.querySelector('#trend-export-status').textContent='';renderTrend()});
   document.querySelectorAll('[data-share-scale]').forEach(button=>button.onclick=()=>{trendState.shareScale=button.dataset.shareScale;window.SalmonPreferences.save({shareScale:trendState.shareScale});document.querySelector('#trend-export-status').textContent='';renderTrend()});
   document.querySelector('#show-trend-quarter').onchange=e=>{trendState.showQuarter=e.target.checked;window.SalmonPreferences.save({showQuarter:trendState.showQuarter});document.querySelector('#trend-export-status').textContent='';renderTrend()};
   document.querySelector('#show-trend-total').onchange=e=>{trendState.showTotal=e.target.checked;window.SalmonPreferences.save({showTotal:trendState.showTotal});document.querySelector('#trend-export-status').textContent='';renderTrend()};
+  document.querySelectorAll('[data-extra-chart]').forEach(input=>input.onchange=()=>{const preference=TREND_METRICS[input.dataset.extraChart].preference;trendState[preference]=input.checked;window.SalmonPreferences.save({[preference]:input.checked});renderTrend()});
   document.querySelector('#include-teammates').onclick=()=>{
     trendState.include=!trendState.include;
     trendState.selected=new Set(trendState.include?teammates.map(p=>p.key):[]);
@@ -82,6 +88,11 @@ function trendPeople(){
 }
 function renderTrend(){
   const {include,selected,teammates,mode,showTotal,shareScale,showQuarter}=trendState,people=trendPeople(),jobs=trendRangeJobs();
+  trendState.revision=(trendState.revision??0)+1;
+  document.querySelector('#trend-export-status').replaceChildren();
+  if(trendState.exportUrl){URL.revokeObjectURL(trendState.exportUrl);trendState.exportUrl=null}
+  const exportSelect=document.querySelector('#trend-export-metric'),previousMetric=exportSelect.value;
+  exportSelect.innerHTML=trendExportOptions(trendState);exportSelect.value=trendVisibleMetrics().includes(previousMetric)?previousMetric:'all';
   const scrollLeft=document.querySelector('.trend-chart-scroll')?.scrollLeft||0;
   document.querySelectorAll('[data-trend-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.trendMode===mode)));
   document.querySelector('#trend-quarter-control').title=mode==='share'?'四人均分参考，不代表及格线':'每场四人合计 ÷ 4，不代表及格线';
@@ -91,7 +102,7 @@ function renderTrend(){
   document.querySelector('#trend-total-control').hidden=mode==='share';
   document.querySelector('#show-trend-total').checked=showTotal;
   document.querySelector('#trend-measure-note').textContent=mode==='share'?'占当场四人合计 · 全队为 0 时显示 0%':'团队合计按当场四人的个人结算求和';
-  document.querySelector('#trend-footnote').textContent=`同色为同一玩家；搬蛋不含协助；被救援不等同全部倒地。${mode==='share'?'占比以当场四人合计为分母，不随显示玩家变化；全队为 0 时按 0% 展示并连接。灰色空心圆表示掉线，曲线经过零刻度标记，不计算占比。':'灰色空心圆表示掉线，个人曲线与均分参考线按场次经过零刻度的掉线标记，不计入统计；团队合计不包含掉线。'}缺场、结算缺失或队友缺席处断线。点击场次查看详情。${shift().loaded<shift().total?'本期仅保存部分场次，识别与对比覆盖已保存的连续片段。':''}`;
+  document.querySelector('#trend-footnote').textContent=`同色为同一玩家；搬蛋不含协助；红蛋来自个人结算；被救援不等同全部倒地。${mode==='share'?'占比以当场四人合计为分母，不随显示玩家变化；全队为 0 时按 0% 展示并连接。灰色空心圆表示掉线，曲线经过零刻度标记，不计算占比。':'灰色空心圆表示掉线，个人曲线与均分参考线按场次经过零刻度的掉线标记，不计入统计；团队合计不包含掉线。'}缺场、结算缺失或队友缺席处断线。点击场次查看详情。${shift().loaded<shift().total?'本期仅保存部分场次，识别与对比覆盖已保存的连续片段。':''}`;
   const toggle=document.querySelector('#include-teammates');
   toggle.textContent=include?'移除队友对比':`加入疑似组队队友（${teammates.length}）`;
   toggle.setAttribute('aria-pressed',String(include));
@@ -99,11 +110,11 @@ function renderTrend(){
   document.querySelector('#trend-people').innerHTML=`<span class="trend-person self">${trendSymbol(people[0])}${esc(people[0].name)} <small>我 · 本期 ${trendState.jobs.filter(j=>!j.interrupted).length} 场</small></span>${include?people.slice(1).map(p=>`<label class="trend-person"><input type="checkbox" data-trend-player="${p.key}" ${selected.has(p.key)?'checked':''}>${trendSymbol(p)}${esc(p.name)}<small>${p.count} 场 · 最长连续 ${p.longest} 场</small></label>`).join(''):''}${!teammates.length?'<span class="subtext">已确认连续的记录内，未识别到同队至少 3 场的队友。</span>':''}`;
   const shown=people.filter(p=>p.self||(include&&selected.has(p.key)));
   document.querySelector('#trend-range-summary').textContent=jobs.length===trendState.jobs.length?`全部 ${jobs.length} 条记录`:`${jobs.length} 条记录（含 ${jobs.filter(j=>j.interrupted).length} 次中断）`;
-  document.querySelector('#trend-range-note').textContent=`当前显示 ${jobs.filter(j=>!j.interrupted).length} 场结算、${jobs.filter(j=>j.interrupted).length} 次中断。导出沿用当前数量 / 占比模式、纵轴范围、25% 参考线、团队合计、队友选择与人名开关。`;
-  document.querySelector('#trend-plots').innerHTML=`<div class="trend-outcome-legend"><span><i class="node-solid"></i>常规三波通过</span><span><i class="node-hollow"></i>未通过</span><span>○ 灰色空心圆：掉线</span>${mode==='quantity'&&showTotal?'<span><b class="team-total-swatch" aria-hidden="true"></b>团队合计（四人）</span>':''}<span>↔ 三图同步定位场次</span></div>`+Object.keys(TREND_METRICS).map(metric=>`<section class="trend-plot" data-plot-metric="${metric}"><div class="trend-plot-heading"><h3>${TREND_METRICS[metric].label}<span>${mode==='share'?'占比 · %':TREND_METRICS[metric].unit}</span></h3>${metric==='eggs'?`<label class="name-switch" title="人名靠近各自折线末端；拥挤时悬停曲线查看"><span>显示人名</span><input type="checkbox" role="switch" id="show-trend-names" ${trendState.showNames?'checked':''}><i aria-hidden="true"></i></label>`:''}</div><p class="trend-current" aria-live="polite"></p><div class="trend-chart-scroll" tabindex="0" role="region" aria-label="${TREND_METRICS[metric].short}图表横向滚动区域"><div class="trend-chart-inner">${largeChart(jobs,shown,metric,{mode,showTotal,shareScale,showQuarter})}</div></div><div class="tooltip trend-tooltip"></div></section>`).join('');
+  document.querySelector('#trend-range-note').textContent=`当前显示 ${jobs.filter(j=>!j.interrupted).length} 场结算、${jobs.filter(j=>j.interrupted).length} 次中断。导出沿用当前显示的图表、数量 / 占比模式、纵轴范围、25% 参考线、团队合计、队友选择与人名开关。`;
+  document.querySelector('#trend-plots').innerHTML=`<div class="trend-outcome-legend"><span><i class="node-solid"></i>常规三波通过</span><span><i class="node-hollow"></i>未通过</span><span>○ 灰色空心圆：掉线</span>${mode==='quantity'&&showTotal?'<span><b class="team-total-swatch" aria-hidden="true"></b>团队合计（四人）</span>':''}<span>↔ 各图同步定位场次</span></div>`+trendVisibleMetrics().map(metric=>`<section class="trend-plot" data-plot-metric="${metric}"><div class="trend-plot-heading"><h3>${TREND_METRICS[metric].label}<span>${mode==='share'?'占比 · %':TREND_METRICS[metric].unit}</span></h3>${metric==='eggs'?`<label class="name-switch" title="人名靠近各自折线末端；拥挤时悬停曲线查看"><span>显示人名</span><input type="checkbox" role="switch" id="show-trend-names" ${trendState.showNames?'checked':''}><i aria-hidden="true"></i></label>`:''}</div><p class="trend-current" aria-live="polite"></p><div class="trend-chart-scroll" tabindex="0" role="region" aria-label="${TREND_METRICS[metric].short}图表横向滚动区域"><div class="trend-chart-inner">${largeChart(jobs,shown,metric,{mode,showTotal,shareScale,showQuarter})}</div></div><div class="tooltip trend-tooltip"></div></section>`).join('');
   const plots=document.querySelector('#trend-plots'),nameSwitch=document.querySelector('#show-trend-names');
   plots.classList.toggle('names-hidden',!trendState.showNames);
-  nameSwitch.onchange=()=>{trendState.showNames=nameSwitch.checked;window.SalmonPreferences.save({showNames:trendState.showNames});plots.classList.toggle('names-hidden',!trendState.showNames)};
+  nameSwitch.onchange=()=>{trendState.revision++;document.querySelector('#trend-export-status').replaceChildren();trendState.showNames=nameSwitch.checked;window.SalmonPreferences.save({showNames:trendState.showNames});plots.classList.toggle('names-hidden',!trendState.showNames)};
   const scrollers=[...document.querySelectorAll('.trend-chart-scroll')];
   const mirroredPositions=new WeakMap();
   scrollers.forEach(scroller=>{
@@ -209,7 +220,7 @@ function largeChart(jobs,people,metric,{interactive=true,showNames=true,mode='qu
   if(mode==='quantity'&&showTotal)lines.push({key:'team-total',name:'团队合计',color:'#a8b0b4',total:true,segments:SalmonStats.valueSegments(jobs,j=>SalmonStats.teamTotal(j,metric))});
   const quarterSegments=showQuarter&&mode==='quantity'?SalmonStats.valueSegments(jobs,j=>{if(j.interrupted)return 0;const total=SalmonStats.teamTotal(j,metric);return total===null?null:total/4}):[];
   const peak=Math.max(0,...lines.flatMap(line=>line.segments.flat().map(p=>p.value)),...quarterSegments.flat().map(p=>p.value));
-  const max=mode==='share'?(shareScale==='fixed'?100:([40,60,80,100].find(limit=>limit>=peak+Math.max(5,peak*.1))??100)):metric==='deaths'?Math.max(5,Math.ceil(peak/5)*5):Math.max(10,Math.ceil(peak/10)*10);
+  const max=mode==='share'?(shareScale==='fixed'?100:([40,60,80,100].find(limit=>limit>=peak+Math.max(5,peak*.1))??100)):metric==='power'?Math.max(500,Math.ceil(peak/500)*500):metric==='deaths'?Math.max(5,Math.ceil(peak/5)*5):Math.max(10,Math.ceil(peak/10)*10);
   const tickStep=mode==='share'?(max<=60?10:20):max/5,tickCount=Math.round(max/tickStep)+1;
   const x=i=>jobs.length===1?(L+W-R)/2:L+i*(W-L-R)/(jobs.length-1),y=v=>H-B-v/max*(H-B-T),step=(W-L-R)/Math.max(1,jobs.length-1);
   const labelEntries=(showNames?lines:[]).flatMap(p=>{

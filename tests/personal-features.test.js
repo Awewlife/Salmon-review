@@ -11,9 +11,9 @@ function context(storage=new Map()){
 }
 test('display preferences survive reload, reject unknown data and do not persist match filters',()=>{
   const storage=new Map(),a=context(storage);vm.runInContext(source('preferences.js'),a.c);
-  a.c.window.SalmonPreferences.save({mode:'share',shareScale:'fixed',showNames:false,showQuarter:true,showTotal:true,overviewMode:'score',from:4,to:9,selected:['player'],token:'secret'});
+  a.c.window.SalmonPreferences.save({mode:'share',shareScale:'fixed',showNames:false,showQuarter:true,showTotal:true,showPower:true,overviewMode:'score',from:4,to:9,selected:['player'],token:'secret'});
   const b=context(storage);vm.runInContext(source('preferences.js'),b.c);
-  assert.deepEqual(JSON.parse(JSON.stringify(b.c.window.SalmonPreferences.get())),{mode:'share',shareScale:'fixed',showNames:false,showQuarter:true,showTotal:true,overviewMode:'score'});
+  assert.deepEqual(JSON.parse(JSON.stringify(b.c.window.SalmonPreferences.get())),{mode:'share',shareScale:'fixed',showNames:false,showQuarter:true,showTotal:true,showPower:true,overviewMode:'score'});
   assert.doesNotMatch([...storage.values()].join(''),/player|secret|from|to"/);
   b.c.window.SalmonPreferences.save({mode:'invalid',showNames:'true'});
   assert.equal(b.c.window.SalmonPreferences.get().mode,'share');assert.equal(b.c.window.SalmonPreferences.get().showNames,false);
@@ -21,7 +21,7 @@ test('display preferences survive reload, reject unknown data and do not persist
 test('bad or unavailable browser storage keeps working with defaults and in-memory preferences',()=>{
   for(const value of ['bad json','null','42','{"mode":"bad","showNames":"false"}']){
     const {c}=context(new Map([['salmon-chart-preferences-v1',value]]));vm.runInContext(source('preferences.js'),c);
-    assert.equal(c.window.SalmonPreferences.get().mode,'quantity');assert.equal(c.window.SalmonPreferences.get().showNames,true);
+    assert.equal(c.window.SalmonPreferences.get().mode,'quantity');assert.equal(c.window.SalmonPreferences.get().showPower,false);assert.equal(c.window.SalmonPreferences.get().showNames,true);
   }
   const {c}=context();Object.defineProperty(c.window,'localStorage',{get(){throw Error('blocked')}});
   vm.runInContext(source('preferences.js'),c);c.window.SalmonPreferences.save({showQuarter:true});assert.equal(c.window.SalmonPreferences.get().showQuarter,true);
