@@ -2,9 +2,9 @@
 
 Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具。它将打工记录保存在电脑上，并通过浏览器展示个人表现、队友对比和段位分数变化。
 
-当前版本：**0.3.10 · 私有预发布版**。本项目不是任天堂官方产品。下载发行版需要具有仓库访问权限的 GitHub 账号。
+当前版本：**0.3.11 · 私有预发布版**。本项目不是任天堂官方产品。下载发行版需要具有仓库访问权限的 GitHub 账号。
 
-[下载发行版](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.10) · [更新记录](CHANGELOG.md) · [测试说明](BETA_TESTING.md) · [网页更新说明](UPDATING.md)
+[下载发行版](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.11) · [更新记录](CHANGELOG.md) · [测试说明](BETA_TESTING.md) · [网页更新说明](UPDATING.md)
 
 ## 功能概览
 
@@ -48,8 +48,8 @@ Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具
 ### 2. 下载并解压
 
 1. 登录有仓库访问权限的 GitHub 账号。
-2. 打开 [v0.3.10 发行版页面](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.10)。
-3. 在 **Assets** 中下载 **`SalmonReview-v0.3.10-windows-x64.zip`**。
+2. 打开 [v0.3.11 发行版页面](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.11)。
+3. 在 **Assets** 中下载 **`SalmonReview-v0.3.11-windows-x64.zip`**。
 4. 将 ZIP 完整解压到固定目录，例如 `D:\Games\SalmonReview`。
 5. 确认目录中包含 `Start.cmd`、`Start.ps1`、`compose.yaml` 和 `salmon-review-image.tar.gz`。
 
@@ -173,7 +173,7 @@ docker compose -p salmon-review stop
 
 ### 网页更新
 
-**从 0.3.9 及更早版本升级时，必须使用 0.3.10 完整安装包过渡一次。** 完成后，主程序和更新组件均支持网页一键更新。请保留 0.3.10 或更新版本的启动器。
+**从 0.3.9 及更早版本升级时，必须使用 0.3.10 或更新版本的完整安装包过渡一次。** 完成后，主程序和更新组件均支持网页一键更新。请保留 0.3.10 或更新版本的启动器。
 
 1. 按 [网页更新说明](UPDATING.md)准备自己的 GitHub 访问令牌。
 2. 打开 **数据与同步 → 版本与更新**。
