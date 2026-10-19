@@ -11,6 +11,33 @@ function setup(){
   ctx.people=[{key:'me',name:'玩家<&',self:true,color:'#d5ef68'}];return ctx;
 }
 
+test('export selection supports every nonempty subset in custom order independently of visible charts',()=>{
+  const c=setup(),order=['power','deaths','eggs','kills'];
+  for(let mask=1;mask<16;mask++){
+    const selected=order.filter((_,i)=>mask&(1<<i));
+    const state={showPower:false,exportChartOrder:order,exportChartSelection:[...selected].reverse()};
+    const metrics=Array.from(c.trendExportMetrics(state));
+    assert.deepEqual(metrics,selected);
+    const output=c.trendExportSvg(c.jobs,c.people,metrics,false,'场地');
+    const labels={power:'红蛋',deaths:'被救援次数',eggs:'搬蛋',kills:'巨大鲑鱼击杀'};
+    const headings=[...output.svg.matchAll(/font-size:18px;font-weight:700">([^<]+) · /g)].map(m=>m[1]);
+    assert.deepEqual(headings,selected.map(key=>labels[key]));
+    assert.equal((output.svg.match(/<svg x=/g)||[]).length,selected.length);
+    assert.doesNotMatch(output.svg,/NaN|Infinity/);
+  }
+});
+
+test('export controls allow no selection and disable generation while empty or busy',()=>{
+  const c=setup(),buttons=[{},{}],count={};
+  c.document={querySelectorAll:()=>buttons,querySelector:()=>count};
+  vm.runInContext("trendState={exportChartOrder:['power','eggs','kills','deaths'],exportChartSelection:[]};updateTrendExportButtons()",c);
+  assert.ok(buttons.every(button=>button.disabled));assert.match(count.textContent,/至少选择/);
+  vm.runInContext("trendState.exportChartSelection=['power'];updateTrendExportButtons()",c);
+  assert.ok(buttons.every(button=>!button.disabled));assert.match(count.textContent,/已选 1 张/);
+  vm.runInContext('trendState.exportBusy=true;updateTrendExportButtons()',c);
+  assert.ok(buttons.every(button=>button.disabled));
+});
+
 test('range exports retain original indices and gap markers, rescale using only selected records and escape names',()=>{
   const c=setup();vm.runInContext('trendState={jobs,from:2,to:4}; chosen=trendRangeJobs(); output=trendExportSvg(chosen,people,["eggs","kills","deaths"],true,"场地<&")',c);
   assert.deepEqual(Array.from(c.chosen,j=>j.index),[3,4,5]);

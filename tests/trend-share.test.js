@@ -225,13 +225,10 @@ test('share lines and quantity reference pass through consecutive interruption a
 });
 
 
-test('optional charts default to the original three and visible export options follow preferences',()=>{
+test('optional charts default to the original three and power exports support both modes',()=>{
   const c=setup();
   assert.deepEqual(plain(c.trendVisibleMetrics({})),['eggs','kills','deaths']);
   assert.deepEqual(plain(c.trendVisibleMetrics({showPower:true})),['eggs','kills','deaths','power']);
-  assert.doesNotMatch(c.trendExportOptions({showPower:false}),/value="power"/);
-  assert.match(c.trendExportOptions({showPower:true}),/4 张长图/);
-  assert.match(c.trendExportOptions({showPower:true}),/value="power">红蛋/);
   const jobs=[row([500,1000,1500,2000])];
   const quantity=c.trendExportSvg(jobs,people,c.trendVisibleMetrics({showPower:true}),true,'场地',{showTotal:true,showQuarter:true});
   const base=c.trendExportSvg(jobs,people,c.trendVisibleMetrics({}),true,'场地');

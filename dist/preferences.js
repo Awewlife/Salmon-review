@@ -9,12 +9,17 @@ window.SalmonPreferences=(()=>{
     for(const name of Object.keys(defaults)){
       if(allowed[name]?allowed[name].includes(value[name]):typeof value[name]==='boolean')result[name]=value[name];
     }
+    const metrics=['eggs','kills','deaths','power'];
+    for(const name of ['exportChartOrder','exportChartSelection']){
+      const list=value[name];
+      if(Array.isArray(list)&&list.every(item=>metrics.includes(item))&&new Set(list).size===list.length&&(name!=='exportChartOrder'||list.length===metrics.length))result[name]=[...list];
+    }
     return result;
   }
   let saved={};
   try{saved=clean(JSON.parse(window.localStorage.getItem(key)))}catch{}
   return {
-    get:()=>({...defaults,...saved}),
+    get:()=>JSON.parse(JSON.stringify({...defaults,...saved})),
     save:patch=>{saved={...saved,...clean(patch)};try{window.localStorage.setItem(key,JSON.stringify(saved))}catch{}},
   };
 })();

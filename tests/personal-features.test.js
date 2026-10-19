@@ -26,6 +26,26 @@ test('bad or unavailable browser storage keeps working with defaults and in-memo
   const {c}=context();Object.defineProperty(c.window,'localStorage',{get(){throw Error('blocked')}});
   vm.runInContext(source('preferences.js'),c);c.window.SalmonPreferences.save({showQuarter:true});assert.equal(c.window.SalmonPreferences.get().showQuarter,true);
 });
+
+test('export selection and ordering survive reload and reject corrupt or shared arrays',()=>{
+  const storage=new Map(),a=context(storage);vm.runInContext(source('preferences.js'),a.c);
+  const order=['power','eggs','deaths','kills'],selection=['power','kills'];
+  a.c.window.SalmonPreferences.save({exportChartOrder:order,exportChartSelection:selection});
+  order.reverse();selection.push('eggs');
+  const b=context(storage);vm.runInContext(source('preferences.js'),b.c);
+  let saved=b.c.window.SalmonPreferences.get();
+  assert.deepEqual(Array.from(saved.exportChartOrder),['power','eggs','deaths','kills']);
+  assert.deepEqual(Array.from(saved.exportChartSelection),['power','kills']);
+  saved.exportChartOrder.reverse();saved.exportChartSelection.push('eggs');
+  b.c.window.SalmonPreferences.save({exportChartOrder:['eggs','kills'],exportChartSelection:['power','power']});
+  saved=b.c.window.SalmonPreferences.get();
+  assert.deepEqual(Array.from(saved.exportChartOrder),['power','eggs','deaths','kills']);
+  assert.deepEqual(Array.from(saved.exportChartSelection),['power','kills']);
+  b.c.window.SalmonPreferences.save({exportChartSelection:['unknown']});
+  assert.deepEqual(Array.from(b.c.window.SalmonPreferences.get().exportChartSelection),['power','kills']);
+  b.c.window.SalmonPreferences.save({exportChartSelection:[]});
+  assert.equal(b.c.window.SalmonPreferences.get().exportChartSelection.length,0);
+});
 function records(){const {c}=context();vm.runInContext(source('grade-chart.js')+source('personal-records.js'),c);return c.window.SalmonRecords}
 const job=(index,patch={})=>({id:'job-'+index,index,clear:true,continuousWithPrevious:index>1,supported:true,gradeId:8,grade:'传说',gradePoint:40,players:[{me:false,eggs:999,kills:999},{me:true,eggs:20,kills:10}],...patch});
 test('personal records compare rank before score, exclude interrupted and unsupported results, and use the local player',()=>{
