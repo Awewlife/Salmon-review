@@ -50,3 +50,31 @@ test('export preserves selected range, all rows, exclusions, zero ratios and esc
   const tall=api.svg([many],shift);assert.match(tall.svg,/怪物24/);assert(tall.height>25*42);
   assert.doesNotMatch(tall.svg,/NaN|Infinity/);assert.throws(()=>api.svg([],shift),/no_results/);
 });
+
+test('boss images reuse local match assets, fill missing images and reject unrelated URLs',()=>{
+  const source='/assets/'+'a'.repeat(64);
+  const jobs=[job(1,2),job(2,3,{bosses:[{name:'炸弹鱼',image:source,me:2,appeared:3}]}),job(1,4,{bosses:[{name:'金鲑鱼',image:'https://example.com/image.png',me:1,appeared:4}]})];
+  const result=api.calculate(jobs);
+  assert.equal(result.rows.find(row=>row.name==='炸弹鱼').image,source);
+  assert.equal(result.kills,4);assert.equal(result.appeared,9);
+  const html=api.render(result);
+  assert.match(html,new RegExp('src="'+source+'"'));
+  assert.equal((html.match(/<img /g)||[]).length,1);
+  assert.doesNotMatch(html,/https:\/\/example/);
+  assert.match(html,/金鲑鱼/);
+  assert.equal(api.calculate(jobs,0,0).rows[0].image,undefined);
+});
+
+test('export embeds images as data URLs and keeps rows when an image is unavailable',()=>{
+  const source='/assets/'+'a'.repeat(64),data='data:image/png;base64,aGVsbG8=';
+  const jobs=[job(1,2,{index:1,bosses:[{name:'炸弹鱼',image:source,me:1,appeared:2}]})];
+  const shift={stage:{name:'场地'},start:'2026-10-17T08:00:00Z',end:'2026-10-19T00:00:00Z'};
+  const output=api.svg(jobs,shift,0,0,new Map([[source,data]]));
+  assert.match(output.svg,/<image href="data:image\/png;base64,aGVsbG8="/);
+  assert.doesNotMatch(output.svg,/href="\/assets/);
+  assert.match(output.svg,/炸弹鱼/);assert.match(output.svg,/50%/);
+  const fallback=api.svg(jobs,shift);
+  assert.doesNotMatch(fallback.svg,/<image/);assert.match(fallback.svg,/炸弹鱼/);
+  const unsafe=api.svg(jobs,shift,0,0,new Map([[source,'https://example.com/image.png']]));
+  assert.doesNotMatch(unsafe.svg,/<image|https:/);
+});

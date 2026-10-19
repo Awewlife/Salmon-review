@@ -3,6 +3,7 @@ window.SalmonKillDetails=(()=>{
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=value=>Number.isFinite(value)?value.toLocaleString('zh-CN',{maximumFractionDigits:1}):'—';
   const count=value=>Number.isSafeInteger(value)&&value>=0;
+  const localImage=value=>typeof value==='string'&&/^\/assets\/[a-f0-9]{64}$/.test(value)?value:'';
   const ratio=(kills,appeared)=>appeared>0?kills/appeared*100:null;
   function calculate(jobs,from=0,to=jobs.length-1){
     const selected=jobs.slice(from,to+1),types=new Map();
@@ -18,6 +19,7 @@ window.SalmonKillDetails=(()=>{
       for(const boss of bosses){
         appeared+=boss.appeared;detailKills+=boss.me;
         const key=boss.name,row=types.get(key)??{name:boss.name,kills:0,appeared:0};
+        if(!row.image&&localImage(boss.image))row.image=localImage(boss.image);
         row.kills+=boss.me;row.appeared+=boss.appeared;types.set(key,row);
       }
     }
@@ -26,10 +28,24 @@ window.SalmonKillDetails=(()=>{
   }
   const percent=value=>value===null?'—':fmt(value)+'%';
   const date=value=>new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value));
-  function svg(jobs,shift,from=0,to=jobs.length-1){
+  async function loadImages(rows){
+    const images=new Map();
+    await Promise.all([...new Set(rows.map(row=>localImage(row.image)).filter(Boolean))].map(async source=>{
+      try{
+        const response=await fetch(source,{signal:AbortSignal.timeout(10000)});
+        if(!response.ok)throw new Error('image');
+        const blob=await response.blob();
+        if(!/^image\/(png|jpeg|webp)$/.test(blob.type)||blob.size>2*1024*1024)throw new Error('image_type');
+        const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
+        images.set(source,data);
+      }catch{/* Keep the named row available when an image cannot be loaded. */}
+    }));
+    return images;
+  }
+  function svg(jobs,shift,from=0,to=jobs.length-1,images=new Map()){
     const result=calculate(jobs,from,to),selected=jobs.slice(from,to+1);
     if(!result.included)throw new Error('no_results');
-    const width=960,tableTop=300,rowHeight=42,footer=tableTop+42+result.rows.length*rowHeight;
+    const width=960,tableTop=300,rowHeight=52,footer=tableTop+42+result.rows.length*rowHeight;
     const notes=[
       '占比 = 所选场次个人击杀合计 ÷ 同一批场次的出现总数。',
       '出现总数来自巨大鲑鱼明细（含金鲑鱼等特殊敌人），不含普通小怪和头目。',
@@ -40,7 +56,8 @@ window.SalmonKillDetails=(()=>{
     const text=(x,y,value,extra='')=>`<text x="${x}" y="${y}" ${extra}>${esc(value)}</text>`;
     const rows=result.rows.map((row,i)=>{
       const y=tableTop+42+i*rowHeight;
-      return `<line x1="32" x2="928" y1="${y+rowHeight}" y2="${y+rowHeight}" stroke="#394044"/>${text(48,y+28,row.name)}${text(520,y+28,fmt(row.kills),'text-anchor="end" fill="#ff7957"')}${text(720,y+28,fmt(row.appeared),'text-anchor="end"')}${text(912,y+28,percent(row.percent),'text-anchor="end"')}`;
+      const data=images.get(row.image),icon=typeof data==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(data)?`<image href="${data}" x="44" y="${y+6}" width="40" height="40"/>`:'';
+      return `<line x1="32" x2="928" y1="${y+rowHeight}" y2="${y+rowHeight}" stroke="#394044"/>${icon}${text(96,y+32,row.name)}${text(520,y+32,fmt(row.kills),'text-anchor="end" fill="#ff7957"')}${text(720,y+32,fmt(row.appeared),'text-anchor="end"')}${text(912,y+32,percent(row.percent),'text-anchor="end"')}`;
     }).join('');
     const player=selected.find(j=>j.players?.some(p=>p.me))?.players.find(p=>p.me)?.name??'';
     return {width,height,svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="击杀详情"><style>text{font-family:"Microsoft YaHei","Noto Sans CJK SC","Segoe UI",sans-serif}.muted{fill:#a8b0b4;font-size:15px}</style><rect width="100%" height="100%" fill="#202528"/><g fill="#eff3ed" font-size="17">
@@ -58,7 +75,7 @@ window.SalmonKillDetails=(()=>{
   function render(result){
     return `<div class="kill-detail-summary" role="status" aria-live="polite"><div><span>个人击杀 / 出现总数</span><strong>${result.included?fmt(result.kills)+' <small>/</small> '+fmt(result.appeared):'—'}<em>只</em></strong></div><div><span>击杀占比</span><strong class="kill-detail-percent">${percent(result.percent)}</strong></div></div>
       <p class="kill-detail-coverage">已选 ${result.selected} 场 · 统计 ${result.included} 场${result.interrupted?' · 排除 '+result.interrupted+' 场掉线':''}${result.incomplete?' · 排除 '+result.incomplete+' 场数据不全':''}</p>
-      ${!result.included?'<p class="kill-detail-empty">所选范围没有可统计的结算记录。</p>':`<div class="kill-detail-table"><table><thead><tr><th>怪物</th><th>个人击杀</th><th>出现总数</th><th>占比</th></tr></thead><tbody>${result.rows.map(row=>`<tr><td>${esc(row.name)}</td><td>${fmt(row.kills)}</td><td>${fmt(row.appeared)}</td><td>${percent(row.percent)}</td></tr>`).join('')}</tbody></table></div>`}
+      ${!result.included?'<p class="kill-detail-empty">所选范围没有可统计的结算记录。</p>':`<div class="kill-detail-table"><table><thead><tr><th>怪物</th><th>个人击杀</th><th>出现总数</th><th>占比</th></tr></thead><tbody>${result.rows.map(row=>`<tr><td><span class="kill-boss-name"><span class="kill-boss-icon">${localImage(row.image)?`<img src="${esc(row.image)}" alt="" width="36" height="36">`:""}</span>${esc(row.name)}</span></td><td>${fmt(row.kills)}</td><td>${fmt(row.appeared)}</td><td>${percent(row.percent)}</td></tr>`).join('')}</tbody></table></div>`}
       <p class="kill-detail-note">占比 = 所选场次个人击杀合计 ÷ 同一批场次的出现总数。出现总数来自巨大鲑鱼明细（含金鲑鱼等特殊敌人），不含普通小怪和头目；出现总数为 0 时显示“—”。仅统计本地已保存记录。</p>
       ${result.kills!==result.detailKills?'<p class="kill-detail-note">个人结算击杀合计为 '+fmt(result.kills)+'，各类怪物明细合计为 '+fmt(result.detailKills)+'；原始记录存在差异，分别展示，不作修正。</p>':''}`;
   }
@@ -72,13 +89,16 @@ window.SalmonKillDetails=(()=>{
     const start=dialog.querySelector('#kill-detail-from'),end=dialog.querySelector('#kill-detail-to');
     const exportButton=dialog.querySelector('[data-kill-export]'),status=dialog.querySelector('[data-kill-export-status]');
     const clearDownload=()=>{if(downloadUrl){URL.revokeObjectURL(downloadUrl);downloadUrl=null}status.replaceChildren()};
-    const refresh=()=>{revision++;clearDownload();start.value=String(from);end.value=String(to);const result=calculate(jobs,from,to);dialog.querySelector('[data-kill-results]').innerHTML=render(result);exportButton.disabled=busy||!result.included};
+    const refresh=()=>{revision++;clearDownload();start.value=String(from);end.value=String(to);const result=calculate(jobs,from,to);dialog.querySelector('[data-kill-results]').innerHTML=render(result);dialog.querySelectorAll('.kill-boss-icon img').forEach(img=>img.onerror=()=>{img.hidden=true});exportButton.disabled=busy||!result.included};
     exportButton.onclick=async()=>{
       if(busy)return;
       busy=true;exportButton.disabled=true;status.textContent='正在生成图片…';
-      const current=revision,first=jobs[from]?.index,last=jobs[to]?.index;
+      const current=revision,exportFrom=from,exportTo=to,first=jobs[from]?.index,last=jobs[to]?.index;
       try{
-        const output=svg(jobs,shift,from,to);
+        const rows=calculate(jobs,exportFrom,exportTo).rows,images=await loadImages(rows);
+        if(!dialog.open||!status.isConnected||current!==revision)return;
+        const missingImages=rows.some(row=>row.image&&!images.has(row.image));
+        const output=svg(jobs,shift,exportFrom,exportTo,images);
         await document.fonts?.ready;
         const picture=new Image();
         await new Promise((resolve,reject)=>{picture.onload=resolve;picture.onerror=()=>reject(new Error('render'));picture.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(output.svg)});
@@ -89,7 +109,7 @@ window.SalmonKillDetails=(()=>{
         if(!dialog.open||!status.isConnected||current!==revision)return;
         clearDownload();downloadUrl=URL.createObjectURL(blob);
         const link=document.createElement('a');link.href=downloadUrl;link.download=`salmon-kills-${new Date(shift.start).toISOString().slice(0,10)}-${first}-${last}.png`;link.textContent='下载图片';
-        status.replaceChildren(document.createTextNode('图片已生成。'),link);link.click();
+        status.replaceChildren(document.createTextNode(missingImages?'图片已生成，部分怪物图片未能加载。':'图片已生成。'),link);link.click();
       }catch{if(status.isConnected&&dialog.open&&current===revision)status.textContent='图片生成失败，请重试。'}
       finally{busy=false;if(exportButton.isConnected)exportButton.disabled=!calculate(jobs,from,to).included}
     };
