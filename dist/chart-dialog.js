@@ -215,7 +215,7 @@ function trendLabelLayout(entries,bounds,segments=[]){
 }
 
 function largeChart(jobs,people,metric,{interactive=true,showNames=true,mode='quantity',showTotal=false,shareScale='auto',showQuarter=false}={}){
-  const W=1100,H=260,L=mode==='share'?56:42,R=160,T=18,B=34;
+  const W=1100,H=260,L=mode==='share'?56:metric==='power'?64:42,R=160,T=18,B=34;
   const lines=people.map(p=>({...p,metric,segments:SalmonStats.trendSegments(jobs,p.key,metric,mode)}));
   if(mode==='quantity'&&showTotal)lines.push({key:'team-total',name:'团队合计',color:'#a8b0b4',total:true,segments:SalmonStats.valueSegments(jobs,j=>SalmonStats.teamTotal(j,metric))});
   const quarterSegments=showQuarter&&mode==='quantity'?SalmonStats.valueSegments(jobs,j=>{if(j.interrupted)return 0;const total=SalmonStats.teamTotal(j,metric);return total===null?null:total/4}):[];
