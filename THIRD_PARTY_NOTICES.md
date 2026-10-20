@@ -7,6 +7,7 @@ Salmon Review's own code is licensed under **AGPL-3.0-or-later**. See [LICENSE](
 | Component | Locked version | License / source | How it is used |
 | --- | --- | --- | --- |
 | nxapi | 1.6.1-next.257 | AGPL-3.0-or-later; [source](https://github.com/samuelthomas2774/nxapi/tree/47c9d35d9d51d33e62dd6d3733b616e0ad31b02b) | Published CLI entry point handles authentication, native cache and collection. A local preload adapter changes the SplatNet request language to zh-CN. |
+| @salmon-review/splatnet3-compat | 1.0.0 (local replacement for splatnet3-types) | AGPL-3.0-or-later; [source and provenance](packages/splatnet3-compat/README.md) | Supplies runtime query IDs and enums to the pinned nxapi. Historical nxapi enum attribution and license are retained; query IDs are independently verified protocol constants. |
 | undici | 6.28.1 | MIT; [source](https://github.com/nodejs/undici) | HTTP client used by nxapi. |
 | sharp | 0.35.5 (override under nxapi) | Apache-2.0; [source](https://github.com/lovell/sharp) | nxapi dependency for presence-image rendering; Salmon Review does not invoke this feature. Native bundled libraries have additional notices in their packages. |
 | uuid | 11.1.1 (override under node-notifier) | MIT; [source](https://github.com/uuidjs/uuid) | Preserves the CommonJS v4 API used by node-notifier. Salmon Review does not send desktop notifications. |
@@ -22,9 +23,12 @@ The Docker build generates `/app/third-party/installed-packages.json` and copies
 
 This bundle describes npm packages installed in that image, not all operating-system packages. Node's own notices are shipped with Node; Debian package copyright files are retained under `/usr/share/doc/` where provided by the base image. Before distributing a public image, also verify base-image/native-library notices and corresponding-source obligations for the exact image. The package inventory alone is not a complete source offer or legal clearance.
 
+## Replaced dependency
+
+The independently published `splatnet3-types` package is no longer installed or included in new builds. Its redistribution permission was not established; this change does not claim that it inherited nxapi's license. npm resolves the historical import name to the local `@salmon-review/splatnet3-compat` package before installation. See its [NOTICE](packages/splatnet3-compat/NOTICE) and [per-constant provenance](packages/splatnet3-compat/provenance.json). No code, type declarations, generated query implementations or source maps from the separate package are copied into the adapter. nxapi's own authentication, refresh and coop export implementation remains unchanged. Older release images are not changed by this source update.
+
 ## Explicit unresolved upstream notice gaps
 
-- **splatnet3-types 0.2.20231119210145:** the published package has no license field or LICENSE file; no explicit grant was found in its README or the inspected [upstream repository](https://github.com/nintendoapis/splatnet3-types). It is marked `NOASSERTION`, not assumed to inherit nxapi's AGPL. It supplies runtime query IDs as well as types, so it cannot simply be deleted as a development-only dependency. Confirm redistribution rights before distributing a prebuilt image containing it.
 - **tr46 0.0.3:** package metadata declares MIT but the npm archive omits the license text and README. The bundle retains its original package.json and marks the evidence `metadata-only`. Obtain the applicable copyright/license notice before treating the image notice bundle as complete.
 - **cli-table 0.3.11:** package metadata omits a license field, but the published LICENSE explicitly grants MIT. The generator records this version-specific reviewed exception.
 
@@ -33,6 +37,8 @@ No upstream author has been contacted by this project as part of this review. Th
 ## Artwork and login-guide inspiration
 
 Nintendo game names, artwork and trademarks belong to their respective owners. They are not covered by Salmon Review's license. No Nintendo artwork or personal battle records are committed to this repository. Referenced Nintendo PNG images may be cached locally when a user imports or synchronizes their own records.
+
+Player names use a bundled M PLUS Rounded 1c ExtraBold fallback (Copyright 2016 The Rounded M+ Project Authors, SIL OFL 1.1). The font and its license are in `dist/fonts/`. On displaying a nameplate, the browser also attempts to load the community-hosted Splatfont source used by Conch Bay, pinned to a specific revision. That optional game-style font is not bundled or licensed by this project; unavailable remote fonts fall back locally. See [font sources](dist/fonts/README.md). Nameplate measurements were informed by Conch Bay's MIT-licensed `Splashtag.tsx`; the HTML/CSS implementation and text fitting are written for this project.
 
 The login instructions were inspired by [Cypas/splatoon3-nso](https://github.com/Cypas/splatoon3-nso). The schematic is written in this project's HTML/CSS; that project's authentication implementation and screenshot assets are not bundled. s3s and the stargazing tutorial's server are not runtime dependencies.
 

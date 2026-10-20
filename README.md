@@ -337,7 +337,7 @@ npm start
 
 项目代码采用 **AGPL-3.0-or-later**，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。第三方组件及 Nintendo 资源保留各自权利。依赖清单见 [THIRD_PARTY_PACKAGES.json](THIRD_PARTY_PACKAGES.json)，许可状态见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-当前仍存在上游许可材料缺口：`splatnet3-types` 未找到明确许可证，`tr46` 的旧发布包缺少许可正文。私有预发布不代表这些问题已解决；公开再分发前应完成相应核对。
+新构建已用本地兼容模块替换 `splatnet3-types`，常量来源和许可记录见 [兼容模块说明](packages/splatnet3-compat/README.md)，nxapi 继续负责登录和打工同步。`tr46` 的旧发布包仍缺少许可正文。此替换不改变旧版本安装包，也不代表全部分发材料已齐备；公开再分发前仍应完成相应核对。
 
 维护者应先完成测试并提交源码，再按该提交构建镜像。镜像版本标签和 `VCS_REF` 必须与源码一致。使用仓库外的签名私钥生成发行附件：
 

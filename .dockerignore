@@ -8,6 +8,7 @@ work
 tests
 scripts/*
 !scripts/generate-notices.mjs
+!scripts/check-splatnet-compat.mjs
 third-party
 examples
 *.log

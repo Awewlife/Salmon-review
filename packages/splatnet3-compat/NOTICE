@@ -1,0 +1,21 @@
+Salmon Review SplatNet runtime compatibility adapter
+Copyright (c) 2026 Salmon Review contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+FestState, FestVoteState, the six original FriendOnlineState entries,
+Judgement and BankaraMatchMode are adapted from nxapi:
+Copyright (c) 2022 Samuel Elliott
+Revision dda504b50c3047feb05bd9be4a94aab5a04f4607,
+src/api/splatnet3-types.ts, under AGPL-3.0-or-later.
+The historical nxapi license is included in LICENSE.
+
+Query identifiers and additional enum strings were independently recorded
+from Nintendo's publicly served SplatNet 3 web client on 2026-10-19.
+Only protocol names, hash identifiers and enum values are included. No
+Nintendo JavaScript implementation, query document, image or account data
+is included. This adapter's license does not grant rights to Nintendo's
+web client or other Nintendo material. See provenance.json and README.md.
+
+No code, type declarations, generated query modules or source maps from
+the separately published splatnet3-types package are included here.
+This is an independently maintained adapter, not an upstream release.

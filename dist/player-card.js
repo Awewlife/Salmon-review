@@ -12,7 +12,7 @@
     const special=player.special?`<span class="card-weapon card-special" title="${esc(player.special.name)}">${picture(player.special.image,`特殊武器：${player.special.name}`,'card-equipment')}</span>`:'';
     return `<div class="player-card-accessible"><h2 id="player-card-title">名片与工服</h2><p>${esc(context)} · 显示本场记录保存的装扮。</p></div>
       <div class="player-card-top"><div class="player-nameplate ${local(n?.background)?'':'card-background-missing'}" style="--nameplate-text:${color}">
-      ${picture(n?.background,'名片背景','card-background')}<div class="nameplate-copy"><div class="nameplate-byname" title="${esc(a?.byname)}">${esc(a?.byname)}</div><div class="nameplate-name" title="${esc(player.name)}">${esc(player.name)}</div><div class="nameplate-id">${a?.nameId?'#'+esc(a.nameId):''}</div></div>
+      ${picture(n?.background,'名片背景','card-background')}<div class="nameplate-copy"><div class="nameplate-byname" title="${esc(a?.byname)}">${esc(a?.byname)}</div><div class="nameplate-name" title="${esc(player.name)}"><span>${esc(player.name)}</span></div><div class="nameplate-id">${a?.nameId?'#'+esc(a.nameId):''}</div></div>
       <div class="nameplate-badges">${(n?.badges??[]).map((url,i)=>`<span>${picture(url,`徽章 ${i+1}`,'card-badge')}</span>`).join('')}</div></div>
       ${!n?'<p class="subtext">本场记录未提供名片信息。</p>':''}</div>
       <div class="player-card-body"><section class="player-uniform"><div class="uniform-picture">${picture(a?.uniform?.image,a?.uniform?.name??'工服','card-uniform')}<span class="uniform-placeholder" ${local(a?.uniform?.image)?'hidden':''}>暂无工服图片</span></div><h3>${esc(a?.uniform?.name??'本场记录未提供工服信息')}</h3></section>
@@ -24,6 +24,16 @@
     const dialog=document.querySelector('#player-card-dialog');
     if(dialog.open)dialog.close();
     dialog.innerHTML=render(player,context);
+    const name=dialog.querySelector('.nameplate-name'),letters=name.querySelector('span');
+    const fitName=()=>{
+      if(!dialog.open)return;
+      letters.style.transform='';
+      const available=name.clientWidth,actual=letters.getBoundingClientRect().width;
+      if(available>0&&actual>available)letters.style.transform=`scaleX(${available/actual})`;
+    };
+    const observer=new ResizeObserver(fitName);observer.observe(name);
+    // Refit after either bundled or optional game-style font finishes loading.
+    document.fonts.addEventListener('loadingdone',fitName);
     const images=[...dialog.querySelectorAll('[data-card-src]')],status=dialog.querySelector('[data-card-status]'),retry=dialog.querySelector('[data-card-retry]');
     const refresh=()=>{
       const pending=images.filter(img=>img.dataset.state==='loading').length,failed=images.filter(img=>img.dataset.state==='error').length;
@@ -50,9 +60,9 @@
     dialog.querySelector('.player-nameplate').classList.add('card-background-missing');
     dialog.querySelector('[data-card-close]').onclick=()=>dialog.close();
     dialog.onclick=e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}};
-    dialog.onclose=()=>{images.forEach(img=>{img.onload=null;img.onerror=null});dialog.replaceChildren()};
+    dialog.onclose=()=>{observer.disconnect();document.fonts.removeEventListener('loadingdone',fitName);images.forEach(img=>{img.onload=null;img.onerror=null});dialog.replaceChildren()};
     retry.onclick=()=>{images.filter(img=>img.dataset.state==='error').forEach(load);refresh()};
-    dialog.showModal();images.forEach(load);refresh();
+    dialog.showModal();fitName();images.forEach(load);refresh();
   }
   window.SalmonPlayerCard={open,render};
   window.addEventListener('hashchange',()=>{const dialog=document.querySelector('#player-card-dialog');if(dialog?.open)dialog.close()});

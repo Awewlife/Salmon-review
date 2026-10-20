@@ -50,6 +50,15 @@ test('appearance images download only on demand, retry after failure and survive
   const f=fixture();dress(f.record.result.memberResults[0].player,'orange');app.store.import([f.record,f.summary]);
   const data=await fetch(base+'/api/data').then(r=>r.json()),asset=data.jobs[0].players[1].appearance.uniform.image;
   assert.equal(calls,0);assert.equal((await fetch(base+'/player-card.js')).status,200);assert.equal(calls,0);
+  const font=await fetch(base+'/fonts/MPLUSRounded1c-ExtraBold.ttf');
+  assert.equal(font.status,200);assert.equal(font.headers.get('content-type'),'font/ttf');
+  assert.deepEqual(Buffer.from(await font.arrayBuffer()).subarray(0,4),Buffer.from([0,1,0,0]));
+  assert.match(font.headers.get('content-security-policy'),/font-src 'self' https:\/\/cdn\.jsdelivr\.net;/);
+  assert.match(font.headers.get('content-security-policy'),/script-src 'self';/);
+  assert.match(font.headers.get('content-security-policy'),/connect-src 'self';/);
+  assert.match(await (await fetch(base+'/fonts/OFL.txt')).text(),/SIL OPEN FONT LICENSE/);
+  assert.equal((await fetch(base+'/fonts/README.md')).status,404);
+  assert.equal(calls,0);
   assert.equal((await fetch(base+asset)).status,404);assert.equal(calls,1);
   assert.deepEqual(Buffer.from(await (await fetch(base+asset)).arrayBuffer()),png);assert.equal(calls,2);
   await app.close();app=await createApp({directory});base=await listen();

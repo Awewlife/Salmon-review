@@ -7,14 +7,15 @@ LABEL org.opencontainers.image.source="https://github.com/Awewlife/Salmon-review
 WORKDIR /app
 ENV NODE_ENV=production BIND_ADDRESS=0.0.0.0 PORT=8787 DATA_DIR=/data
 COPY package.json package-lock.json ./
+COPY packages/splatnet3-compat ./packages/splatnet3-compat
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefer-offline \
     --fetch-retries=5 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000
 COPY server ./server
 COPY dist ./dist
 COPY README.md LICENSE NOTICE THIRD_PARTY_NOTICES.md THIRD_PARTY_PACKAGES.json BETA_TESTING.md SECURITY.md CHANGELOG.md VALIDATION.md UPDATING.md ./
-COPY scripts/generate-notices.mjs ./scripts/generate-notices.mjs
-RUN node scripts/generate-notices.mjs --check --bundle
+COPY scripts/generate-notices.mjs scripts/check-splatnet-compat.mjs ./scripts/
+RUN node scripts/check-splatnet-compat.mjs && node scripts/generate-notices.mjs --check --bundle
 RUN mkdir -p /data && chown node:node /data
 USER node
 EXPOSE 8787

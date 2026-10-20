@@ -1,0 +1,509 @@
+{
+  "nxapiVersion": "1.6.1-next.257+sha.47c9d35",
+  "sources": {
+    "nintendo-web-2026-10-19": {
+      "url": "https://api.lp1.av5ja.srv.nintendo.net/static/js/main.8f32ce85.js",
+      "sha256": "2ca57e2076efafc81a8a516eec606275ee0f307eb8f11796b9dad18acd35901d",
+      "kind": "Observed protocol operation names, IDs and enum strings only; no upstream implementation is redistributed."
+    },
+    "nxapi-before-types-extraction": {
+      "url": "https://github.com/samuelthomas2774/nxapi/blob/dda504b50c3047feb05bd9be4a94aab5a04f4607/src/api/splatnet3-types.ts",
+      "normalizedSha256": "191e6a6e2b3c372ad7fc30194ee7ec74716989d442a0cb5e602b435f4f526bfd",
+      "license": "AGPL-3.0-or-later",
+      "copyright": "Copyright (c) 2022 Samuel Elliott"
+    }
+  },
+  "queries": {
+    "BankaraBattleHistoriesQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "BankaraBattleHistoriesQuery",
+      "offset": 243058
+    },
+    "BankaraBattleHistoriesRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "BankaraBattleHistoriesRefetchQuery",
+      "offset": 250143
+    },
+    "BattleHistoryCurrentPlayerQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "BattleHistoryCurrentPlayerQuery",
+      "offset": 330813
+    },
+    "CatalogQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CatalogQuery",
+      "offset": 833239
+    },
+    "CatalogRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CatalogRefetchQuery",
+      "offset": 836703
+    },
+    "ChallengeQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "ChallengeQuery",
+      "offset": 334913
+    },
+    "ChallengeRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "ChallengeRefetchQuery",
+      "offset": 336630
+    },
+    "CheckinQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CheckinQuery",
+      "offset": 354684
+    },
+    "CheckinWithQRCodeMutation": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CheckinWithQRCodeMutation",
+      "offset": 21090
+    },
+    "ConfigureAnalyticsQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "ConfigureAnalyticsQuery",
+      "offset": 232833
+    },
+    "CoopHistoryDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CoopHistoryDetailQuery",
+      "offset": 362930
+    },
+    "CoopHistoryDetailRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CoopHistoryDetailRefetchQuery",
+      "offset": 364421
+    },
+    "CoopHistoryQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CoopHistoryQuery",
+      "offset": 373379
+    },
+    "CoopPagerLatestCoopQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CoopPagerLatestCoopQuery",
+      "offset": 33233
+    },
+    "CreateMyOutfitMutation": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "CreateMyOutfitMutation",
+      "offset": 114760
+    },
+    "CurrentFestQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "useCurrentFestQuery",
+      "offset": 234202
+    },
+    "DetailFestRecordDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailFestRecordDetailQuery",
+      "offset": 438599
+    },
+    "DetailFestRefethQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailFestRefethQuery",
+      "offset": 445043
+    },
+    "DetailFestVotingStatusRefethQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailFestVotingStatusRefethQuery",
+      "offset": 447653
+    },
+    "DetailRankingQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailRankingQuery",
+      "offset": 454207
+    },
+    "DetailTabViewWeaponTopsArRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewWeaponTopsArRefetchQuery",
+      "offset": 734931
+    },
+    "DetailTabViewWeaponTopsClRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewWeaponTopsClRefetchQuery",
+      "offset": 740444
+    },
+    "DetailTabViewWeaponTopsGlRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewWeaponTopsGlRefetchQuery",
+      "offset": 745957
+    },
+    "DetailTabViewWeaponTopsLfRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewWeaponTopsLfRefetchQuery",
+      "offset": 751470
+    },
+    "DetailTabViewXRankingArRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewXRankingArRefetchQuery",
+      "offset": 756956
+    },
+    "DetailTabViewXRankingClRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewXRankingClRefetchQuery",
+      "offset": 762440
+    },
+    "DetailTabViewXRankingGlRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewXRankingGlRefetchQuery",
+      "offset": 767924
+    },
+    "DetailTabViewXRankingLfRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailTabViewXRankingLfRefetchQuery",
+      "offset": 773408
+    },
+    "DetailVotingStatusQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DetailVotingStatusQuery",
+      "offset": 459438
+    },
+    "DownloadSearchReplayQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "DownloadSearchReplayQuery",
+      "offset": 126376
+    },
+    "FestRecordQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "FestRecordQuery",
+      "offset": 468493
+    },
+    "FriendListQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "FriendListQuery",
+      "offset": 472928
+    },
+    "FriendListRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "FriendListRefetchQuery",
+      "offset": 475580
+    },
+    "GesotownQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "GesotownQuery",
+      "offset": 482613
+    },
+    "GesotownRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "GesotownRefetchQuery",
+      "offset": 485776
+    },
+    "HeroHistoryQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "HeroHistoryQuery",
+      "offset": 499578
+    },
+    "HeroHistoryRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "HeroHistoryRefetchQuery",
+      "offset": 502572
+    },
+    "HistoryRecordQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "HistoryRecordQuery",
+      "offset": 518291
+    },
+    "HistoryRecordRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "HistoryRecordRefetchQuery",
+      "offset": 530448
+    },
+    "HomeQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "HomeQuery",
+      "offset": 840967
+    },
+    "JourneyChallengeDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "JourneyChallengeDetailQuery",
+      "offset": 340044
+    },
+    "JourneyChallengeDetailRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "JourneyChallengeDetailRefetchQuery",
+      "offset": 343478
+    },
+    "JourneyQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "JourneyQuery",
+      "offset": 347342
+    },
+    "JourneyRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "JourneyRefetchQuery",
+      "offset": 349869
+    },
+    "LatestBattleHistoriesQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "LatestBattleHistoriesQuery",
+      "offset": 274495
+    },
+    "LatestBattleHistoriesRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "LatestBattleHistoriesRefetchQuery",
+      "offset": 281506
+    },
+    "MyOutfitCommonDataEquipmentsQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "myOutfitCommonDataEquipmentsQuery",
+      "offset": 576024
+    },
+    "MyOutfitCommonDataFilteringConditionQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "myOutfitCommonDataFilteringConditionQuery",
+      "offset": 578564
+    },
+    "MyOutfitDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "MyOutfitDetailQuery",
+      "offset": 551736
+    },
+    "MyOutfitsQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "MyOutfitsQuery",
+      "offset": 558425
+    },
+    "MyOutfitsRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "MyOutfitsRefetchQuery",
+      "offset": 567437
+    },
+    "PagerLatestVsDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "PagerLatestVsDetailQuery",
+      "offset": 181037
+    },
+    "PagerUpdateBattleHistoriesByVsModeQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "PagerUpdateBattleHistoriesByVsModeQuery",
+      "offset": 195431
+    },
+    "PhotoAlbumQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "PhotoAlbumQuery",
+      "offset": 580014
+    },
+    "PhotoAlbumRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "PhotoAlbumRefetchQuery",
+      "offset": 581452
+    },
+    "PrivateBattleHistoriesQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "PrivateBattleHistoriesQuery",
+      "offset": 288952
+    },
+    "PrivateBattleHistoriesRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "PrivateBattleHistoriesRefetchQuery",
+      "offset": 295068
+    },
+    "RankingHoldersFestTeamRankingHoldersPaginationQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "RankingHoldersFestTeamRankingHoldersPaginationQuery",
+      "offset": 65808
+    },
+    "RefetchableCoopHistory_CoopResultQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "refetchableCoopHistory_coopResultQuery",
+      "offset": 381077
+    },
+    "RegularBattleHistoriesQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "RegularBattleHistoriesQuery",
+      "offset": 302509
+    },
+    "RegularBattleHistoriesRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "RegularBattleHistoriesRefetchQuery",
+      "offset": 308700
+    },
+    "ReplayModalReserveReplayDownloadMutation": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "ReplayModalReserveReplayDownloadMutation",
+      "offset": 130983
+    },
+    "ReplayQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "ReplayQuery",
+      "offset": 587986
+    },
+    "ReplayUploadedReplayListRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "ReplayUploadedReplayListRefetchQuery",
+      "offset": 593554
+    },
+    "SaleGearDetailOrderGesotownGearMutation": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "SaleGearDetailOrderGesotownGearMutation",
+      "offset": 491858
+    },
+    "SaleGearDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "SaleGearDetailQuery",
+      "offset": 494799
+    },
+    "SettingQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "SettingQuery",
+      "offset": 596003
+    },
+    "ShareMyOutfitQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "useShareMyOutfitQuery",
+      "offset": 236424
+    },
+    "StageRecordQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "StageRecordQuery",
+      "offset": 665245
+    },
+    "StageRecordsRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "StageRecordsRefetchQuery",
+      "offset": 668653
+    },
+    "StageScheduleQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "StageScheduleQuery",
+      "offset": 685968
+    },
+    "SupportButton_SupportChallengeMutation": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "SupportButton_SupportChallengeMutation",
+      "offset": 17832
+    },
+    "UpdateMyOutfitMutation": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "UpdateMyOutfitMutation",
+      "offset": 120465
+    },
+    "VotesUpdateFestVoteMutation": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "VotesUpdateFestVoteMutation",
+      "offset": 72287
+    },
+    "VsHistoryDetailPagerRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "VsHistoryDetailPagerRefetchQuery",
+      "offset": 842328
+    },
+    "VsHistoryDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "VsHistoryDetailQuery",
+      "offset": 853980
+    },
+    "XBattleHistoriesQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "XBattleHistoriesQuery",
+      "offset": 317723
+    },
+    "XBattleHistoriesRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "XBattleHistoriesRefetchQuery",
+      "offset": 325231
+    },
+    "XRankingDetailQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "XRankingDetailQuery",
+      "offset": 797886
+    },
+    "XRankingDetailRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "XRankingDetailRefetchQuery",
+      "offset": 806404
+    },
+    "XRankingQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "XRankingQuery",
+      "offset": 814962
+    },
+    "XRankingRefetchQuery": {
+      "source": "nintendo-web-2026-10-19",
+      "operationName": "XRankingRefetchQuery",
+      "offset": 822050
+    }
+  },
+  "enums": {
+    "FestState": {
+      "SCHEDULED": "nxapi-before-types-extraction",
+      "FIRST_HALF": "nxapi-before-types-extraction",
+      "SECOND_HALF": "nxapi-before-types-extraction",
+      "CLOSED": "nxapi-before-types-extraction"
+    },
+    "FestVoteState": {
+      "VOTED": "nxapi-before-types-extraction",
+      "PRE_VOTED": "nxapi-before-types-extraction"
+    },
+    "FriendOnlineState": {
+      "OFFLINE": "nxapi-before-types-extraction",
+      "ONLINE": "nxapi-before-types-extraction",
+      "VS_MODE_MATCHING": "nxapi-before-types-extraction",
+      "COOP_MODE_MATCHING": "nxapi-before-types-extraction",
+      "VS_MODE_FIGHTING": "nxapi-before-types-extraction",
+      "COOP_MODE_FIGHTING": "nxapi-before-types-extraction",
+      "MINI_GAME_PLAYING": "nintendo-web-2026-10-19"
+    },
+    "Judgement": {
+      "WIN": "nxapi-before-types-extraction",
+      "LOSE": "nxapi-before-types-extraction",
+      "EXEMPTED_LOSE": "nxapi-before-types-extraction",
+      "DEEMED_LOSE": "nxapi-before-types-extraction",
+      "DRAW": "nxapi-before-types-extraction"
+    },
+    "BankaraMatchMode": {
+      "CHALLENGE": "nxapi-before-types-extraction",
+      "OPEN": "nxapi-before-types-extraction"
+    },
+    "CoopRule": {
+      "REGULAR": "nintendo-web-2026-10-19",
+      "BIG_RUN": "nintendo-web-2026-10-19",
+      "TEAM_CONTEST": "nintendo-web-2026-10-19"
+    },
+    "FestMatchMode": {
+      "REGULAR": "nintendo-web-2026-10-19",
+      "CHALLENGE": "nintendo-web-2026-10-19"
+    }
+  },
+  "unsupportedQueries": [
+    "FestRecordRefetchQuery",
+    "WeaponRecordQuery",
+    "WeaponRecordsRefetchQuery"
+  ],
+  "unsupportedReason": "Absent from the inspected current official bundle and explicitly removed (null mapping) by nxapi public configuration for the pinned client on 2026-10-19.",
+  "migrationChecks": {
+    "url": "https://fancy.org.uk/api/nxapi/config",
+    "retrieved": "2026-10-19",
+    "clientVersion": "1.6.1",
+    "clientRevision": "47c9d35d9d51d33e62dd6d3733b616e0ad31b02b",
+    "zncaVersion": "3.5.0",
+    "znmaVersion": "1.17.0",
+    "queries": {
+      "CoopHistoryQuery": {
+        "previousId": "0f8c33970a425683bb1bdecca50a0ca4fb3c3641c0b2a1237aedfde9c0cb2b8f",
+        "mapping": {
+          "0f8c33970a425683bb1bdecca50a0ca4fb3c3641c0b2a1237aedfde9c0cb2b8f": [
+            "e11a8cf2c3de7348495dea5cdcaa25e0c153541c4ed63f044b6c174bc5b703df",
+            false
+          ]
+        },
+        "effectiveId": "e11a8cf2c3de7348495dea5cdcaa25e0c153541c4ed63f044b6c174bc5b703df"
+      },
+      "CoopHistoryDetailQuery": {
+        "previousId": "824a1e22c4ad4eece7ad94a9a0343ecd76784be4f77d8f6f563c165afc8cf602",
+        "mapping": {
+          "824a1e22c4ad4eece7ad94a9a0343ecd76784be4f77d8f6f563c165afc8cf602": [
+            "42262d241291d7324649e21413b29da88c0314387d8fdf5f6637a2d9d29954ae",
+            false
+          ],
+          "42262d241291d7324649e21413b29da88c0314387d8fdf5f6637a2d9d29954ae": [
+            "f2d55873a9281213ae27edc171e2b19131b3021a2ae263757543cdd3bf015cc8",
+            false
+          ]
+        },
+        "effectiveId": "f2d55873a9281213ae27edc171e2b19131b3021a2ae263757543cdd3bf015cc8"
+      }
+    }
+  }
+}

@@ -76,15 +76,21 @@
 #player-card-dialog::backdrop{background:#070b0d88;backdrop-filter:blur(7px)}
 .player-card-accessible{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .player-card-top{padding:22px 6.25% 26px;background:#191e22}
-.player-nameplate{position:relative;isolation:isolate;aspect-ratio:3.5;background:#303b42;border-radius:4px;overflow:hidden;color:var(--nameplate-text);container-type:inline-size}
+/* The optional Splatfont uses the same source as Conch Bay, pinned to a revision.
+   Only player names request it. The bundled OFL rounded font works offline. */
+@font-face{font-family:'Salmon Splatfont';src:url('https://cdn.jsdelivr.net/gh/frozenpandaman/frozenpandaman.github.io@56c20268db71a96e563cbc286e899d78262abce6/Splatoon1.otf') format('opentype');font-style:normal;font-weight:800;font-display:swap}
+@font-face{font-family:'Salmon Rounded';src:url('/fonts/MPLUSRounded1c-ExtraBold.ttf') format('truetype');font-style:normal;font-weight:800;font-display:swap}
+.player-nameplate{position:relative;isolation:isolate;aspect-ratio:3.5;background:#303b42;border-radius:8px;overflow:hidden;color:var(--nameplate-text);container-type:inline-size;transition:color .3s ease}
 .player-nameplate.card-background-missing{color:#e9eded}
 .card-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}
-.nameplate-copy{position:absolute;inset:0;font-family:'Arial Black','Microsoft YaHei','Yu Gothic',sans-serif;font-weight:900}
-.nameplate-byname{position:absolute;top:4%;left:2.5%;right:2.5%;font-size:4.5cqw;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nameplate-name{position:absolute;top:30%;left:3%;right:3%;font-size:7.3cqw;line-height:1.2;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.035em}
-.nameplate-id{position:absolute;bottom:5%;left:3.5%;font-size:3.5cqw;line-height:1.2;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nameplate-badges{position:absolute;bottom:5%;right:1.5%;display:flex;gap:3px;height:31%;width:30%;justify-content:flex-end}
-.nameplate-badges span{width:31%;height:100%}.card-badge{width:100%;height:100%;object-fit:contain}
+.nameplate-copy{position:absolute;inset:0;font-family:'Segoe UI','Microsoft YaHei','Yu Gothic',sans-serif;font-weight:700}
+.nameplate-byname{position:absolute;top:6.162%;left:3.521%;right:3.521%;font-size:4.22535cqw;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:skewX(-5deg);transform-origin:left center}
+.nameplate-name{position:absolute;inset:0 4%;display:flex;align-items:center;justify-content:center;font-family:'Salmon Splatfont','Salmon Rounded','Microsoft YaHei','Yu Gothic',sans-serif;font-weight:800;font-synthesis:none;font-size:9.15493cqw;line-height:1;letter-spacing:normal;white-space:nowrap}
+.nameplate-name>span{display:block;flex:none;transform-origin:center}
+.nameplate-id{position:absolute;bottom:6.162%;left:3.521%;font-size:3.52113cqw;line-height:1.2;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nameplate-badges{position:absolute;bottom:1.2324%;right:.3521%;display:flex;gap:.704225cqw;height:34.5%;justify-content:flex-end}
+.nameplate-badges span{height:100%;aspect-ratio:1;flex:none}.card-badge{width:100%;height:100%;object-fit:contain}
+@media(prefers-reduced-motion:reduce){.player-nameplate{transition:none}}
 .player-card-body{padding:8px 6.25% 28px}
 .player-uniform{text-align:center}
 .uniform-picture{position:relative;width:64%;aspect-ratio:1;margin:0 auto;display:grid;place-items:center}

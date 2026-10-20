@@ -54,7 +54,7 @@ python scripts/package-release.py --output <仓库外输出目录> --signing-key
 
 签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、容器内 `npm test`、`tests/installer.Tests.ps1`、`tests/run-updater-docker.ps1`。最后一项创建专用 `salmon-update-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。
 
-**当前公开安装包的阻碍：** `THIRD_PARTY_NOTICES.md` 记录的 `splatnet3-types` 无明确再分发许可问题仍未解决。私有试用不代表依赖许可已经解决；功能开发与许可核对是不同事项；在获得适用许可或替换依赖之前，不上传包含该依赖的公开预构建镜像。
+**分发材料状态：** 新构建已在安装依赖时将 `splatnet3-types` 替换为本地兼容模块，nxapi 的登录和同步逻辑保持不变。旧发布包不会被追溯修改。`tr46` 的许可正文及其余镜像分发材料仍需按 `THIRD_PARTY_NOTICES.md` 核对，私有试用不代表全部许可问题已解决。
 
 现有 GitHub Actions 打包流程不持有更新签名私钥，单独运行它不会自动生成网页更新清单。当前须由维护者本地使用上述 `--signing-key` 命令生成镜像归档和 `update.json`，上传同一私有 Release 后再发布；没有清单的旧版本不会被网页列为可安装更新。
 

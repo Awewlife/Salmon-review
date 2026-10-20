@@ -1,0 +1,41 @@
+{
+  "FestState": {
+    "SCHEDULED": "SCHEDULED",
+    "FIRST_HALF": "FIRST_HALF",
+    "SECOND_HALF": "SECOND_HALF",
+    "CLOSED": "CLOSED"
+  },
+  "FestVoteState": {
+    "VOTED": "VOTED",
+    "PRE_VOTED": "PRE_VOTED"
+  },
+  "FriendOnlineState": {
+    "OFFLINE": "OFFLINE",
+    "ONLINE": "ONLINE",
+    "VS_MODE_MATCHING": "VS_MODE_MATCHING",
+    "COOP_MODE_MATCHING": "COOP_MODE_MATCHING",
+    "VS_MODE_FIGHTING": "VS_MODE_FIGHTING",
+    "COOP_MODE_FIGHTING": "COOP_MODE_FIGHTING",
+    "MINI_GAME_PLAYING": "MINI_GAME_PLAYING"
+  },
+  "Judgement": {
+    "WIN": "WIN",
+    "LOSE": "LOSE",
+    "EXEMPTED_LOSE": "EXEMPTED_LOSE",
+    "DEEMED_LOSE": "DEEMED_LOSE",
+    "DRAW": "DRAW"
+  },
+  "BankaraMatchMode": {
+    "CHALLENGE": "CHALLENGE",
+    "OPEN": "OPEN"
+  },
+  "CoopRule": {
+    "REGULAR": "REGULAR",
+    "BIG_RUN": "BIG_RUN",
+    "TEAM_CONTEST": "TEAM_CONTEST"
+  },
+  "FestMatchMode": {
+    "REGULAR": "REGULAR",
+    "CHALLENGE": "CHALLENGE"
+  }
+}

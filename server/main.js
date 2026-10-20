@@ -15,7 +15,8 @@ import {safeAssetUrl} from './normalize.js';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const staticFiles=new Map(['index.html','preferences.js','personal-records.js','player-card.js','kill-details.js','release-notes.js','view-data.js','app.js','metrics.js','chart-dialog.js','grade-chart.js','score-export.js','style.css','manage.js','manage.css','update.js','diagnostics.js'].map(name=>['/'+name,path.join(root,'../dist',name)]));
 staticFiles.set('/LICENSE',path.join(root,'../LICENSE'));
-const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
+for(const name of ['MPLUSRounded1c-ExtraBold.ttf','OFL.txt'])staticFiles.set('/fonts/'+name,path.join(root,'../dist/fonts',name));
+const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.ttf':'font/ttf'};
 export async function createApp({directory=process.env.DATA_DIR??path.join(root,'../data'),runner=workerCall,accountOptions}={}){
   const store=new Store(directory),account=new CliAccount(directory,accountOptions),tasks=new Tasks(store,account,runner);
   if(process.env.SALMON_UPDATE_TRIAL==='1'){
@@ -46,7 +47,7 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
   }
   const server=http.createServer(async(req,res)=>{
     res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');
-    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
     try{
       const host=req.headers.host??'',url=new URL(req.url,'http://'+host);
       // Fetch Metadata is browser-controlled and cannot be set by page JavaScript.

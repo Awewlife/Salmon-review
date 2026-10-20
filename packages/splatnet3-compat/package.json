@@ -1,0 +1,20 @@
+{
+  "name": "@salmon-review/splatnet3-compat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "description": "Runtime constants for the pinned nxapi used by Salmon Review; not a TypeScript types package.",
+  "exports": {
+    "./splatnet3": "./splatnet3.js"
+  },
+  "files": [
+    "splatnet3.js",
+    "queries.json",
+    "enums.json",
+    "provenance.json",
+    "README.md",
+    "NOTICE",
+    "LICENSE"
+  ]
+}
