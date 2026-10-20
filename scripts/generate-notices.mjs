@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {reviewedNotice} from './notice-supplements.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const lock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json'),'utf8'));
@@ -18,6 +19,7 @@ const packages=Object.entries(lock.packages).filter(([key])=>key.includes('node_
   license:p.license??reviewed[`${p.name??key.split('node_modules/').at(-1)}@${p.version}`]??'UNKNOWN',optional:!!p.optional,sourceArchive:p.resolved,integrity:p.integrity,
 }}).sort((a,b)=>a.path.localeCompare(b.path,'en'));
 if(packages.some(p=>p.license==='UNKNOWN'))throw new Error('Dependency license metadata missing; review before updating notices.');
+for(const p of packages)reviewedNotice(root,p,fs.existsSync(path.join(root,p.path,'package.json'))?path.join(root,p.path):null);
 const manifest=JSON.stringify({description:'Locked npm dependencies, including platform-specific optional packages. License texts remain in each package; this inventory is not a replacement for them.',packages},null,2)+'\n';
 const destination=path.join(root,'THIRD_PARTY_PACKAGES.json');
 if(process.argv.includes('--check')){
@@ -40,13 +42,23 @@ if(process.argv.includes('--bundle')){
   }
   for(const p of packages){
     const directory=path.join(root,p.path);if(!fs.existsSync(path.join(directory,'package.json')))continue;
+    const supplement=reviewedNotice(root,p,directory);
     const record={...p,notices:[],evidence:'shipped-notices'},files=notices(directory);
+    if(supplement){
+      for(const name of supplement.files){
+        const target=path.join('licenses',p.path,'upstream-supplement',name);
+        fs.mkdirSync(path.dirname(path.join(output,target)),{recursive:true});
+        fs.copyFileSync(path.join(supplement.base,name),path.join(output,target));
+        record.notices.push(target.replaceAll('\\','/'));
+      }
+      files.push('package.json');
+      record.evidence='upstream-license-supplement; version and source hashes verified';
+    }
     if(!files.length){
       // Some small packages put their license/copyright in the README only.
       for(const name of fs.readdirSync(directory))if(/^readme(?:\.|$)/i.test(name)&&fs.statSync(path.join(directory,name)).isFile())files.push(name);
       record.evidence='readme';
     }
-    if(!files.length&&p.name==='tr46'&&p.version==='0.0.3'){files.push('package.json');record.evidence='metadata-only; upstream tarball omits license text'}
     if(!files.length)throw new Error(`No license or README shipped for ${p.name}@${p.version}`);
     for(const name of files){
       const target=path.join('licenses',p.path,name);fs.mkdirSync(path.dirname(path.join(output,target)),{recursive:true});

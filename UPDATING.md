@@ -1,4 +1,4 @@
-# 网页一键更新（0.3.11 私有预发布）
+# 网页一键更新（0.3.12 私有预发布）
 
 ## 玩家怎么用
 
@@ -54,7 +54,7 @@ python scripts/package-release.py --output <仓库外输出目录> --signing-key
 
 签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、容器内 `npm test`、`tests/installer.Tests.ps1`、`tests/run-updater-docker.ps1`。最后一项创建专用 `salmon-update-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。
 
-**分发材料状态：** 新构建已在安装依赖时将 `splatnet3-types` 替换为本地兼容模块，nxapi 的登录和同步逻辑保持不变。旧发布包不会被追溯修改。`tr46` 的许可正文及其余镜像分发材料仍需按 `THIRD_PARTY_NOTICES.md` 核对，私有试用不代表全部许可问题已解决。
+**分发材料状态：** 新构建已在安装依赖时将 `splatnet3-types` 替换为本地兼容模块，nxapi 的登录和同步逻辑保持不变。旧发布包不会被追溯修改。新构建已补齐 `tr46` 的版权声明与 MIT 正文；其余镜像分发材料仍需按 `THIRD_PARTY_NOTICES.md` 核对，私有试用不代表全部许可问题已解决。
 
 现有 GitHub Actions 打包流程不持有更新签名私钥，单独运行它不会自动生成网页更新清单。当前须由维护者本地使用上述 `--signing-key` 命令生成镜像归档和 `update.json`，上传同一私有 Release 后再发布；没有清单的旧版本不会被网页列为可安装更新。
 

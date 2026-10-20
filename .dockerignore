@@ -9,6 +9,7 @@ tests
 scripts/*
 !scripts/generate-notices.mjs
 !scripts/check-splatnet-compat.mjs
+!scripts/notice-supplements.mjs
 third-party
 examples
 *.log

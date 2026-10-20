@@ -5,6 +5,7 @@ import hashlib
 import tarfile
 import tempfile
 import unittest
+import shutil
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('package_release', Path(__file__).resolve().parents[1] / 'scripts/package-release.py')
@@ -13,6 +14,41 @@ spec.loader.exec_module(package)
 
 
 class ReleaseIdentityTests(unittest.TestCase):
+    def notice_bundle(self, directory):
+        directory = Path(directory)
+        expected = package.ROOT / 'licenses/tr46-0.0.3'
+        provenance = json.loads((expected / 'provenance.json').read_text('utf-8'))
+        relative = 'licenses/node_modules/tr46/upstream-supplement'
+        shutil.copytree(expected, directory / relative)
+        record = {key: provenance[key] for key in ['name', 'version', 'license', 'integrity', 'sourceArchive']}
+        record.update(path='node_modules/tr46', evidence='upstream-license-supplement; version and source hashes verified',
+                      notices=[relative + '/' + file for file in ['LICENSE.md', 'provenance.json']])
+        (directory / 'installed-packages.json').write_text(json.dumps({'packages': [record]}), encoding='utf-8')
+        return directory / relative
+
+    def test_release_notice_bundle_and_rejection_of_incomplete_materials(self):
+        for fault in [None, 'missing', 'modified', 'metadata-only', 'absent-package']:
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                supplement = self.notice_bundle(directory)
+                if fault == 'missing':
+                    (supplement / 'LICENSE.md').unlink()
+                elif fault == 'modified':
+                    (supplement / 'LICENSE.md').write_text('MIT', encoding='utf-8')
+                elif fault in ['metadata-only', 'absent-package']:
+                    file = directory / 'installed-packages.json'
+                    data = json.loads(file.read_text('utf-8'))
+                    if fault == 'metadata-only':
+                        data['packages'][0]['evidence'] = 'metadata-only'
+                    else:
+                        data['packages'] = []
+                    file.write_text(json.dumps(data), encoding='utf-8')
+                if fault:
+                    with self.assertRaises(ValueError):
+                        package.verify_notice_bundle(directory)
+                else:
+                    package.verify_notice_bundle(directory)
+
     def archive(self, directory, tag='salmon-review:0.3.4', arch='amd64', revision='fixture'):
         config = json.dumps({'os': 'linux', 'architecture': arch, 'config': {'Labels': {'org.opencontainers.image.revision': revision}}}).encode()
         digest = hashlib.sha256(config).hexdigest()

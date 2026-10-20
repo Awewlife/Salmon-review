@@ -23,6 +23,28 @@ def sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def verify_notice_bundle(directory):
+    """Do not publish an image whose tr46 supplement is missing or stale."""
+    expected = ROOT / 'licenses/tr46-0.0.3'
+    packages = json.loads((directory / 'installed-packages.json').read_text('utf-8'))['packages']
+    records = [p for p in packages if p['name'] == 'tr46']
+    if not records:
+        raise ValueError('Missing tr46 package in image notice inventory')
+    provenance = json.loads((expected / 'provenance.json').read_text('utf-8'))
+    for record in records:
+        if any(record.get(key) != provenance[key] for key in ['version', 'license', 'integrity', 'sourceArchive']):
+            raise ValueError('tr46 image notice version or archive mismatch')
+        if record.get('evidence') != 'upstream-license-supplement; version and source hashes verified':
+            raise ValueError('tr46 image is missing reviewed license evidence')
+        for filename in ['LICENSE.md', 'provenance.json']:
+            relative = f"licenses/{record['path']}/upstream-supplement/{filename}"
+            target = (directory / relative).resolve()
+            if not target.is_relative_to(directory.resolve()) or relative not in record['notices']:
+                raise ValueError('tr46 image notice path mismatch')
+            if not target.is_file() or sha256(target) != sha256(expected / filename):
+                raise ValueError('tr46 image supplemental notice missing or changed')
+
+
 def image_ids(archive, image, inspected_id, revision):
     """Classic stores expose the config ID; containerd may expose the index ID."""
     with tarfile.open(archive, 'r:gz') as saved:
@@ -108,6 +130,7 @@ def main():
         container = run('docker', 'create', '--network', 'none', image)
         try:
             subprocess.run(['docker','cp',container+':/app/third-party',str(third_party/'npm-notices')], check=True)
+            verify_notice_bundle(third_party/'npm-notices')
             # Keep Linux symlinks in a tar archive; extracting them on Windows
             # would unnecessarily require administrator/symlink privileges.
             with (third_party/'system-notices.tar.gz').open('wb') as raw, gzip.GzipFile(filename='',mode='wb',fileobj=raw,mtime=0) as compressed:

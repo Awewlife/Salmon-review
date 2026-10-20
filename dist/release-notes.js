@@ -1,7 +1,11 @@
 'use strict';
 window.SalmonReleaseNotes=(()=>{
   // Ship these notes with the app so a completed update needs no GitHub request.
-  const releases={'0.3.11':[
+  const releases={'0.3.12':[
+    '调整队员名片比例和昵称排版，长名字自动适应宽度，并提供本地字体回退。',
+    '更新同步依赖兼容层，保留原有登录状态与打工同步功能。',
+    '补齐第三方许可材料，并增加发行打包校验。',
+  ],'0.3.11':[
     '点击对局中的队员名称，查看该场名片、工服和武器；图片首次查看时缓存。',
     '新增本期击杀详情，支持场次范围、怪物图片和完整 PNG 导出。',
     '更多图表可开启红蛋趋势；导出支持任选四张图表并拖动调整顺序。',
