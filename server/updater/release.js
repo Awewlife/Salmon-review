@@ -10,14 +10,14 @@ export function compareVersions(a,b){
   for(let i=0;i<3;i++)if(aa[i]!==bb[i])return Math.sign(aa[i]-bb[i]);return 0;
 }
 export async function githubFetch(url,{timeout=30000,token,asset=false,transport=fetch,signal}={}){
-  if(typeof token!=='string'||!token.trim())throw new Error('auth_required');
+  token=typeof token==='string'?token.trim():'';
   for(let redirects=0;redirects<5;redirects++){
     const u=new URL(url);
     if(u.protocol!=='https:'||u.username||u.password||u.port||!['api.github.com','release-assets.githubusercontent.com','objects.githubusercontent.com'].includes(u.hostname))throw new Error('invalid_source');
     const api=u.hostname==='api.github.com';
     if((redirects===0&&!api)||(api&&u.pathname!=='/user'&&u.pathname!==`/repos/${repository}`&&!u.pathname.startsWith(`/repos/${repository}/`)))throw new Error('invalid_source');
     // Signed CDN redirects must never receive the user's GitHub credential.
-    const headers={'User-Agent':'SalmonReview-Updater','Accept':asset?'application/octet-stream':'application/vnd.github+json',...(api?{Authorization:`Bearer ${token}`}:{})};
+    const headers={'User-Agent':'SalmonReview-Updater','Accept':asset?'application/octet-stream':'application/vnd.github+json',...(api&&token?{Authorization:`Bearer ${token}`}:{})};
     const r=await transport(u,{redirect:'manual',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(timeout)]):AbortSignal.timeout(timeout),headers});
     if([301,302,303,307,308].includes(r.status)){url=new URL(r.headers.get('location'),u).href;await r.body?.cancel();continue}
     if(!r.ok){await r.body?.cancel();throw new Error(r.status===401?'auth_invalid':r.status===429||(r.status===403&&(r.headers.get('x-ratelimit-remaining')==='0'||r.headers.has('retry-after')))?'release_limited':r.status===403||r.status===404?'access_denied':'download_failed')}
@@ -47,9 +47,10 @@ async function releaseAsset(version,name,options){
   return `${apiRoot}/releases/assets/${asset.id}`;
 }
 export async function verifyAccess(token,transport=fetch,signal){
+  if(typeof token!=='string'||!token.trim())throw new Error('auth_required');
   const options={token,transport,signal};
   const repo=await smallJSON(apiRoot,options);
-  if(repo.full_name?.toLowerCase()!==repository.toLowerCase()||repo.private!==true||repo.permissions?.pull!==true)throw new Error('access_denied');
+  if(repo.full_name?.toLowerCase()!==repository.toLowerCase()||typeof repo.private!=='boolean'||(repo.private&&repo.permissions?.pull!==true))throw new Error('access_denied');
   await smallJSON(`${apiRoot}/releases?per_page=1`,options);
   const user=await smallJSON('https://api.github.com/user',options);
   if(typeof user.login!=='string'||!user.login)throw new Error('auth_invalid');
@@ -82,11 +83,39 @@ export async function downloadImage(m,file,onProgress=()=>{},fetcher=()=>{throw 
     await handle.sync();await handle.close();handle=null;await rename(temporary,file);await onProgress(100);
   }finally{await handle?.close();await rm(temporary,{force:true})}
 }
-export function privateReleases(getToken){
-  const options=()=>({token:getToken()});
+// Prefer anonymous access even when an old private-repository token is saved.
+// Only fall back to that token for unavailable private access or API rate limits.
+// Resolve access again for installation/download; cached UI state is not authority.
+export function releaseClient(getToken=()=>null,{transport=fetch}={}){
+  const options=async signal=>{
+    try{
+      const repo=await smallJSON(apiRoot,{transport,signal});
+      if(repo.full_name?.toLowerCase()!==repository.toLowerCase()||repo.private!==false)throw new Error('invalid_source');
+      return {transport,signal};
+    }catch(e){
+      if(!['access_denied','release_limited'].includes(e.message))throw e;
+      const token=getToken();
+      if(!token)throw new Error(e.message==='access_denied'?'auth_required':e.message);
+      await verifyAccess(token,transport,signal);
+      return {token,transport,signal};
+    }
+  };
+  const withAccess=async(action,signal)=>{
+    const access=await options(signal);
+    try{return await action(access)}
+    catch(e){
+      // An anonymous request can exhaust its quota after repository discovery.
+      const token=getToken();
+      if(e.message!=='release_limited'||access.token||!token)throw e;
+      await verifyAccess(token,transport,signal);
+      return action({token,transport,signal});
+    }
+  };
   return {
-    releases:async()=>{await verifyAccess(getToken());return latestRelease(options())},
-    manifest:async(version,{signal}={})=>{await verifyAccess(getToken(),fetch,signal);return manifestFor(version,{...options(),signal})},
-    download:(m,file,progress,{signal}={})=>downloadImage(m,file,progress,async(_manifest,settings)=>githubFetch(await releaseAsset(m.version,m.asset,{...options(),signal}),{...options(),...settings,asset:true}),{signal})
+    releases:()=>withAccess(access=>latestRelease(access)),
+    manifest:(version,{signal}={})=>withAccess(access=>manifestFor(version,access),signal),
+    download:(m,file,progress,{signal}={})=>downloadImage(m,file,progress,async(_manifest,settings)=>{
+      return withAccess(async access=>githubFetch(await releaseAsset(m.version,m.asset,access),{...access,...settings,asset:true}),signal);
+    },{signal})
   };
 }

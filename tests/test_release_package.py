@@ -14,6 +14,23 @@ spec.loader.exec_module(package)
 
 
 class ReleaseIdentityTests(unittest.TestCase):
+    def test_source_materials_reject_missing_modified_and_unsafe_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            file = directory / 'source.tar'
+            file.write_bytes(b'fixture source')
+            record = {'file': file.name, 'bytes': file.stat().st_size,
+                      'sha256': hashlib.sha256(file.read_bytes()).hexdigest()}
+            package.release_sources.verify_files(directory, {'files': [record]})
+            file.write_bytes(b'altered source')
+            with self.assertRaises(ValueError):
+                package.release_sources.verify_files(directory, {'files': [record]})
+            file.unlink()
+            with self.assertRaises(ValueError):
+                package.release_sources.verify_files(directory, {'files': [record]})
+            with self.assertRaises(ValueError):
+                package.release_sources.target_file(directory, {'file': '../outside'})
+
     def notice_bundle(self, directory):
         directory = Path(directory)
         expected = package.ROOT / 'licenses/tr46-0.0.3'

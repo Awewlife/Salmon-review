@@ -4,7 +4,7 @@ import {generateKeyPairSync,sign,createHash} from 'node:crypto';
 import {mkdtemp,readFile,rm,writeFile,mkdir,symlink,stat} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {validateManifest,compareVersions,repository,downloadImage,githubFetch,verifyAccess,privateReleases,manifestFor} from '../server/updater/release.js';
+import {validateManifest,compareVersions,repository,downloadImage,githubFetch,verifyAccess,releaseClient,manifestFor} from '../server/updater/release.js';
 import {candidateConfig,sameProjectApp} from '../server/updater/docker.js';
 import {Updater} from '../server/updater/service.js';
 import {backupData,treeHash,inspectTree} from '../server/updater/files.js';
@@ -73,10 +73,55 @@ test('download must match signed byte count and hash; partial or altered files n
 });
 
 const fixtureToken='ghp_'+'x'.repeat(36);
-test('private download requires credentials and strips them from CDN redirects',async()=>{
+test('public client ignores a saved stale token and verifies the signed manifest anonymously',async()=>{
+  const requests=[];
+  const transport=async(url,options)=>{
+    requests.push({url:String(url),...options});
+    if(String(url).endsWith(repository))return Response.json({full_name:repository,private:false});
+    if(String(url).includes('/tags/'))return Response.json({draft:false,assets:[{id:42,name:'update.json'}]});
+    return Response.json({payload:'e30=',signature:'invalid'});
+  };
+  await assert.rejects(releaseClient(()=>fixtureToken,{transport}).manifest('0.3.6'),/invalid_signature/);
+  assert.equal(requests.length,3);assert.ok(requests.every(r=>!r.headers.Authorization));
+});
+test('private access and late anonymous rate limits can use explicitly saved credentials',async()=>{
+  for(const privateRepo of [true,false]){
+    const requests=[];
+    const transport=async(url,options)=>{
+      const u=String(url),authorized=!!options.headers.Authorization;
+      requests.push({url:u,authorized});
+      if(u.endsWith('/user'))return Response.json({login:'tester'});
+      if(u.endsWith(repository))return privateRepo&&!authorized?new Response(null,{status:404}):Response.json({full_name:repository,private:privateRepo,permissions:{pull:true}});
+      if(!authorized)return new Response(null,{status:429});
+      if(u.includes('/tags/'))return Response.json({draft:false,assets:[{id:42,name:'update.json'}]});
+      if(u.includes('/assets/'))return Response.json({payload:'e30=',signature:'invalid'});
+      return Response.json([]);
+    };
+    await assert.rejects(releaseClient(()=>fixtureToken,{transport}).manifest('0.3.6'),/invalid_signature/);
+    assert.equal(requests[0].authorized,false);
+    assert.ok(requests.some(r=>r.url.endsWith('/user')&&r.authorized));
+    assert.ok(requests.at(-1).authorized);
+  }
+});
+test('anonymous download follows the fixed asset API and validates image bytes',async t=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'salmon-public-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const bytes=Buffer.from('public image'),file=path.join(root,'image');
+  const m={...manifest,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')};
+  const transport=async(url,options)=>{
+    assert.equal(options.headers.Authorization,undefined);
+    if(String(url).endsWith(repository))return Response.json({full_name:repository,private:false});
+    if(String(url).includes('/tags/'))return Response.json({draft:false,assets:[{id:11,name:m.asset}]});
+    if(String(url).includes('/assets/'))return new Response(null,{status:302,headers:{location:'https://release-assets.githubusercontent.com/public-image'}});
+    return new Response(bytes);
+  };
+  await releaseClient(()=>null,{transport}).download(m,file);
+  assert.deepEqual(await readFile(file),bytes);
+});
+test('downloads support anonymous access and strip credentials from CDN redirects',async()=>{
   let requests=[];
   const transport=async(url,options)=>{requests.push({url:String(url),...options});return requests.length===1?new Response(null,{status:302,headers:{location:'https://release-assets.githubusercontent.com/fixture'}}):new Response('image')};
-  await assert.rejects(githubFetch(`https://api.github.com/repos/${repository}/releases`,{transport}),/auth_required/);assert.equal(requests.length,0);
+  await githubFetch(`https://api.github.com/repos/${repository}/releases/assets/1`,{asset:true,transport});
+  assert.ok(requests.every(r=>!r.headers.Authorization));requests=[];
   await githubFetch(`https://api.github.com/repos/${repository}/releases/assets/1`,{token:fixtureToken,asset:true,transport});
   assert.equal(requests[0].headers.Authorization,'Bearer '+fixtureToken);assert.equal(requests[0].headers.Accept,'application/octet-stream');assert.equal(requests[1].headers.Authorization,undefined);
   for(const url of ['http://api.github.com/user','https://evil.example/file','https://api.github.com/repos/other/repo/releases','https://release-assets.githubusercontent.com/direct'])await assert.rejects(githubFetch(url,{token:fixtureToken,transport}),/invalid_source/);
@@ -87,7 +132,8 @@ test('invalid or revoked access is distinct from rate limits and missing signed 
   for(const [status,headers,error] of [[401,{},'auth_invalid'],[403,{},'access_denied'],[404,{},'access_denied'],[403,{'x-ratelimit-remaining':'0'},'release_limited'],[429,{},'release_limited']])await assert.rejects(githubFetch('https://api.github.com/user',{token:fixtureToken,transport:async()=>new Response(null,{status,headers})}),new RegExp(error));
   const transport=async url=>Response.json(String(url).endsWith('/user')?{login:'tester'}:String(url).includes('/releases')?[]:{full_name:repository,private:true,permissions:{pull:true}});
   assert.deepEqual(await verifyAccess(fixtureToken,transport),{login:'tester'});
-  await assert.rejects(verifyAccess(fixtureToken,async()=>Response.json({full_name:repository,private:false,permissions:{pull:true}})),/access_denied/);
+  assert.deepEqual(await verifyAccess(fixtureToken,async url=>Response.json(String(url).endsWith('/user')?{login:'tester'}:String(url).includes('/releases')?[]:{full_name:repository,private:false})),{login:'tester'});
+  await assert.rejects(verifyAccess(fixtureToken,async()=>Response.json({full_name:repository,private:true,permissions:{pull:false}})),/access_denied/);
 });
 test('credentials are local, private, absent from status, and removable without affecting data',async t=>{
   const directory=await mkdtemp(path.join(os.tmpdir(),'salmon-auth-'));t.after(()=>rm(directory,{recursive:true,force:true}));
@@ -104,7 +150,7 @@ test('cached availability cannot bypass revoked authorization before installatio
   const {u,trace}=await fixture(t);u.manifest=async()=>{throw new Error('access_denied')};
   await u.install('0.3.6');await u.completion;
   assert.deepEqual(trace,[]);assert.equal(u.status().auth.required,true);assert.equal(u.status().phase,'failed');assert.equal(u.status().available,false);
-  await assert.rejects(privateReleases(()=>null).manifest('0.3.6'),/auth_required/);
+  await assert.rejects(releaseClient(()=>null,{transport:async()=>new Response(null,{status:404})}).manifest('0.3.6'),/auth_required/);
 });
 
 test('private manifest resolves numeric asset ID through API with octet-stream negotiation',async()=>{

@@ -2,6 +2,7 @@
 import argparse
 import gzip
 import hashlib
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -12,6 +13,9 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+source_spec = importlib.util.spec_from_file_location('release_sources', ROOT/'scripts/collect-release-sources.py')
+release_sources = importlib.util.module_from_spec(source_spec)
+source_spec.loader.exec_module(release_sources)
 
 
 def run(*args):
@@ -65,6 +69,7 @@ def image_ids(archive, image, inspected_id, revision):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
+    parser.add_argument('--sources', required=True, help='Verified corresponding-source cache outside the checkout')
     parser.add_argument('--signing-key', help='Private update-signing key outside the repository; enables web-update assets')
     args = parser.parse_args()
     output = Path(args.output).resolve()
@@ -80,6 +85,10 @@ def main():
         raise SystemExit('This release supports Linux/amd64 images only.')
     if info['Config']['Labels'].get('org.opencontainers.image.revision') != commit:
         raise SystemExit('Rebuild the image with --build-arg VCS_REF=<current commit>.')
+    sources = Path(args.sources).resolve()
+    source_lock = json.loads(release_sources.LOCK.read_text('utf-8'))
+    release_sources.verify_image(image, source_lock)
+    release_sources.verify_files(sources, source_lock)
     output.mkdir(parents=True, exist_ok=True)
     package_name = f'SalmonReview-v{version}-windows-x64'
     if any((output / name).exists() for name in [package_name+'.zip', f'SalmonReview-v{version}-source.zip', f'SalmonReview-v{version}-third-party.zip']):
@@ -143,26 +152,30 @@ def main():
                     raise SystemExit('Could not archive system notices')
         finally:
             subprocess.run(['docker','rm',container], check=True, stdout=subprocess.DEVNULL)
-        nxapi_revision = '47c9d35d9d51d33e62dd6d3733b616e0ad31b02b'
-        source_url = f'https://api.github.com/repos/samuelthomas2774/nxapi/tarball/{nxapi_revision}'
-        request = urllib.request.Request(source_url, headers={'User-Agent':'SalmonReview-release'})
-        with urllib.request.urlopen(request, timeout=120) as response, (third_party/'nxapi-source.tar.gz').open('wb') as target:
-            shutil.copyfileobj(response, target)
+        for record in source_lock['files']:
+            target = release_sources.target_file(third_party/'sources', record)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(release_sources.target_file(sources, record), target)
+        shutil.copy2(release_sources.LOCK, third_party/'sources/release-sources.json')
+        shutil.copy2(ROOT/'licenses/SOURCE-BUILD.md', third_party/'SOURCE-BUILD.md')
+        release_sources.verify_files(third_party/'sources', source_lock)
         installed = run('docker','run','--rm','--network','none',image,'dpkg-query','-W','-f=${binary:Package}\t${Version}\t${source:Package}\t${source:Version}\n')
         (third_party/'debian-packages.tsv').write_text(installed+'\n',encoding='utf-8')
         (third_party/'SOURCE-INDEX.md').write_text(
             '# Source and notice materials\n\n'
             f'Application source: SalmonReview-v{version}-source.zip, commit {commit}.\n\n'
-            f'nxapi source included as nxapi-source.tar.gz, revision {nxapi_revision}.\n\n'
+            'Corresponding-source archives, patches and build recipes are in sources/.\n'
+            'Exact versions, upstream URLs and SHA-256 values: sources/release-sources.json.\n'
+            'Rebuild and native-library replacement instructions: SOURCE-BUILD.md.\n\n'
             'Exact npm archive URLs and integrity values are in THIRD_PARTY_PACKAGES.json.\n'
-            'Node.js source: https://nodejs.org/dist/v22.23.2/node-v22.23.2.tar.gz\n'
-            'Base image source: https://github.com/nodejs/docker-node\n'
-            'Exact Debian binary/source versions are in debian-packages.tsv; upstream source archives: https://snapshot.debian.org/\n\n'
-            'This is a private prerelease, not a claim of complete third-party license clearance.\n'
-            'Unresolved rights/notices are described in THIRD_PARTY_NOTICES.md.\n', encoding='utf-8')
+            'Debian binary/source versions: debian-packages.tsv; source packages included under sources/debian/.\n\n'
+            'Third-party rights, including optional remote fonts: THIRD_PARTY_NOTICES.md.\n', encoding='utf-8')
         for name in ['THIRD_PARTY_NOTICES.md','THIRD_PARTY_PACKAGES.json','LICENSE','NOTICE']:
             shutil.copy2(ROOT/name,third_party/name)
-        shutil.make_archive(str(output/f'SalmonReview-v{version}-third-party'),'zip',third_party)
+        with zipfile.ZipFile(output/f'SalmonReview-v{version}-third-party.zip', 'w') as result:
+            for file in sorted(third_party.rglob('*')):
+                if file.is_file():
+                    result.write(file, file.relative_to(third_party), compress_type=zipfile.ZIP_STORED if file.suffix in ['.gz','.xz','.bz2','.zip'] else zipfile.ZIP_DEFLATED)
         (output/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(output.iterdir()) if p.is_file() and p.name != 'SHA256SUMS.txt'),encoding='ascii')
         print(json.dumps({'version':version,'commit':commit,'imageId':info['Id'],'files':[{'name':p.name,'bytes':p.stat().st_size} for p in sorted(output.iterdir())]},indent=2))
 

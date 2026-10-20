@@ -1,4 +1,4 @@
-name: Package private prerelease
+name: Build release draft
 on:
   workflow_dispatch:
     inputs:
@@ -43,9 +43,12 @@ jobs:
         run: |
           VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
           docker build --platform linux/amd64 --build-arg VCS_REF="$(git rev-parse HEAD)" -t "salmon-review:$VERSION" .
-          docker run --rm --mount type=bind,source="$PWD/tests",target=/app/tests,readonly "salmon-review:$VERSION" npm test
+          docker run --rm --mount type=bind,source="$PWD/tests",target=/app/tests,readonly "salmon-review:$VERSION" node --test tests/*.test.js
       - name: Package image, source and notices
-        run: python scripts/package-release.py --output "$RUNNER_TEMP/salmon-artifacts"
+        run: |
+          VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
+          python scripts/collect-release-sources.py --image "salmon-review:$VERSION" --output "$RUNNER_TEMP/source-cache"
+          python scripts/package-release.py --sources "$RUNNER_TEMP/source-cache" --output "$RUNNER_TEMP/salmon-artifacts"
       - name: Verify empty startup without container network access
         run: |
           VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
@@ -59,9 +62,9 @@ jobs:
           done
           docker rm -f salmon-release-check
           exit 1
-      - name: Publish prerelease assets to existing private repository
+      - name: Upload artifacts to an unpublished draft
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/salmon-artifacts/"* --verify-tag --prerelease --latest=false --title "Salmon Review $RELEASE_TAG — Windows 离线安装包" --notes-file release/RELEASE_NOTES.md
+          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/salmon-artifacts/"* --verify-tag --draft --latest=false --title "Salmon Review $RELEASE_TAG — Windows 离线安装包" --notes-file release/RELEASE_NOTES.md

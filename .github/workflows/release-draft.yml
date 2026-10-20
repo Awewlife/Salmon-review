@@ -38,12 +38,15 @@ jobs:
         run: |
           VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
           docker build --platform linux/amd64 --build-arg VCS_REF="$(git rev-parse HEAD)" -t "salmon-review:$VERSION" .
-          docker run --rm --network none --mount type=bind,source="$PWD/tests",target=/app/tests,readonly "salmon-review:$VERSION" npm test
-          docker run --rm "salmon-review:$VERSION" npm audit --omit=dev --audit-level=low
+          docker run --rm --network none --mount type=bind,source="$PWD/tests",target=/app/tests,readonly "salmon-review:$VERSION" node --test tests/*.test.js
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm audit --omit=dev --audit-level=low
           python -m unittest discover -s tests -p test_release_package.py
       - name: Package software and prepare unsigned update payload
         run: |
-          python scripts/package-release.py --output "$RUNNER_TEMP/release"
+          VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
+          python scripts/collect-release-sources.py --image "salmon-review:$VERSION" --output "$RUNNER_TEMP/source-cache"
+          python scripts/package-release.py --sources "$RUNNER_TEMP/source-cache" --output "$RUNNER_TEMP/release"
           python - <<'PY'
           import hashlib,json,os,shutil,zipfile
           from pathlib import Path

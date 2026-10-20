@@ -5,20 +5,20 @@ import {mkdir,readFile,writeFile,chown,chmod,rm} from 'node:fs/promises';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {Docker,candidateConfig,sameProjectApp} from './docker.js';
 import {atomicJSON,json,backupData,restoreData} from './files.js';
-import {privateReleases,verifyAccess,compareVersions} from './release.js';
+import {releaseClient,verifyAccess,compareVersions} from './release.js';
 import {Retention} from './retention.js';
 import {Bundle,bundleProtocol} from './bundle.js';
 import {appHTTP} from './app-http.js';
 import {version as updaterVersion} from '../version.js';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const messages={release_missing:'目前还没有可用的私有更新。',release_limited:'下载源暂时限制请求，请稍后重试。',download_failed:'下载未完成，旧版继续运行；请检查网络后重试。',invalid_signature:'更新签名校验失败，已拒绝安装。',invalid_manifest:'此更新与当前安装方式不兼容，请下载完整安装包。',invalid_download:'下载文件校验失败，旧版继续运行。',disk_space:'磁盘空间不足，已停止更新。',project_mismatch:'无法确认原有项目和数据卷，已停止更新。',busy:'正在同步、导入或登录，请完成后重试更新。',no_update:'目前没有比当前版本更新的可安装版本。',unhealthy:'新版启动或数据检查未通过。',backup_failed:'数据备份未完成，已停止更新。',recovery_failed:'自动恢复未完成。已保留旧容器和备份，请勿删除数据卷；请查看 Docker 中更新组件日志并联系维护者。'};
+const messages={release_missing:'目前还没有可用的更新。',release_limited:'下载源暂时限制请求，请稍后重试。',download_failed:'下载未完成，旧版继续运行；请检查网络后重试。',invalid_signature:'更新签名校验失败，已拒绝安装。',invalid_manifest:'此更新与当前安装方式不兼容，请下载完整安装包。',invalid_download:'下载文件校验失败，旧版继续运行。',disk_space:'磁盘空间不足，已停止更新。',project_mismatch:'无法确认原有项目和数据卷，已停止更新。',busy:'正在同步、导入或登录，请完成后重试更新。',no_update:'目前没有比当前版本更新的可安装版本。',unhealthy:'新版启动或数据检查未通过。',backup_failed:'数据备份未完成，已停止更新。',recovery_failed:'自动恢复未完成。已保留旧容器和备份，请勿删除数据卷；请查看 Docker 中更新组件日志并联系维护者。'};
 function publicMessage(e){return messages[e?.message]??'更新未完成，请检查网络、磁盘空间和 Docker 状态后重试。'}
-Object.assign(messages,{cannot_cancel:'已进入安装阶段，无法取消；完成后将自动连接，失败会尝试恢复旧版。',release_missing:'已连接私有仓库，目前还没有带网页更新附件的新版。',auth_required:'请先连接你自己的 GitHub 更新权限。',auth_invalid:'GitHub 凭据已失效或格式不正确，请重新连接。',access_denied:'无法访问私有发行版，请确认已接受仓库邀请，且凭据拥有所需权限。'});
+Object.assign(messages,{cannot_cancel:'已进入安装阶段，无法取消；完成后将自动连接，失败会尝试恢复旧版。',release_missing:'目前还没有带网页更新附件的可用版本。',auth_required:'仓库尚未公开或需要访问权限，可连接自己的 GitHub 凭据后重试。',auth_invalid:'GitHub 凭据已失效或格式不正确，请重新连接。',access_denied:'无法访问发行版。若仓库尚未公开，请确认账号拥有仓库读取权限；也可稍后重试。'});
 export class Updater{
   constructor({directory='/updates',docker=new Docker(),releases,manifest,download,verify=verifyAccess,backup=backupData,restore=restoreData,attempts=45,helper=false}={}){
     this.helper=helper;this.credential=null;this.retention=new Retention(directory,docker);
-    const client=privateReleases(()=>this.credential?.token);
-    Object.assign(this,{directory,docker,releases:releases??client.releases,manifest:manifest??client.manifest,download:download??client.download,verify,backup,restore,attempts});this.bundle=new Bundle(this);this.busy=false;this.info={phase:'idle',progress:0,message:messages.auth_required};this.latest=null;
+    const client=releaseClient(()=>this.credential?.token);
+    Object.assign(this,{directory,docker,releases:releases??client.releases,manifest:manifest??client.manifest,download:download??client.download,verify,backup,restore,attempts});this.bundle=new Bundle(this);this.busy=false;this.info={phase:'idle',progress:0,authRequired:false,message:'可以检查更新；公开发行版无需 GitHub 令牌。'};this.latest=null;
   }
   file(name){return path.join(this.directory,name)}
   async save(patch){this.info={...this.info,...patch,updated:Date.now()};const snapshot=this.info;this.saveQueue=(this.saveQueue??Promise.resolve()).catch(()=>{}).then(()=>atomicJSON(this.file('status.json'),snapshot));await this.saveQueue}
@@ -55,7 +55,7 @@ export class Updater{
     await chown(this.file('channel.token'),0,0);await chmod(this.file('channel.token'),0o444);
     this.info=await json(this.file('status.json'),this.info);
     this.credential=await json(this.file('github.json'));
-    if(!this.credential&&!await json(this.file('transaction.json')))await this.save({phase:'idle',authRequired:true,available:false,latest:null,notes:null,url:null,checked:null,message:messages.auth_required});
+    if(!this.credential&&!await json(this.file('transaction.json')))await this.save({phase:'idle',authRequired:false,available:false,latest:null,notes:null,url:null,checked:null,message:'可以检查更新；公开发行版无需 GitHub 令牌。'});
     const journal=await json(this.file('transaction.json'));
     if(journal){this.busy=true;try{if(journal.committed){await this.finishCleanup(journal);await this.save({phase:'success',message:'更新完成。'})}else await this.recover(journal)}finally{this.busy=false}}
     else if(['checking','downloading','verifying','loading','cancelling'].includes(this.info.phase))await this.save({phase:'failed',message:'上次更新已中断，旧版仍保留，可重新检查更新。'});
@@ -82,7 +82,7 @@ export class Updater{
     if(this.busy||this.info.phase==='blocked')return this.status();this.busy=true;
     try{
       if(this.info.cleanupTask||this.info.cleanup?.pending)await this.maintain();
-      await this.save({phase:'checking',message:'正在验证 GitHub 权限并检查私有发行版…'});
+      await this.save({phase:'checking',message:'正在检查发行版…'});
       const app=await this.discover(),current=app.Config.Labels?.['org.opencontainers.image.version'];
       this.latest=await this.releases();const {manifest:m,notes,url}=this.latest;
       const available=compareVersions(m.version,current)>0;
@@ -90,7 +90,7 @@ export class Updater{
     }catch(e){await this.save({phase:'failed',available:false,authRequired:['auth_required','auth_invalid','access_denied'].includes(e.message),latest:null,notes:null,url:null,checked:Date.now(),message:publicMessage(e)})}finally{this.busy=false}
     return this.status();
   }
-  status(){const {phase,current,latest,available,notes,url,checked,message,progress,updated,authRequired}=this.info;return {enabled:true,updaterVersion,bundleProtocol,selfUpdateSupported:true,phase,current,latest,available,notes,url,checked,message,progress,updated,busy:this.busy,cleanup:this.info.cleanup??null,retentionSupported:true,cancelSupported:true,canCancel:this.canCancel(),auth:{connected:!!this.credential,login:this.credential?.login??null,required:!this.credential||!!authRequired}}}
+  status(){const {phase,current,latest,available,notes,url,checked,message,progress,updated,authRequired}=this.info;return {enabled:true,updaterVersion,bundleProtocol,selfUpdateSupported:true,publicDownloadsSupported:true,phase,current,latest,available,notes,url,checked,message,progress,updated,busy:this.busy,cleanup:this.info.cleanup??null,retentionSupported:true,cancelSupported:true,canCancel:this.canCancel(),auth:{connected:!!this.credential,login:this.credential?.login??null,required:!!authRequired}}}
   async authorize(token){
     if(this.busy||this.info.phase==='blocked')throw new Error('busy');
     if(typeof token!=='string'||!/^[-A-Za-z0-9_]{20,255}$/.test(token.trim()))throw new Error('auth_invalid');
@@ -107,7 +107,7 @@ export class Updater{
     if(this.busy||this.info.phase==='blocked')throw new Error('busy');
     this.busy=true;
     try{await rm(this.file('github.json'),{force:true});this.credential=null;this.latest=null;
-      await this.save({phase:'idle',authRequired:true,available:false,latest:null,notes:null,url:null,checked:null,message:'已移除本机 GitHub 凭据，现有版本和战绩仍可使用。'});return {accepted:true};
+      await this.save({phase:'idle',authRequired:false,available:false,latest:null,notes:null,url:null,checked:null,message:'已移除本机 GitHub 凭据，仍可检查公开发行版；战绩和任天堂账号不受影响。'});return {accepted:true};
     }finally{this.busy=false}
   }
   async install(version){

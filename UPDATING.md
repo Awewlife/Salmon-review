@@ -1,10 +1,10 @@
-# 网页一键更新（0.3.12 私有预发布）
+# 网页一键更新（0.4.0）
 
 ## 玩家怎么用
 
 从 0.3.9 及更早版本升级到 0.3.10 或更新版本，必须完整解压新版 Windows 安装包并用其中的 Start.cmd 启动一次，沿用原 Compose 项目名和数据卷。此后主程序和更新组件都会通过网页一并升级，无需为了更新组件的新功能反复下载完整包。请保留并使用 0.3.10 或更新的启动器。
 
-**版本与更新** 位于“数据与同步”设置内。完成下方 GitHub 授权后，每次打开网页自动检查一次；发现新版时显示可关闭的提示，也可在设置中手动检查。发现新版后，先看更新内容，再点击 **更新到 x.y.z**。不会未经点击就安装。
+**版本与更新** 位于“数据与同步”设置内。公开发行版无需授权，每次打开网页自动检查一次；发现新版时显示可关闭的提示，也可在设置中手动检查。发现新版后，先看更新内容，再点击 **更新到 x.y.z**。不会未经点击就安装。
 
 下载期间继续使用原版；下载完成并通过校验后，程序会短暂暂停写入、备份并重启。保持 Docker Desktop 运行即可，网页会自动重连。战绩、设置和登录凭据沿用原数据卷；任天堂凭据本身到期仍需重新连接。
 
@@ -12,25 +12,19 @@
 
 安装包仍可以手动更新。继续使用相同项目名；新版启动器会识别网页已安装的更高版本，不会自动降级。手工执行旧版 `docker compose up` 不包含这个保护，应使用启动器。
 
-## 谁能更新，怎么连接
+## 公开版和可选凭据
 
-原仓库 **Awewlife/Salmon-review 保持私有**，不再另设公开发行仓库。此阶段仅邀请少数可信协作者试用。
+0.4.0 优先匿名访问固定仓库 `Awewlife/Salmon-review`。公开发行版不要求 GitHub 账号或令牌；此前保存的过期令牌不会阻止匿名检查和下载。
 
-1. 维护者在原仓库 Settings → Collaborators 邀请认可的 GitHub 用户；对方必须接受邀请。个人账号仓库的协作者拥有源码读写权限，**并非仅能下载更新**。目前尚未自动邀请任何用户。
-2. 玩家使用自己的 GitHub 账号打开原仓库，确认能够看到 Releases。只收到安装包、尚未获得仓库权限的人不能在线更新。
-3. 普通受邀协作者在 GitHub Settings → Developer settings → Personal access tokens → Tokens (classic) 创建自己的令牌，选择 `repo`，设置有效期，例如 30 天。**经典令牌可访问自己有权访问的多个私有仓库，权限不只限本项目，且可能包含写权限。** 本工具的更新实现只执行固定仓库的读取操作。不要使用维护者的令牌或把令牌发给他人。
-4. 打开本机网页“数据与同步 → 版本与更新”，把令牌粘贴到“GitHub 更新权限”，点击“验证并保存”，然后“检查更新”。若显示尚无带网页更新附件的版本，说明权限已通过，但维护者尚未上传签名更新附件。
-5. 到期后创建自己的新令牌，在同一位置替换。点击“移除本机更新凭据”只删除这台电脑保存的 GitHub 凭据；要彻底吊销令牌，还需在 GitHub 的令牌设置中删除它。
+**从旧私有版迁移时，使用 0.4.0 完整安装包启动一次。** 沿用原 Compose 项目名和数据卷，不要删除原实例。旧版更新组件会拒绝已公开的仓库，不能依靠它完成首次公开版升级。
 
-仓库所有者自己测试时，可用细粒度令牌，仅选择 `Salmon-review`，授予 `Contents: Read-only`。GitHub 对外部/仓库协作者使用细粒度令牌存在限制，不能把这个方案写成适用于所有受邀玩家。
+仅在私有测试或匿名 API 访问受到限流时，才展开“可选 GitHub 凭据”。使用自己的凭据，按界面要求验证并保存；不要使用维护者的令牌。私有仓库还要求账号本身具有仓库读取权限，仅创建令牌不能获得访问权。
 
-维护者从仓库中移除协作者后，其后续检查和安装将不能通过权限验证。已安装版本、已下载副本以及尚未过期的 GitHub 临时下载链接无法远程收回；这不是远程停用软件或防转发机制。每次安装都重新向 GitHub 验证权限，不以页面缓存的“有新版”作为授权。
-
-权限依据：[个人仓库协作者权限](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/permission-levels-for-a-personal-account-repository)、[GitHub 个人访问令牌说明与限制](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)。
+凭据失效后可替换，也可点击“移除本机更新凭据”恢复匿名访问。此操作只移除本机副本；吊销令牌需到 GitHub 设置中操作。公共访问失败不会绕过签名、来源或镜像校验。
 
 ## 下载、备份和权限
 
-- 固定私有源：`Awewlife/Salmon-review`。通过 GitHub API 验证账号与仓库权限，再下载 Release 附件；没有匿名回退或其他公开源。
+- 固定来源：`Awewlife/Salmon-review`。优先匿名读取 GitHub API；私有访问或限流时可使用本机保存的凭据。下载地址由仓库内的数字附件 ID 构造，安装时重新检查来源。
 - 每位玩家的 GitHub 令牌只保存到本机更新卷的 `github.json`，权限为仅更新组件用户可读写（0600）。这不是加密存储；有本机管理员或 Docker 权限的人仍能读取。令牌不回显到网页、不放进安装包，也不随战绩导出；下载跳转到 GitHub 文件服务器时不转发令牌。
 - 安装前验证内置 Ed25519 公钥对应的更新签名、文件大小、SHA-256、镜像 ID、平台和提交版本。页面不能指定任意下载地址、容器名或命令。
 - 独立 updater 容器及安装期间的临时助手挂载 Docker 控制接口；不开放 updater 的主机端口。主程序通过本地鉴权通道调用检查/安装操作。Docker 控制接口具有很高权限，因此仍应只安装来自可信维护者的更新组件。
@@ -47,16 +41,16 @@
 先完成测试与许可核对，再提交源码、按提交构建版本镜像，运行：
 
 ```text
-python scripts/package-release.py --output <仓库外输出目录> --signing-key <私钥文件>
+python scripts/package-release.py --sources <已校验的源码缓存目录> --output <仓库外输出目录> --signing-key <私钥文件>
 ```
 
-除了完整 Windows 安装包、对应源码和许可材料，还生成单独的镜像归档与签名 `update.json`。完整上传到原私有仓库 `Awewlife/Salmon-review` 同名版本的 Release 后，最后发布 Release；不要提前发布不完整附件。更新组件会从已发布版本中选取版本号最高且带 `update.json` 的版本，包括本项目的预发布版。
+除了完整 Windows 安装包、对应源码和许可材料，还生成单独的镜像归档与签名 `update.json`。完整上传到原仓库 `Awewlife/Salmon-review` 同名版本的 Release 后，最后发布 Release；不要提前发布不完整附件。更新组件会从已发布版本中选取版本号最高且带 `update.json` 的版本，包括本项目的预发布版。
 
-签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、容器内 `npm test`、`tests/installer.Tests.ps1`、`tests/run-updater-docker.ps1`。最后一项创建专用 `salmon-update-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。
+签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、容器内 `node --test tests/*.test.js`、`tests/installer.Tests.ps1`、`tests/run-bundle-docker.ps1`。最后一项创建专用 `salmon-bundle-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。
 
-**分发材料状态：** 新构建已在安装依赖时将 `splatnet3-types` 替换为本地兼容模块，nxapi 的登录和同步逻辑保持不变。旧发布包不会被追溯修改。新构建已补齐 `tr46` 的版权声明与 MIT 正文；其余镜像分发材料仍需按 `THIRD_PARTY_NOTICES.md` 核对，私有试用不代表全部许可问题已解决。
+**分发材料：** `splatnet3-types` 已替换为带来源记录的本地模块，`tr46` 的 MIT 正文及版权声明已补齐。打包前运行 `scripts/collect-release-sources.py --image salmon-review:0.4.0 --output <仓库外目录>`；系统、Node 和原生库版本必须与源码锁定清单一致，文件缺失或哈希不符时停止打包。字体行为保持不变，第三方权利和源码重建说明见 `THIRD_PARTY_NOTICES.md` 与 `licenses/SOURCE-BUILD.md`。
 
-现有 GitHub Actions 打包流程不持有更新签名私钥，单独运行它不会自动生成网页更新清单。当前须由维护者本地使用上述 `--signing-key` 命令生成镜像归档和 `update.json`，上传同一私有 Release 后再发布；没有清单的旧版本不会被网页列为可安装更新。
+GitHub Actions 只构建草稿附件，不持有更新签名私钥，也不自动公开仓库或发布草稿。维护者须验证镜像和源码附件，再本地签署 `update.json`，补齐校验和，最后发布。没有签名清单的版本不会被网页列为可安装更新。
 
 
 ## 取消更新与磁盘占用

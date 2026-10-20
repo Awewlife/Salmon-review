@@ -10,6 +10,7 @@ scripts/*
 !scripts/generate-notices.mjs
 !scripts/check-splatnet-compat.mjs
 !scripts/notice-supplements.mjs
+!scripts/trim-platform-binaries.mjs
 third-party
 examples
 *.log

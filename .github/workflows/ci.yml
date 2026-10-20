@@ -21,7 +21,7 @@ jobs:
           python-version: '3.13'
       - run: python -m unittest discover -s tests -p test_release_package.py
       - run: docker build -t salmon-review:ci -t salmon-review:bundle-test .
-      - run: docker run --rm --mount type=bind,source="${{ github.workspace }}/tests",target=/app/tests,readonly salmon-review:ci npm test
+      - run: docker run --rm --mount type=bind,source="${{ github.workspace }}/tests",target=/app/tests,readonly salmon-review:ci node --test tests/*.test.js
       - name: Verify updater self-replacement and recovery in isolated Docker project
         shell: pwsh
         run: ./tests/run-bundle-docker.ps1

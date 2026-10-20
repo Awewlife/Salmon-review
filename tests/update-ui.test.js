@@ -11,10 +11,10 @@ test('current release notice waits for update component to finish its transactio
   f.setState({busy:false,phase:'success'});f.timers[1]();await f.flush();
   assert.deepEqual(versions,['0.3.6']);
 });
-async function fixture(connected=true,intercept=()=>null){
+async function fixture(connected=true,intercept=()=>null,initial={}){
   const elements=new Map(),timers=[],calls=[];
   const element=id=>{if(!elements.has(id))elements.set(id,{open:false,hidden:true,textContent:'',value:'',innerHTML:'',addEventListener(type,fn){this['on'+type]=fn},showModal(){this.open=true},close(){this.open=false},querySelector:selector=>element(selector)});return elements.get(id)};
-  let state={enabled:true,phase:'idle',auth:{connected},available:false,busy:false};
+  let state={enabled:true,phase:'idle',auth:{connected},available:false,busy:false,...initial};
   const c={window:{},document:{querySelector:element},location:{reload(){}},AbortSignal,setInterval:fn=>timers.push(fn),fetch:async(url,options)=>{
     calls.push({url,options});
     const intercepted=intercept(url,options);if(intercepted)return intercepted;
@@ -39,6 +39,15 @@ test('authorized startup checks once, notifies without a sidebar item, and respe
 test('startup without GitHub credentials does not call the release check or prompt an update',async()=>{
   const f=await fixture(false);f.timers[1]();await f.flush();
   assert.equal(f.calls.filter(c=>c.url==='/api/update/check').length,0);assert.equal(f.element('#update-notice').hidden,true);
+});
+test('public-capable updater checks without credentials while legacy updater keeps its authorization gate',async()=>{
+  const f=await fixture(false,()=>null,{publicDownloadsSupported:true});
+  assert.equal(f.calls.filter(c=>c.url==='/api/update/check').length,1);
+  await f.c.window.SalmonUpdates.open();
+  assert.doesNotMatch(f.element('#update-dialog').innerHTML,/id="check-update"[^>]*disabled/);
+  assert.match(f.element('#update-dialog').innerHTML,/公开发行版/);
+  f.timers[1]();await f.flush();
+  assert.equal(f.calls.filter(c=>c.url==='/api/update/check').length,1);
 });
 
 

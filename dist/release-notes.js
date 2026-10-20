@@ -1,7 +1,11 @@
 'use strict';
 window.SalmonReleaseNotes=(()=>{
   // Ship these notes with the app so a completed update needs no GitHub request.
-  const releases={'0.3.12':[
+  const releases={'0.4.0':[
+    '公开发行版无需 GitHub 令牌即可检查和下载更新。',
+    '补齐对应源码与许可附件，固定镜像依赖并更新系统安全补丁。',
+    '旧私有版请使用 0.4.0 完整安装包过渡一次，沿用原项目名和数据卷。',
+  ],'0.3.12':[
     '调整队员名片比例和昵称排版，长名字自动适应宽度，并提供本地字体回退。',
     '更新同步依赖兼容层，保留原有登录状态与打工同步功能。',
     '补齐第三方许可材料，并增加发行打包校验。',

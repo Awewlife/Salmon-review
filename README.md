@@ -2,9 +2,9 @@
 
 Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具。它将打工记录保存在电脑上，并通过浏览器展示个人表现、队友对比和段位分数变化。
 
-当前版本：**0.3.12 · 私有预发布版**。本项目不是任天堂官方产品。下载发行版需要具有仓库访问权限的 GitHub 账号。
+当前版本：**0.4.0**。本项目不是任天堂官方产品。公开发行版无需 GitHub 账号即可下载。
 
-[下载发行版](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.12) · [更新记录](CHANGELOG.md) · [测试说明](BETA_TESTING.md) · [网页更新说明](UPDATING.md)
+[下载发行版](https://github.com/Awewlife/Salmon-review/releases/tag/v0.4.0) · [更新记录](CHANGELOG.md) · [测试说明](BETA_TESTING.md) · [网页更新说明](UPDATING.md)
 
 ## 功能概览
 
@@ -48,8 +48,8 @@ Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具
 ### 2. 下载并解压
 
 1. 登录有仓库访问权限的 GitHub 账号。
-2. 打开 [v0.3.12 发行版页面](https://github.com/Awewlife/Salmon-review/releases/tag/v0.3.12)。
-3. 在 **Assets** 中下载 **`SalmonReview-v0.3.12-windows-x64.zip`**。
+2. 打开 [v0.4.0 发行版页面](https://github.com/Awewlife/Salmon-review/releases/tag/v0.4.0)。
+3. 在 **Assets** 中下载 **`SalmonReview-v0.4.0-windows-x64.zip`**。
 4. 将 ZIP 完整解压到固定目录，例如 `D:\Games\SalmonReview`。
 5. 确认目录中包含 `Start.cmd`、`Start.ps1`、`compose.yaml` 和 `salmon-review-image.tar.gz`。
 
@@ -175,11 +175,11 @@ docker compose -p salmon-review stop
 
 **从 0.3.9 及更早版本升级时，必须使用 0.3.10 或更新版本的完整安装包过渡一次。** 完成后，主程序和更新组件均支持网页一键更新。请保留 0.3.10 或更新版本的启动器。
 
-1. 按 [网页更新说明](UPDATING.md)准备自己的 GitHub 访问令牌。
-2. 打开 **数据与同步 → 版本与更新**。
-3. 在 **GitHub 更新权限** 中验证并保存令牌。
-4. 点击 **检查更新**。
-5. 阅读版本说明，点击更新按钮。
+1. 打开 **数据与同步 → 版本与更新**。
+2. 点击 **检查更新**，无需 GitHub 令牌。
+3. 阅读版本说明，点击更新按钮。
+
+旧私有版更新组件只接受私有仓库。迁移到公开版时，请用 **0.4.0 完整安装包**启动一次，沿用原项目名和数据卷。此后两个组件均可匿名更新。只有私有测试或 GitHub 限流时才需要可选凭据，见 [网页更新说明](UPDATING.md)。
 
 程序会在打开网页时检查新版，但不会自动安装。签名校验和下载阶段可取消更新，取消后可重试。进入安装或恢复阶段后，请保持 Docker Desktop 运行并等待完成。
 
@@ -268,7 +268,7 @@ docker compose -p salmon-review logs --tail=100 app
 
 认证需要访问任天堂和 nxapi 使用的第三方服务。nxapi 会向第三方认证服务发送短期令牌、账号标识等必要字段。具体服务和字段取决于固定依赖版本及远程配置，参见 [nxapi 认证说明](https://github.com/samuelthomas2774/nxapi#coral-client-authentication)。
 
-同步请求发送到任天堂。游戏图片从记录引用的 Nintendo 资源域名下载并缓存。网页更新访问原私有 GitHub 仓库。本项目不提供战绩上传服务器，也不自动上传记录到 stat.ink 或 AI 服务。
+同步请求发送到任天堂。游戏图片从记录引用的 Nintendo 资源域名下载并缓存。网页更新访问本项目的 GitHub Release。本项目不提供战绩上传服务器，也不自动上传记录到 stat.ink 或 AI 服务。
 
 | 数据卷 | 保存内容 |
 | --- | --- |
@@ -337,12 +337,13 @@ npm start
 
 项目代码采用 **AGPL-3.0-or-later**，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。第三方组件及 Nintendo 资源保留各自权利。依赖清单见 [THIRD_PARTY_PACKAGES.json](THIRD_PARTY_PACKAGES.json)，许可状态见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-新构建已用本地兼容模块替换 `splatnet3-types`，常量来源和许可记录见 [兼容模块说明](packages/splatnet3-compat/README.md)，nxapi 继续负责登录和打工同步。新构建也补齐了 `tr46 0.0.3` 的上游版权声明与 MIT 正文，并校验来源和打包完整性。此替换不改变旧版本安装包，也不代表全部分发材料已齐备；公开再分发前仍应完成相应核对。
+新构建已用本地兼容模块替换 `splatnet3-types`，常量来源和许可记录见 [兼容模块说明](packages/splatnet3-compat/README.md)，nxapi 继续负责登录和打工同步。新构建也补齐了 `tr46 0.0.3` 的上游版权声明与 MIT 正文，并校验来源和打包完整性。发行附件包含对应应用源码、依赖声明和按最终镜像核对的系统及原生库源码；源码索引与重建说明见 [SOURCE-BUILD.md](licenses/SOURCE-BUILD.md)。历史私有附件已单独归档，不再公开分发。
 
 维护者应先完成测试并提交源码，再按该提交构建镜像。镜像版本标签和 `VCS_REF` 必须与源码一致。使用仓库外的签名私钥生成发行附件：
 
 ```sh
-python scripts/package-release.py --output <仓库外的空目录> --signing-key <私钥文件>
+python scripts/collect-release-sources.py --image salmon-review:0.4.0 --output <仓库外的源码缓存目录>
+python scripts/package-release.py --sources <源码缓存目录> --output <仓库外的空目录> --signing-key <私钥文件>
 ```
 
 先上传全部附件到发行版草稿，再发布。私钥不得提交到仓库或打包。现有 Actions 打包流程不持有该私钥，不能单独生成网页更新所需的签名清单。完整发布流程见 [UPDATING.md](UPDATING.md#维护者发布)。
