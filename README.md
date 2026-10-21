@@ -1,4 +1,4 @@
-<img width="1579" height="581" alt="image" src="https://github.com/user-attachments/assets/bd9a80e5-0eb7-45c9-b72e-9f72e80a1988" />
+
 
 # Salmon Review
 ## 写在最前边
