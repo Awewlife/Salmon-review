@@ -15,6 +15,47 @@ const row=(values,i=0)=>({id:'match-'+i,index:i+1,time:'2026-10-12T00:00:00Z',co
 const people=[{key:'p0',name:'我<&',self:true,color:'#d5ef68'},{key:'p1',name:'队友1',color:'#81cbd9'}];
 const plain=v=>JSON.parse(JSON.stringify(v));
 
+test('chart labels and exported legends separate protected nicknames from the translated self marker',()=>{
+  const c=setup(),jobs=[row([10,20,30,40])];
+  const chart=c.largeChart(jobs,people,'eggs');
+  assert.match(chart,/<tspan translate="no">我&lt;&amp;<\/tspan><tspan data-translate-ui="true"> · 我<\/tspan>/);
+  const exported=c.trendExportSvg(jobs,people,['eggs'],true,'场地').svg;
+  assert.match(exported,/<tspan translate="no">我&lt;&amp;<\/tspan><tspan> · 我<\/tspan>/);
+  const long=c.largeChart(jobs,[{...people[0],name:'A very long nickname'}],'eggs');
+  assert.match(long,/…<\/tspan><tspan data-translate-ui="true"> · 我<\/tspan>/);
+});
+
+test('pointer moves within the same job/player do not rebuild tooltips or synchronized charts',()=>{
+  const c=setup(),jobs=[row([10,20,30,40],0),row([10,20,30,40],1)];
+  let rebuilds=0,syncs=0,pointScans=0;
+  const tip={style:{},offsetWidth:340,offsetHeight:240,contains:()=>false,set innerHTML(value){rebuilds++}};
+  const rect={left:0,right:800,top:0,bottom:600,width:800,height:600};
+  const plot={querySelector:()=>tip,getBoundingClientRect:()=>rect,closest:()=>({getBoundingClientRect:()=>rect})};
+  const svg={viewBox:{baseVal:{height:260,width:1100}},getBoundingClientRect:()=>({...rect,height:260}),querySelectorAll(){pointScans++;return []}};
+  c.window.innerHeight=700;
+  const hits=jobs.map(job=>({dataset:{trendJob:job.id,metric:'eggs',jobX:'550'},closest:selector=>selector==='svg'?svg:plot,getBoundingClientRect:()=>({left:390,width:20,bottom:260})}));
+  const plots={querySelectorAll:selector=>selector==='[data-trend-job]'?hits:[]};
+  c.syncTrendFocus=()=>syncs++;vm.runInContext('trendState={showQuarter:true}',c);
+  c.bindTrendInteractions(plots,jobs,people);
+  hits[0].onpointerenter({clientY:0});
+  for(let i=0;i<100;i++)hits[0].onpointermove({clientY:i});
+  assert.equal(rebuilds,1);assert.equal(syncs,1);assert.equal(pointScans,2);
+  hits[1].onpointerenter({clientY:0});assert.equal(rebuilds,2);assert.equal(syncs,2);
+  hits[1].onpointerleave();assert.equal(tip.style.display,'none');assert.equal(syncs,3);
+});
+
+test('tooltip placement avoids the selected nodes on both edges and narrow charts',()=>{
+  const c=setup();
+  for(const [width,x,top,bottom,height] of [[900,30,100,230,600],[900,850,100,230,600],[430,215,100,230,650],[430,215,300,430,500],[320,160,70,240,310]]){
+    const bounds={left:4,right:width-4,top:8,bottom:height-8},anchor={x,top,bottom};
+    const p=c.trendTooltipPlacement(anchor,bounds,{width:340,height:250});
+    const shownHeight=Math.min(250,p.maxHeight);
+    assert.ok(p.left>=bounds.left&&p.left+p.width<=bounds.right);
+    assert.ok(p.top>=bounds.top&&p.top+shownHeight<=bounds.bottom);
+    assert.ok(p.left>=x+14||p.left+p.width<=x-14||p.top>=bottom+14||p.top+shownHeight<=top-14,JSON.stringify(p));
+  }
+});
+
 test('all metrics use all four personal settlements, never official team fields, assists or visible players',()=>{
   const c=setup(),j=row([10,20,30,40]),before=JSON.stringify(j);
   for(const metric of ['eggs','kills','deaths','power']){

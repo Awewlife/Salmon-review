@@ -1,5 +1,10 @@
 # Player nameplate fonts
 
+The optional Inkling display mode uses a separate remotely loaded font by
+eli / frozenpandaman. See [INKLING-NOTICE.txt](INKLING-NOTICE.txt) for attribution,
+non-commercial conditions, pinned source and network behavior. This is not the
+Splatfont used for player nameplates. Neither remote font is bundled.
+
 `MPLUSRounded1c-ExtraBold.ttf` is the unmodified M PLUS Rounded 1c ExtraBold
 font from Google Fonts (`ofl/mplusrounded1c`), blob
 `87139264ea06b57d45426775bc915622eae03272`. Copyright 2016 The Rounded M+

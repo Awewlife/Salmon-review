@@ -59,6 +59,7 @@ export class Tasks{
         if(type==='progress')this.store.db.prepare('UPDATE runs SET done=?,total=? WHERE id=?').run(value.done,value.total,id);
       });
       if(summary)this.store.import([summary]);
+      if(Date.now()>=this.store.get('careerNextAttempt',0))await this.updateCareer().catch(()=>{});
       this.store.db.prepare("UPDATE runs SET state='success',finished=? WHERE id=?").run(new Date().toISOString(),id);
       this.store.set('lastSuccess',new Date().toISOString());this.store.set('failures',0);
       this.store.set('manualNextAttempt',Date.now()+5000);
@@ -72,6 +73,22 @@ export class Tasks{
       if(!['network','rate_limited','interrupted'].includes(code))this.store.set('paused',code);
       console.warn(JSON.stringify({event:'sync_failed',id,code,message:messages[code]}));
     }finally{this.active=false}
+  }
+  async updateCareer(){
+    try{
+      const value=await this.runner({action:'career',credentials:this.account.read()},()=>{},90000);
+      // Older injected sync runners do not implement this action.
+      if(!value?.format)throw new Error('upstream');
+      this.store.saveCareer(value);return this.store.career();
+    }catch(error){const code=classify(error);this.store.set('careerError',{code,message:code==='upstream'?'官方生涯纪录获取失败，请稍后重试。':messages[code],at:new Date().toISOString()});if(code==='rate_limited')this.store.set('careerNextAttempt',Date.now()+15*60*1000);throw error}
+  }
+  async refreshCareer(){
+    if(this.active||this.authBusy||this.updateLocked||this.account.pending)throw new Error('busy');
+    if(!this.account.read())throw new Error('auth_required');
+    if(Date.now()<this.store.get('careerNextAttempt',0))throw new Error('cooldown');
+    this.active=true;this.store.set('careerNextAttempt',Date.now()+30000);
+    this.completion=this.updateCareer();
+    try{return await this.completion}finally{this.active=false}
   }
   schedule(){this.timer=setInterval(()=>{
     const minutes=this.store.get('autoMinutes',0),last=this.store.db.prepare('SELECT started FROM runs ORDER BY id DESC LIMIT 1').get();

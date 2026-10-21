@@ -2,6 +2,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,chmodSync} from 'node:fs';
 import path from 'node:path';
 import {hash,ownerOf,validateRecord,groupsOf,normalize,item,rejectSecrets} from './normalize.js';
+import {validateCareer} from './career.js';
 import {historyAdjacency} from './continuity.js';
 
 export class Store{
@@ -71,17 +72,19 @@ export class Store{
     catch(error){this.db.exec('ROLLBACK');throw error}
   }
   snapshot(){
-    const assets=new Map();
-    const asset=url=>{if(!url)return '';const id=hash(url.split('?')[0]);assets.set(id,url);return '/assets/'+id};
+    const assets=new Map(),assetIds=new Map();
+    const asset=url=>{if(!url)return '';const base=url.split('?')[0];let id=assetIds.get(base);if(!id){id=hash(base);assetIds.set(base,id)}assets.set(id,url);return '/assets/'+id};
     const adjacent=historyAdjacency(this.db.prepare('SELECT raw FROM summaries').all().map(r=>JSON.parse(r.raw)));
     const allShifts=this.db.prepare('SELECT info FROM shifts').all().map(r=>JSON.parse(r.info));
     const byId=new Map(allShifts.map(s=>[s.id,s]));
     const rows=this.db.prepare('SELECT r.raw,m.shift_id FROM records r LEFT JOIN membership m ON m.record_id=r.id ORDER BY r.played,r.id').all();
-    const rawById=new Map(rows.map(row=>{const raw=JSON.parse(row.raw);return [normalizeId(raw.id),raw]}));
-    const all=rows.map(row=>normalize(JSON.parse(row.raw),byId.get(row.shift_id),asset));
+    const parsed=rows.map(row=>({...row,raw:JSON.parse(row.raw)}));
+    const rawById=new Map(parsed.map(row=>[normalizeId(row.raw.id),row.raw]));
+    const all=parsed.map(row=>normalize(row.raw,byId.get(row.shift_id),asset));
+    const grouped=new Map();for(const job of all){if(!grouped.has(job.shift))grouped.set(job.shift,[]);grouped.get(job.shift).push(job)}
     const jobs=all.filter(j=>j.supported),shifts=[],chartJobs=[];
     for(const group of allShifts.sort((a,b)=>b.start.localeCompare(a.start))){
-      const batch=jobs.filter(j=>j.shift===group.id),archived=all.filter(j=>j.shift===group.id);
+      const archived=grouped.get(group.id)??[],batch=archived.filter(j=>j.supported);
       if(!batch.length)continue;
       batch.forEach((j,i)=>{j.index=i+1;j.continuousWithPrevious=i>0&&adjacent(group.id,batch[i-1].id,j.id)});
       // A chart timeline may include known interruptions, but statistical jobs
@@ -103,8 +106,23 @@ export class Store{
     return {generated:new Date().toISOString(),language:'zh-CN',timezone:'Asia/Hong_Kong',player:all.at(-1)?.players[0]?.name??'尚未导入战绩',jobs,chartJobs,shifts,
       archived:all.length,excluded:all.filter(j=>!j.supported).map(j=>({id:j.id,time:j.time,stage:j.stage.name,reasons:j.reasons})),lastImport:this.get('lastImport')};
   }
-  backup(){return {format:'salmon-review-backup',version:1,created:new Date().toISOString(),documents:[...this.db.prepare('SELECT raw FROM summaries ORDER BY created').all(),...this.db.prepare('SELECT raw FROM records ORDER BY played').all()].map(r=>({result:JSON.parse(r.raw)}))}}
-  restore(backup){if(backup?.format!=='salmon-review-backup'||backup.version!==1)throw new Error('invalid_backup');return this.import(backup.documents,{backup:true})}
+  saveCareer(value){
+    value=validateCareer(value);const owner=this.get('owner');
+    if(owner&&owner!==value.owner)throw new Error('account_mismatch');
+    this.db.exec('BEGIN IMMEDIATE');try{if(!owner)this.set('owner',value.owner);this.set('career',value);this.set('careerError',null);this.db.exec('COMMIT')}catch(e){this.db.exec('ROLLBACK');throw e}
+  }
+  career(){
+    const value=this.get('career');if(!value)return {record:null,error:this.get('careerError')};
+    const assets=new Map(),asset=url=>{if(!url)return '';const id=hash(url.split('?')[0]);assets.set(id,url);return '/assets/'+id};
+    const {owner,format,...record}=value;
+    record.avatar=asset(record.avatar);
+    for(const key of ['stages','enemies','bosses'])record[key]=record[key].map(row=>({...row,image:asset(row.image)}));
+    this.saveAssets(assets);return {record,error:this.get('careerError')};
+  }
+  backup(){return {format:'salmon-review-backup',version:1,created:new Date().toISOString(),...(this.get('career')?{career:this.get('career')}:{}),documents:[...this.db.prepare('SELECT raw FROM summaries ORDER BY created').all(),...this.db.prepare('SELECT raw FROM records ORDER BY played').all()].map(r=>({result:JSON.parse(r.raw)}))}}
+  restore(backup){if(backup?.format!=='salmon-review-backup'||backup.version!==1)throw new Error('invalid_backup');const career=backup.career?validateCareer(backup.career):null;
+    if(career){const owners=new Set([this.get('owner'),...backup.documents.filter(d=>d.result?.myResult).map(d=>ownerOf(d.result))].filter(Boolean));if([...owners].some(o=>o!==career.owner))throw new Error('account_mismatch')}
+    const result=this.import(backup.documents,{backup:true});if(career)this.saveCareer(career);return result}
   close(){this.db.close()}
 }
 const normalizeId=id=>'job-'+hash(id).slice(0,24);

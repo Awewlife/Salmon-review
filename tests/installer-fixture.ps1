@@ -15,6 +15,15 @@ $installer = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '../release/Start.p
 # Match the packaged script encoding, including Windows PowerShell 5.1's BOM.
 [IO.File]::WriteAllText((Join-Path $Directory 'Start.ps1'), $installer, (New-Object Text.UTF8Encoding($true)))
 $checks = foreach ($file in Get-ChildItem -LiteralPath $Directory -File) { '{0}  {1}' -f (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant(),$file.Name }
+if ($Scenario -in @('nested','nested-tampered')) {
+    $docDir = Join-Path $Directory 'docs'
+    New-Item -ItemType Directory -Path $docDir | Out-Null
+    $docFile = Join-Path $docDir 'NOTICE.txt'
+    'fixture notice' | Set-Content -LiteralPath $docFile
+    $checks += '{0}  docs/NOTICE.txt' -f (Get-FileHash -LiteralPath $docFile -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($Scenario -eq 'nested-tampered') { 'modified notice' | Set-Content -LiteralPath $docFile }
+}
+if ($Scenario -eq 'unsafe-path') { $checks += ('a' * 64) + '  ../outside.txt' }
 $checks | Set-Content -LiteralPath (Join-Path $Directory 'SHA256SUMS.txt') -Encoding ASCII
 
 # Exercise the real installer with a fake Docker boundary: no daemon or user data.

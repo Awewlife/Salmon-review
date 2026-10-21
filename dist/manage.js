@@ -4,6 +4,8 @@
   let openGeneration=0,refreshing=null,dataRefresh=Promise.resolve(),loadedVersion=null,needsData=true;
   const dialog=document.querySelector('#manage-dialog');
   const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const paintedText=new WeakMap();
+  const setText=(element,value)=>{if(paintedText.get(element)===value)return;paintedText.set(element,value);element.textContent=value};
   const stamp=value=>value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'尚无';
   const errors={auth_required:'请重新连接账号',upstream_disabled:'上游暂时禁止认证',upstream:'上游接口异常，需要检查版本',rate_limited:'请求受限，已延后',network:'网络暂时不可用',interrupted:'任务中断，可再次同步继续',account_mismatch:'账号与已有战绩不一致',disk:'请检查磁盘空间或数据卷权限'};
   async function request(url,body){
@@ -27,9 +29,9 @@
     if(waiting)link.href=authAttempt.url;else link.removeAttribute('href');
     document.querySelector('#finish-auth').disabled=busy||!waiting||!document.querySelector('#auth-link').value.trim();
     document.querySelector('#connect-account').disabled=busy||state.sync.active;
-    document.querySelector('#connect-account').textContent=authPhase==='starting'?'正在生成链接…':authPhase==='idle'?'开始连接 / 重新连接':'重新生成登录链接';
-    document.querySelector('#finish-auth').textContent=authPhase==='submitting'?'正在验证，请稍候…':'完成连接';
-    document.querySelector('#auth-expiry').textContent=waiting?`本次链接剩余 ${Math.ceil((authAttempt.expires-Date.now())/60000)} 分钟；请使用本次打开的登录页面。`:'';
+    setText(document.querySelector('#connect-account'),authPhase==='starting'?'正在生成链接…':authPhase==='idle'?'开始连接 / 重新连接':'重新生成登录链接');
+    setText(document.querySelector('#finish-auth'),authPhase==='submitting'?'正在验证，请稍候…':'完成连接');
+    setText(document.querySelector('#auth-expiry'),waiting?`本次链接剩余 ${Math.ceil((authAttempt.expires-Date.now())/60000)} 分钟；请使用本次打开的登录页面。`:'');
     document.querySelector('#disconnect-account').disabled=busy||state.sync.active||!state.connected;
   }
   const needsLogin=()=>!state.connected||state.sync.paused==='auth_required';
@@ -37,22 +39,22 @@
   function paintRetryButtons(){
     const quick=document.querySelector('#quick-sync'),retryAt=manualRetryAt(),seconds=Math.max(0,Math.ceil((retryAt-Date.now())/1000)),cooldown=seconds>0,limited=state.sync.rateLimitedUntil>Date.now();
     quick.disabled=busy||state.sync.active||needsLogin()||cooldown;
-    quick.textContent=state.sync.active?'正在同步…':needsLogin()?'请先连接账号':cooldown?(limited?'限流等待中':seconds<=60?`${seconds} 秒后可重试`:'稍后再同步'):'立即同步';
+    setText(quick,state.sync.active?'正在同步…':needsLogin()?'请先连接账号':cooldown?(limited?'限流等待中':seconds<=60?`${seconds} 秒后可重试`:'稍后再同步'):'立即同步');
     quick.title=needsLogin()?'请通过左侧账号入口重新连接':cooldown?`${limited?'请求受限，最早':'手动'}可同步：${stamp(retryAt)}`:'下载最新打工记录';
-    const sync=document.querySelector('#sync-now');if(sync){sync.disabled=quick.disabled;sync.textContent=quick.textContent;sync.title=quick.title}
+    const sync=document.querySelector('#sync-now');if(sync){sync.disabled=quick.disabled;setText(sync,paintedText.get(quick));sync.title=quick.title}
     return {cooldown,retryAt};
   }
   function paintStatus(){
     const run=state.sync.last,description=authPhase==='starting'?'正在准备登录':authPhase==='submitting'?'正在验证登录':authPhase==='waiting'?'等待任天堂授权':state.sync.active?`同步中 ${run?.done??0} / ${run?.total??0}`:state.sync.paused==='auth_required'?'登录已失效，请重新连接':state.connected?'账号已连接':'未连接账号，可导入记录';
     const previous=run?.state==='failed'||run?.state==='interrupted'?`上次同步未完成（${stamp(run.finished)}）：${errors[run.error]??'同步未完成'}。`:'';
     const disconnected=needsLogin()&&!['starting','submitting','waiting'].includes(authPhase)&&!state.sync.active;
-    document.querySelector('#sync-status').textContent=`${state.records} 场已保存 · ${disconnected?'':description}`;
+    setText(document.querySelector('#sync-status'),`${state.records} 场已保存 · ${disconnected?'':description}`);
     document.querySelector('#quick-connect').hidden=!disconnected;
-    document.querySelector('#quick-connect').textContent=state.sync.paused==='auth_required'?'重新连接账号':'未连接账号';
+    setText(document.querySelector('#quick-connect'),state.sync.paused==='auth_required'?'重新连接账号':'未连接账号');
     document.querySelector('#quick-connect').disabled=busy;
-    document.querySelector('#sync-last').textContent=` · 上次成功同步：${stamp(state.sync.lastSuccess)}`;
+    setText(document.querySelector('#sync-last'),` · 上次成功同步：${stamp(state.sync.lastSuccess)}`);
     const {cooldown,retryAt}=paintRetryButtons();
-    const details=document.querySelector('#sync-details');if(details)details.textContent=`${description}。${previous}上次导入：${stamp(state.lastImport)}。${state.sync.paused?'自动同步已暂停：'+(errors[state.sync.paused]??state.sync.paused)+'。':''}${cooldown?'手动可同步：'+stamp(retryAt)+'。':''}${state.sync.autoMinutes&&!state.sync.paused&&state.sync.nextAttempt>Date.now()?'自动同步最早重试：'+stamp(state.sync.nextAttempt)+'（同时遵循所选同步间隔）。':''}`;
+    const details=document.querySelector('#sync-details');if(details)setText(details,`${description}。${previous}上次导入：${stamp(state.lastImport)}。${state.sync.paused?'自动同步已暂停：'+(errors[state.sync.paused]??state.sync.paused)+'。':''}${cooldown?'手动可同步：'+stamp(retryAt)+'。':''}${state.sync.autoMinutes&&!state.sync.paused&&state.sync.nextAttempt>Date.now()?'自动同步最早重试：'+stamp(state.sync.nextAttempt)+'（同时遵循所选同步间隔）。':''}`);
     paintAuth();
   }
   function refresh(){
@@ -60,7 +62,7 @@
     if(refreshing)return refreshing;
     refreshing=(async()=>{
       try{state=await request('/api/status')}catch(error){
-        document.querySelector('#sync-status').textContent=window.hasLoadedData()?'暂时无法读取同步状态，当前战绩保持显示；稍后自动重试。':'暂时无法连接本地服务，稍后自动重试。';
+        setText(document.querySelector('#sync-status'),window.hasLoadedData()?'暂时无法读取同步状态，当前战绩保持显示；稍后自动重试。':'暂时无法连接本地服务，稍后自动重试。');
         document.querySelector('#data-refresh-note').textContent=window.hasLoadedData()?'当前展示为上次成功读取的战绩。':'';
         throw error;
       }
@@ -119,7 +121,7 @@
     </ol>
     <div id="auth-steps" hidden><p id="auth-expiry"></p><label for="auth-link">③ 粘贴按钮的返回链接</label><input id="auth-link" type="password" autocomplete="off" spellcheck="false" aria-describedby="auth-link-help" placeholder="npf71b963c1b7b6d119://auth…"><p id="auth-link-help">链接仅提交给本机服务，无需发到聊天窗口。</p><button class="button primary" id="finish-auth" disabled>完成连接</button></div>
     <details class="auth-faq"><summary>没有看到按钮，或链接提示无效？</summary><p>请使用这次生成的登录页面，重新复制“选择此账号”按钮的完整链接。若已跳转到 App、链接过期或关掉了登录页面，点击“重新生成登录链接”再试。</p><p>登录和刷新由 nxapi 处理，无需配置客户端 ID。登录缓存保存在本机数据卷；认证过程需要向第三方认证服务发送短期令牌。</p></details></section>
-    <section id="sync-settings" tabindex="-1"><h3>同步设置</h3><p id="sync-details"></p><button class="button primary" id="sync-now">立即同步</button><label class="auto-label">自动同步<select id="auto-sync"><option value="0">关闭</option><option value="15">每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每小时</option><option value="120">每 2 小时</option></select></label><p>容器运行时生效。上游认证或接口异常时自动暂停；仍可查看已保存的战绩。</p></section>
+    <section id="sync-settings" tabindex="-1"><h3>同步设置</h3><p id="sync-details"></p><button class="button primary" id="sync-now">立即同步</button><label class="auto-label">自动同步<select id="auto-sync"><option value="0">关闭自动同步</option><option value="15">每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每小时</option><option value="120">每 2 小时</option></select></label><p>容器运行时生效。上游认证或接口异常时自动暂停；仍可查看已保存的战绩。</p></section>
     <section><h3>诊断与排查</h3><p>检查本地服务、战绩读取、同步与更新状态，导出不含账号凭据和战绩明细的诊断报告。</p><button class="button" id="open-diagnostics">一键诊断与导出</button></section>
     <section><h3>版本与更新</h3><p id="manage-update-status">启动时自动检查新版，也可以在这里手动检查和更新。</p><button class="button" id="open-update">查看版本与更新</button></section><section><h3>备份与恢复</h3><p>备份包含原始战绩和排班汇总，不包含登录凭据或图片缓存。恢复会合并同账号记录，不覆盖现有记录。备份含玩家昵称，请妥善保存。</p><a class="button" href="/api/backup" download>下载数据备份</a><label class="file-picker">选择备份<input id="restore-file" type="file" accept=".json,application/json"></label><button class="button" id="restore-backup">恢复并合并</button></section>
     <section><h3>暂未纳入统计的记录</h3><p>缺少排班、结算字段不完整或未支持的模式会保留原始数据；不会按零分参与均值。</p><div id="excluded-records"></div></section></div>`;

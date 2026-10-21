@@ -14,6 +14,16 @@ spec.loader.exec_module(package)
 
 
 class ReleaseIdentityTests(unittest.TestCase):
+    def test_installer_contains_readme_images_and_resource_notices(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            package.copy_documentation(directory)
+            for name in ['docs/images/personal-trends.png', 'docs/images/score-curve.png',
+                         'dist/fonts/INKLING-NOTICE.txt', 'licenses/SOURCE-BUILD.md',
+                         'packages/splatnet3-compat/README.md', 'docs/RESOURCE_RIGHTS.md']:
+                self.assertEqual((directory/name).read_bytes(), (package.ROOT/name).read_bytes())
+            self.assertFalse(list(directory.rglob('*.otf')))
+
     def test_source_materials_reject_missing_modified_and_unsafe_files(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

@@ -1,0 +1,24 @@
+.topbar-note{flex-wrap:wrap;justify-content:flex-end;gap:8px}
+html[data-language='inkling'] [data-export-score='svg'],html[data-language='inkling'] [data-export-radar='svg'],html[data-language='inkling'] [data-export-trend='svg']{display:none!important}
+.inkling-png-note{display:none}
+html[data-language='inkling'] .inkling-png-note{display:block;font-size:12px;color:#a8b0b4}
+.language-control{display:inline-flex;align-items:center;gap:5px;margin-right:6px;flex:none;font-size:12px}
+.language-control select{max-width:145px;background:#202528;border:1px solid #394044;border-radius:6px;padding:5px 7px;color:#eff3ed;font:inherit;cursor:pointer}
+.language-control select:focus-visible{outline:2px solid #d5ef68;outline-offset:2px}
+#inkling-notice{flex-basis:100%;max-width:900px;line-height:1.7;font:12px/1.7 'Segoe UI',sans-serif}
+#inkling-notice[hidden]{display:none}
+footer:has(#inkling-notice:not([hidden])){flex-wrap:wrap}
+html:not([lang='zh-CN']) .stat-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+html:not([lang='zh-CN']) .stat-label{line-height:1.5;min-height:36px}
+html:not([lang='zh-CN']) .chart-mode-switch{flex-shrink:0;flex-wrap:wrap}
+html:not([lang='zh-CN']) .overview-chart-head{flex-wrap:wrap;gap:14px}
+html[lang='en'] .radar-label{font-size:12px}
+html[lang='en'] .radar-percent{font-size:12px}
+html[lang='en'] .score-chart-ranked .chart-text{font-size:10px}
+@font-face{font-family:'Salmon Inkling';src:url('https://cdn.jsdelivr.net/gh/frozenpandaman/frozenpandaman.github.io@70f9b936a841672da15d1342ad99db63d3c50229/Inkling_v2.otf') format('opentype');font-style:normal;font-weight:400 900;font-display:swap}
+/* Full-interface display mode. Only other language choices retain their font.
+   Characters absent from Inkling use the fallback without altering saved text. */
+html[data-language='inkling'],html[data-language='inkling'] body *{font-family:'Salmon Inkling','Segoe UI',sans-serif!important}
+html[data-language='inkling'] #language-select option:not([value='inkling']){font-family:'Segoe UI','Microsoft YaHei',sans-serif!important}
+@media(max-width:1000px){html:not([lang='zh-CN']) .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.topbar{gap:10px}.language-control select{max-width:118px}}
+@media(max-width:600px){.topbar{align-items:flex-start;flex-wrap:wrap}.topbar-note{font-size:11px}.language-control{font-size:11px}.chart-mode-switch{max-width:100%}.chart-mode-switch button{padding:7px 9px}}

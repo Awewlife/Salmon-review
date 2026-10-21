@@ -1,0 +1,8 @@
+{
+  "operation": "CoopRecordQuery",
+  "sha256Hash": "56f989a59643642e0799c90d3f6d0457f5f5f72d4444dfae87043c4a23d13043",
+  "source": "https://api.lp1.av5ja.srv.nintendo.net/static/js/main.8f32ce85.js",
+  "sourceSha256": "2ca57e2076efafc81a8a516eec606275ee0f307eb8f11796b9dad18acd35901d",
+  "verified": "2026-10-21",
+  "note": "Protocol operation ID and response field names observed in Nintendo web client; no upstream implementation or generated types copied."
+}

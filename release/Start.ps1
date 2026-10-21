@@ -23,7 +23,8 @@ try {
     $checks = @(Get-Content -LiteralPath './SHA256SUMS.txt')
     $verified = @()
     foreach ($line in $checks) {
-        if ($line -notmatch '^([a-fA-F0-9]{64})  ([a-zA-Z0-9][a-zA-Z0-9_.-]*)$') { throw '校验清单格式错误，请重新下载完整安装包。' }
+        # Allow nested documentation, but reject absolute paths and dot segments.
+        if ($line -notmatch '^([a-fA-F0-9]{64})  ([a-zA-Z0-9][a-zA-Z0-9_.-]*(/[a-zA-Z0-9][a-zA-Z0-9_.-]*)*)$') { throw '校验清单格式错误，请重新下载完整安装包。' }
         $expected = $Matches[1]; $name = $Matches[2]
         if ((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $name) -Algorithm SHA256).Hash -ne $expected) { throw "文件校验失败：$name。请重新下载并完整解压安装包。" }
         $verified += $name

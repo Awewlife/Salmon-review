@@ -36,6 +36,25 @@ No upstream author has been contacted by this project as part of this review. Th
 
 ## Artwork and login-guide inspiration
 
+### Localized game data and Inkling
+
+Data provided by Lean — https://github.com/Leanny/splat3.
+Selected game-name and Splashtag-title tables are pinned and documented in
+[LOCALIZATION.md](docs/LOCALIZATION.md). The maintainer's public data-use
+permission and required attribution, its context, and the separate underlying
+Nintendo rights are recorded in [RESOURCE_RIGHTS.md](docs/RESOURCE_RIGHTS.md).
+The repository's Chart.js MIT notice does not license these tables. The game
+text is not relicensed under Salmon Review's AGPL.
+
+Optional Inkling v2 by eli / frozenpandaman is loaded remotely, subject to the
+author's non-commercial and attribution conditions. The font binary is not
+bundled. Inkling exports are PNG only, with visible credit; the temporary
+rasterization input is not offered as a downloadable SVG. See the
+[font notice](dist/fonts/INKLING-NOTICE.txt). Remote loading and pixel-only
+export do not grant rights beyond the author's conditions.
+
+### Images and nameplates
+
 Nintendo game names, artwork and trademarks belong to their respective owners. They are not covered by Salmon Review's license. No Nintendo artwork or personal battle records are committed to this repository. Referenced Nintendo PNG images may be cached locally when a user imports or synchronizes their own records.
 
 Player names use a bundled M PLUS Rounded 1c ExtraBold fallback (Copyright 2016 The Rounded M+ Project Authors, SIL OFL 1.1). The font and its license are in `dist/fonts/`. On displaying a nameplate, the browser also attempts to load the community-hosted Splatfont source used by Conch Bay, pinned to a specific revision. That optional game-style font is not bundled or licensed by this project; unavailable remote fonts fall back locally. See [font sources](dist/fonts/README.md). Nameplate measurements were informed by Conch Bay's MIT-licensed `Splashtag.tsx`; the HTML/CSS implementation and text fitting are written for this project.

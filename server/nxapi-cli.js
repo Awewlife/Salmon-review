@@ -11,7 +11,8 @@ const preload=new URL('./nxapi-language.js',import.meta.url).href;
 
 // Run the published executable as a subprocess. Its own client registration,
 // authentication, rate limiting and refresh logic remain owned by nxapi.
-export function launchCli(profile,args){
+export function launchCli(profile,args){return launchProfile(profile,entry,args)}
+export function launchProfile(profile,executable,args=[]){
   mkdirSync(profile,{recursive:true,mode:0o700});
   const env={...process.env};
   for(const key of Object.keys(env))if(/^(NXAPI_|ZNCA_|ZNC_PROXY_URL$|DEBUG$|NODE_OPTIONS$)/.test(key))delete env[key];
@@ -21,7 +22,7 @@ export function launchCli(profile,args){
     NXAPI_DATA_PATH:profile,HOME:profile,APPDATA:profile,LOCALAPPDATA:profile,
     XDG_DATA_HOME:profile,XDG_CACHE_HOME:path.join(profile,'cache'),XDG_CONFIG_HOME:profile,XDG_STATE_HOME:profile,
   });
-  return spawn(process.execPath,['--import',preload,entry,'--data-path',profile,...args],{
+  return spawn(process.execPath,['--import',preload,executable,...(executable===entry?['--data-path',profile]:[]),...args],{
     cwd:profile,env,stdio:['pipe','pipe','pipe'],windowsHide:true,
   });
 }

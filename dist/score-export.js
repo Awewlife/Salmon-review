@@ -3,7 +3,8 @@ window.SalmonScoreExport=(()=>{
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date=value=>new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Hong_Kong',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value));
   let downloadUrl;
-  function svg(jobs,shift){
+  function svg(jobs,shift,{rasterize=false}={}){const result=sourceSvg(jobs,shift);if(window.SalmonI18n)result.svg=window.SalmonI18n.svg(result.svg,{rasterize});return result;}
+  function sourceSvg(jobs,shift){
     const model=window.SalmonGradeChart.model(jobs);
     if(!model.count)throw new Error('本期暂无可导出的分数。');
     const width=1160,plotWidth=1100,top=144;
@@ -16,7 +17,7 @@ window.SalmonScoreExport=(()=>{
   }
   function controls(jobs){
     const available=window.SalmonGradeChart.model(jobs).count>0;
-    return `<div class="score-export-toolbar"><span>点击节点查看场次 →</span><details class="score-export-menu" id="score-export-menu"><summary>导出图片</summary><div class="score-export-options"><button class="button" data-export-score="png" ${available?'':'disabled'}>导出 PNG（推荐）</button><button class="button" data-export-score="svg" ${available?'':'disabled'}>导出 SVG</button>${available?'':'<span>暂无可导出的分数</span>'}</div></details></div><div id="score-export-status" class="score-export-status" role="status" aria-live="polite"></div>`;
+    return `<div class="score-export-toolbar"><span>点击节点查看场次 →</span><details class="score-export-menu" id="score-export-menu"><summary>导出图片</summary><div class="score-export-options"><button class="button" data-export-score="png" ${available?'':'disabled'}>导出 PNG（推荐）</button><button class="button" data-export-score="svg" ${available?'':'disabled'}>导出 SVG</button><span class="inkling-png-note">鱿鱼语仅支持 PNG，避免导出字体文件。</span>${available?'':'<span>暂无可导出的分数</span>'}</div></details></div><div id="score-export-status" class="score-export-status" role="status" aria-live="polite"></div>`;
   }
   function bind(jobs,shift){
     if(downloadUrl){URL.revokeObjectURL(downloadUrl);downloadUrl=null}
@@ -26,7 +27,8 @@ window.SalmonScoreExport=(()=>{
       if(busy)return;busy=true;buttons.forEach(b=>b.disabled=true);status.textContent='正在生成分数图片…';
       const format=button.dataset.exportScore;
       try{
-        const output=svg(jobs,shift);
+        await window.SalmonI18n?.prepareExport(format);
+        const output=svg(jobs,shift,{rasterize:format==='png'});
         let blob=new Blob([output.svg],{type:'image/svg+xml;charset=utf-8'});
         if(format==='png'){
           await document.fonts?.ready;
@@ -39,12 +41,13 @@ window.SalmonScoreExport=(()=>{
         }
         // A shift change or navigation must not download an obsolete chart.
         if(!status.isConnected)return;
+        window.SalmonI18n?.assertExport(format);
         if(downloadUrl)URL.revokeObjectURL(downloadUrl);
         downloadUrl=URL.createObjectURL(blob);
         const link=document.createElement('a');link.href=downloadUrl;link.download=`salmon-score-${new Date(shift.start).toISOString().slice(0,10)}.${format}`;link.textContent=`下载刚生成的 ${format.toUpperCase()}`;
         status.replaceChildren(document.createTextNode('已生成分数图片（含图例）。'),link);link.click();
         document.querySelector('#score-export-menu').open=false;
-      }catch{if(status.isConnected)status.textContent='图片生成失败，请重试或改用 SVG 格式。'}
+      }catch{if(status.isConnected)status.textContent=window.SalmonI18n?.get()==='inkling'?'图片生成失败，请重试。':'图片生成失败，请重试或改用 SVG 格式。'}
       finally{busy=false;buttons.forEach(b=>b.disabled=false)}
     };
   }

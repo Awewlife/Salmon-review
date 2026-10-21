@@ -2,7 +2,7 @@
 window.SalmonPreferences=(()=>{
   const key='salmon-chart-preferences-v1';
   const defaults={overviewMode:'performance',mode:'quantity',shareScale:'auto',showNames:true,showQuarter:false,showTotal:false,showPower:false};
-  const allowed={overviewMode:['performance','score'],mode:['quantity','share'],shareScale:['auto','fixed']};
+  const allowed={overviewMode:['performance','score','radar'],mode:['quantity','share'],shareScale:['auto','fixed']};
   function clean(value){
     const result={};
     if(!value||typeof value!=='object')return result;

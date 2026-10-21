@@ -1,3 +1,4 @@
+import {fetchCareer} from './career-cli.js';
 import {syncCli} from './sync-cli.js';
 import {classify} from './errors.js';
 const pending=new Map();let sequence=0;
@@ -11,8 +12,8 @@ process.on('message',async message=>{
   if(message.type==='ack'){const p=pending.get(message.seq);pending.delete(message.seq);message.error?p?.reject(new Error(message.error)):p?.resolve();return}
   if(message.type!=='start')return;
   try{
-    if(message.value.action!=='sync')throw new Error('upstream');
-    const result=await syncCli(message.value,emit,{signal:controller.signal});
+    if(!['sync','career'].includes(message.value.action))throw new Error('upstream');
+    const result=message.value.action==='career'?await fetchCareer(message.value,{signal:controller.signal}):await syncCli(message.value,emit,{signal:controller.signal});
     if(process.connected)process.send({type:'result',value:result},()=>process.exit(0));else process.exit(0);
   }catch(error){
     if(process.connected)process.send({type:'error',value:{code:classify(error),retryAfter:error.retryAfter??0}},()=>process.exit(1));else process.exit(1);

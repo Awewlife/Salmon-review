@@ -1,0 +1,36 @@
+Inkling v2 — optional remotely loaded display font
+
+Author: eli / frozenpandaman
+Source and terms: https://frozenpandaman.github.io/inkling.html
+Pinned font revision: 70f9b936a841672da15d1342ad99db63d3c50229
+
+The author states:
+“THIS FONT MAY NOT BE USED FOR COMMERCIAL PURPOSES.
+PLEASE GIVE CREDIT IF USED.”
+
+Salmon Review uses this font only in its optional, non-commercial Inkling
+display mode. The font is not included in the repository, Docker image or
+installer and is not licensed under Salmon Review's AGPL-3.0-or-later license.
+Do not infer permission to redistribute, sublicense or use it commercially.
+Remote loading does not waive the author's conditions or any underlying rights.
+
+The browser requests the pinned font from cdn.jsdelivr.net only when Inkling
+labels are displayed. The font host receives the usual network request
+information (including IP address); records and credentials are not sent.
+Requests use the application's no-referrer policy. If loading fails, ordinary
+English remains readable. Font data may be cached by the browser.
+
+Inkling is an ornamental character mapping over English, not an official or
+deciphered language translation. The whole interface and chart exports use it;
+other language names in the selector keep their ordinary fonts. Unsupported
+characters fall back without changing their text. Inkling exports are PNG only.
+Font data is used in memory while rasterizing; the downloaded PNG contains pixels
+and a visible author credit, not an embedded font file. Downloadable SVG is
+disabled in this mode. This does not remove the non-commercial and attribution conditions.
+
+鱿鱼语模式使用 eli / frozenpandaman 的 Inkling v2 字体。
+作者要求非商业使用并署名。字体通过 CDN 按需加载，不随项目或安装包分发，
+不适用本项目的 AGPL 许可；远程加载不免除作者条件及相关权利要求。
+字体仅作装饰，并非真正的语言翻译。页面加载失败时显示正常英文。
+鱿鱼语仅导出 PNG，并保留可见署名；字体只在内存中用于绘制，不嵌入下载文件。
+不提供鱿鱼语 SVG。导出时字体加载失败则终止，不静默替换显示效果。

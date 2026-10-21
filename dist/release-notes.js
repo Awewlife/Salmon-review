@@ -2,6 +2,8 @@
 window.SalmonReleaseNotes=(()=>{
   // Ship these notes with the app so a completed update needs no GitHub request.
   const releases={'0.4.0':[
+    '排班总览新增五维图，对比个人与全队 25% 的五项场均表现。',
+    '点击左下角 NSO 头像，查看官方生涯击倒数和各地图历史最高分，支持离线查看。',
     '公开发行版无需 GitHub 令牌即可检查和下载更新。',
     '补齐对应源码与许可附件，固定镜像依赖并更新系统安全补丁。',
     '旧私有版请使用 0.4.0 完整安装包过渡一次，沿用原项目名和数据卷。',

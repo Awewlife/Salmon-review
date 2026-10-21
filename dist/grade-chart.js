@@ -113,7 +113,7 @@ window.SalmonGradeChart=(()=>{
     }).join('');
     return `<svg class="score-chart${m.mixed?' score-chart-ranked':''}" viewBox="0 0 ${W} ${H}" style="height:${H}px" role="img" aria-label="打工分数变化：每场结束时的段位分数，分数范围 ${esc(m.rangeLabel)}"><title>打工分数变化 · 每场结束段位分数</title>
       ${m.bands.map(b=>`<rect class="score-rank-band${b.rank%2?' alternate':''}" x="${L-8}" y="${n(y(b.upper))}" width="${W-L-R+16}" height="${n(y(b.lower)-y(b.upper))}"/>`).join('')}
-      <text class="chart-text score-axis-title" x="${L-10}" y="13" text-anchor="end">分数</text>
+      <text class="chart-text score-axis-title" x="8" y="13" text-anchor="start">分数</text>
       ${m.ticks.map((value,i)=>`<line x1="${L}" x2="${W-R}" y1="${n(y(value))}" y2="${n(y(value))}" class="chart-grid"/><text class="chart-text" x="${L-10}" y="${n(y(value)+4)}" text-anchor="end">${esc(m.tickLabels[i])}</text>`).join('')}
       ${m.segments.filter(s=>s.length>1).map(s=>`<polyline class="chart-line score-line" points="${s.map(p=>`${n(x(p.position))},${n(y(p.coordinate))}`).join(' ')}"/>`).join('')}
       ${m.points.filter(p=>p.coordinate!==null).map(p=>`<circle class="chart-point score-point ${p.job.interrupted?'node-interrupted':p.job.clear?'node-cleared':'node-failed'}" cx="${n(x(p.position))}" cy="${n(y(p.coordinate))}" r="3.8"/>`).join('')}

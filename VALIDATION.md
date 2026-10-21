@@ -154,3 +154,64 @@
 - 浏览器实测：个人搬蛋纪录跳转到第 29 场的 51 颗结算；占比、固定刻度、25% 参考和隐藏人名在刷新后保留，筛选从第 5 场恢复全部 46 条记录。
 - 本版说明关闭后刷新不重现；说明随程序提供，组件更新事务结束后才展示。
 - 本机两个容器健康，升级前后归档均为 355 场，沿用现有数据卷。
+
+## 2026-10-21 localization and performance audit
+
+- Reviewed Traditional Chinese, English, Japanese and Inkling across overview,
+  job details, trend controls, radar/kill details, player cards, data management,
+  diagnostics, updates and career records (40 UI cases). Tested 285 generated
+  tooltip examples per language from a 57-record shift, including interruptions.
+- Added translations for dynamic diagnostic/sync/update states, public server
+  errors, hover/accessibility attributes and interrupted export captions.
+  Player identities remain verbatim. Unknown external release-note prose and
+  unknown game strings still retain their source; no remote translation is used.
+- Generated and rasterized 20 SVG/PNG cases: four languages times quantity trends,
+  share trends, score, radar and kill details. Fixed invalid bare SVG attributes
+  on player labels and a Japanese score-axis heading extending outside the SVG.
+- English/Inkling UI and export checks found no remaining Chinese UI fragments
+  in the covered cases. Reviewed representative PNGs visually, including the
+  embedded Inkling font. Remote font first-load latency still depends on network.
+- Read-only SQLite quick_check returned ok for the existing 479 records.
+  Snapshot normalization fell from roughly 254–652 ms to 166–294 ms in local
+  repeated samples after parsing each record once, reusing asset hashes and
+  grouping records once per shift. These are local measurements, not guarantees.
+- Display JSON is cached in the server, invalidated by SQLite data_version
+  (other connections) and total_changes (this connection). Status, account and
+  authentication responses are not cached. Import/external-commit invalidation
+  has a regression test. Full-page reads can still grow with record volume.
+- A disposable synthetic database with 5,000 jobs / 100 shifts took 912–1,092 ms
+  per uncached snapshot; its quick_check also passed. No synthetic data was
+  written to the user's data volume.
+- UI date formatters and bounded translation results are reused. Identical
+  periodic status text no longer replaces DOM text on each timer tick.
+- Candidate validation: npm run check; 211 Node tests passed under the pinned
+  Docker Node runtime. No schema migration, login or Nintendo sync was required.
+- After local container deployment, repeated /api/data requests (including the
+  full 7.26 MB response transfer) measured 96–128 ms, versus 350–475 ms before.
+  The first post-restart request measured 543 ms and still requires a full build.
+  Status and career reads were approximately 3–7 ms after connection warm-up.
+  The SHA-256 digest of all stored record IDs/raw results was identical before
+  and after deployment; 479 records, connected account and healthy app retained.
+
+## 2026-10-21 resource permissions and draft refresh
+
+- Recorded Leanny's public data-use reply and required attribution in
+  docs/RESOURCE_RIGHTS.md; distinguished maintainer permission from Nintendo's
+  underlying rights. Added the attribution to the UI and README.
+- Inkling export menus now offer PNG only. The shared exporter rejects SVG
+  before font preparation and checks again before download. Internal PNG
+  rasterization may use font bytes in memory; the downloaded PNG contains pixels
+  and visible credit, not a font file. Other languages retain SVG export.
+- Re-ran 20 browser rasterization cases (four languages, five chart types): all
+  produced PNGs without detected UI-text leaks or SVG text overflow. Confirmed
+  the Inkling score menu hides SVG and retains PNG.
+- npm run check and notices:check passed; 213 Node tests passed in the pinned
+  Docker runtime. Five Python packaging tests passed. Windows PowerShell 5.1
+  and PowerShell 7 each passed 13 installer tests, including nested-file hashes,
+  tampered nested notices and unsafe manifest paths.
+- Installer archives now include README images and linked resource/license
+  documentation. SHA-256 verification covers nested files. Resource permission
+  evidence also accompanies the standalone third-party archive.
+- This refresh retains the private repository and unpublished v0.4.0 draft.
+  Final commit/image/asset verification is recorded in VALIDATION-RELEASE.md
+  alongside the rebuilt release attachments.

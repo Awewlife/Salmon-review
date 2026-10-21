@@ -55,7 +55,7 @@ test('appearance images download only on demand, retry after failure and survive
   assert.deepEqual(Buffer.from(await font.arrayBuffer()).subarray(0,4),Buffer.from([0,1,0,0]));
   assert.match(font.headers.get('content-security-policy'),/font-src 'self' https:\/\/cdn\.jsdelivr\.net;/);
   assert.match(font.headers.get('content-security-policy'),/script-src 'self';/);
-  assert.match(font.headers.get('content-security-policy'),/connect-src 'self';/);
+  assert.match(font.headers.get('content-security-policy'),/connect-src 'self' https:\/\/cdn\.jsdelivr\.net\/gh\/frozenpandaman\/frozenpandaman\.github\.io@70f9b936a841672da15d1342ad99db63d3c50229\/Inkling_v2\.otf;/);
   assert.match(await (await fetch(base+'/fonts/OFL.txt')).text(),/SIL OPEN FONT LICENSE/);
   assert.equal((await fetch(base+'/fonts/README.md')).status,404);
   assert.equal(calls,0);

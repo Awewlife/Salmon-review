@@ -27,6 +27,19 @@ def sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def copy_documentation(package):
+    """Keep offline README links and resource notices in the installer."""
+    for name in ['README.md', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_PACKAGES.json',
+                 'BETA_TESTING.md', 'SECURITY.md', 'CHANGELOG.md', 'UPDATING.md', 'VALIDATION.md', 'compose.yaml']:
+        shutil.copy2(ROOT / name, package / name)
+    for name in ['docs', 'licenses', 'packages/splatnet3-compat']:
+        shutil.copytree(ROOT / name, package / name)
+    fonts = package / 'dist/fonts'
+    fonts.mkdir(parents=True)
+    for name in ['README.md', 'OFL.txt', 'INKLING-NOTICE.txt']:
+        shutil.copy2(ROOT / 'dist/fonts' / name, fonts / name)
+
+
 def verify_notice_bundle(directory):
     """Do not publish an image whose tr46 supplement is missing or stale."""
     expected = ROOT / 'licenses/tr46-0.0.3'
@@ -97,9 +110,7 @@ def main():
         scratch = Path(temporary)
         package = scratch / package_name
         package.mkdir()
-        docs = ['README.md', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_PACKAGES.json', 'BETA_TESTING.md', 'SECURITY.md', 'CHANGELOG.md', 'UPDATING.md', 'compose.yaml']
-        for name in docs:
-            shutil.copy2(ROOT / name, package / name)
+        copy_documentation(package)
         # BOM is intentional: Windows PowerShell 5.1 otherwise decodes Chinese as ANSI.
         (package / 'Start.ps1').write_text((ROOT/'release/Start.ps1').read_text('utf-8-sig'), encoding='utf-8-sig', newline='\r\n')
         (package / 'Start.cmd').write_text((ROOT/'release/Start.cmd').read_text('utf-8'), encoding='ascii', newline='\r\n')
@@ -127,10 +138,11 @@ def main():
             unsigned.write_text(json.dumps(update, separators=(',', ':')), encoding='utf-8')
             subprocess.run(['node', str(ROOT/'scripts/sign-update.mjs'), str(unsigned),
                             str(Path(args.signing_key).resolve()), str(output/'update.json')], check=True)
-        (package/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(package.iterdir())), encoding='ascii')
+        (package/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.relative_to(package).as_posix()}\n' for p in sorted(package.rglob('*')) if p.is_file()), encoding='ascii')
         with zipfile.ZipFile(output/(package_name+'.zip'), 'w', compression=zipfile.ZIP_DEFLATED) as result:
-            for path in sorted(package.iterdir()):
-                result.write(path, package_name+'/'+path.name, compress_type=zipfile.ZIP_STORED if path.suffix=='.gz' else zipfile.ZIP_DEFLATED)
+            for path in sorted(package.rglob('*')):
+                if path.is_file():
+                    result.write(path, package_name+'/'+path.relative_to(package).as_posix(), compress_type=zipfile.ZIP_STORED if path.suffix=='.gz' else zipfile.ZIP_DEFLATED)
         subprocess.run(['git', 'archive', '--format=zip', f'--prefix=SalmonReview-v{version}-source/', '-o', str(output/f'SalmonReview-v{version}-source.zip'), commit], cwd=ROOT, check=True)
 
         # Copy only software notices from a fresh, never-started container; no user volumes.
@@ -172,6 +184,12 @@ def main():
             'Third-party rights, including optional remote fonts: THIRD_PARTY_NOTICES.md.\n', encoding='utf-8')
         for name in ['THIRD_PARTY_NOTICES.md','THIRD_PARTY_PACKAGES.json','LICENSE','NOTICE']:
             shutil.copy2(ROOT/name,third_party/name)
+        # Resource permission evidence must also accompany the standalone notices archive.
+        for name in ['docs', 'licenses', 'packages/splatnet3-compat']:
+            shutil.copytree(ROOT/name, third_party/name)
+        (third_party/'dist/fonts').mkdir(parents=True)
+        for name in ['README.md', 'OFL.txt', 'INKLING-NOTICE.txt']:
+            shutil.copy2(ROOT/'dist/fonts'/name, third_party/'dist/fonts'/name)
         with zipfile.ZipFile(output/f'SalmonReview-v{version}-third-party.zip', 'w') as result:
             for file in sorted(third_party.rglob('*')):
                 if file.is_file():

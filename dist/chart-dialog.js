@@ -85,13 +85,14 @@ function trendMarker(x,y,color,clear=true,attributes=''){
 function trendSymbol(person){return `<svg class="trend-symbol" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">${trendMarker(8,8,person.color,true)}</svg>`}
 
 // Reuse the preview's data and geometry, with self-contained SVG styling.
-function trendExportSvg(jobs,people,metrics,showNames,stage,{mode='quantity',showTotal=false,shareScale='auto',showQuarter=false}={}){
+function trendExportSvg(...args){const result=sourceTrendExportSvg(...args);if(window.SalmonI18n)result.svg=window.SalmonI18n.svg(result.svg,{rasterize:args[5]?.rasterize===true});return result;}
+function sourceTrendExportSvg(jobs,people,metrics,showNames,stage,{mode='quantity',showTotal=false,shareScale='auto',showQuarter=false}={}){
   const totalVisible=mode==='quantity'&&showTotal;
   const rangeLabel=jobs.some(j=>j.interrupted)?`${jobs.filter(j=>!j.interrupted).length} 场结算 · ${jobs.filter(j=>j.interrupted).length} 次中断`:`本期第 ${jobs[0].index}—${jobs.at(-1).index} 场 · 共 ${jobs.length} 场`;
   const plotHeight=260;
   const width=1160,legendRows=Math.ceil((people.length+(totalVisible?1:0))/3),top=144+legendRows*28,height=top+metrics.length*(plotHeight+50)+92;
   const style=`text{font-family:"Microsoft YaHei","Noto Sans CJK SC","Segoe UI",sans-serif;font-size:14px}.muted,.chart-text{fill:#a9b4bc}.chart-grid{stroke:#465057;stroke-dasharray:3 5;stroke-width:.7}.chart-line{fill:none;stroke-linejoin:round;stroke-linecap:round}.label-crowded{display:none}.trend-line-label rect{fill:#202528;stroke:#465057;stroke-width:.5}.trend-line-label text{font-size:13px;font-weight:600}`;
-  const legend=[...people,...(totalVisible?[{name:'团队合计（四人）',total:true}]:[])].map((p,i)=>{const x=30+i%3*370,y=132+Math.floor(i/3)*28;return `${p.total?`<line x1="${x}" x2="${x+13}" y1="${y-5}" y2="${y-5}" stroke="#a8b0b4" stroke-width="2" stroke-dasharray="5 4"/>`:trendMarker(x+5,y-5,p.color,true)}<text x="${x+18}" y="${y}">${esc(p.name+(p.self?' · 我':''))}</text>`}).join('');
+  const legend=[...people,...(totalVisible?[{name:'团队合计（四人）',total:true}]:[])].map((p,i)=>{const x=30+i%3*370,y=132+Math.floor(i/3)*28;return `${p.total?`<line x1="${x}" x2="${x+13}" y1="${y-5}" y2="${y-5}" stroke="#a8b0b4" stroke-width="2" stroke-dasharray="5 4"/>`:trendMarker(x+5,y-5,p.color,true)}<text x="${x+18}" y="${y}">${p.total?esc(p.name):`<tspan translate="no">${esc(p.name)}</tspan>${p.self?'<tspan> · 我</tspan>':''}`}</text>`}).join('');
   const plots=metrics.map((metric,i)=>{
     const y=top+i*(plotHeight+50),m=TREND_METRICS[metric];
     return `<text x="30" y="${y}" style="font-size:18px;font-weight:700">${m.label} · ${mode==='share'?'占比（%）':m.unit}</text>`+largeChart(jobs,people,metric,{interactive:false,showNames,mode,showTotal,shareScale,showQuarter}).replace('<svg viewBox=',`<svg x="30" y="${y+12}" width="1100" height="${plotHeight}" viewBox=`);
@@ -104,10 +105,12 @@ async function exportTrend(format){
   const metrics=trendExportMetrics();
   if(!metrics.length||trendState.exportBusy)return;
   const state=trendState,revision=state.revision;
-  const output=trendExportSvg(jobs,people,metrics,state.showNames,shift().stage.name,state);
+  const exportStage=shift().stage.name;
   const filename=`salmon-${jobs[0].time.slice(0,10)}-${jobs[0].index}-${jobs.at(-1).index}-${metrics.join('-')}-${trendState.mode}.${format}`;
   state.exportBusy=true;buttons.forEach(b=>b.disabled=true);status.textContent='正在生成图片…';
   try{
+    await window.SalmonI18n?.prepareExport(format);
+    const output=trendExportSvg(jobs,people,metrics,state.showNames,exportStage,{...state,rasterize:format==='png'});
     let blob=new Blob([output.svg],{type:'image/svg+xml;charset=utf-8'});
     if(format==='png'){
       const image=new Image();
@@ -118,6 +121,7 @@ async function exportTrend(format){
       blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('image_encode');
     }
     if(trendState!==state||state.revision!==revision||!status.isConnected||!document.querySelector('#trend-dialog').open)return;
+    window.SalmonI18n?.assertExport(format);
     if(trendState.exportUrl)URL.revokeObjectURL(trendState.exportUrl);
     const url=URL.createObjectURL(blob);trendState.exportUrl=url;
     status.innerHTML=`已生成所选 ${jobs.length} 条记录的图片。<a href="${url}" download="${filename}">下载刚生成的 ${format.toUpperCase()}</a>`;
@@ -126,7 +130,7 @@ async function exportTrend(format){
     if(trendState!==state||state.revision!==revision||!status.isConnected||!document.querySelector('#trend-dialog').open)return;
     const details=document.createElement('details');details.innerHTML='<summary>预览导出图片</summary>';
     const picture=document.createElement('img');picture.src=preview;picture.alt=`所选 ${jobs.length} 条记录导出预览`;picture.style.cssText='display:block;max-width:100%;height:auto;margin-top:12px';details.append(picture);status.append(details);
-  }catch{if(trendState===state&&state.revision===revision&&status.isConnected)status.textContent='图片生成失败，请重试或改用 SVG 格式。'}
+  }catch{if(trendState===state&&state.revision===revision&&status.isConnected)status.textContent=window.SalmonI18n?.get()==='inkling'?'图片生成失败，请重试。':'图片生成失败，请重试或改用 SVG 格式。'}
   finally{state.exportBusy=false;if(trendState===state&&status.isConnected)updateTrendExportButtons()}
 }
 function openTrend(){
@@ -136,7 +140,7 @@ function openTrend(){
   trendState.exportChartOrder??=Object.keys(TREND_METRICS);
   trendState.exportChartSelection??=trendVisibleMetrics();
   const dialog=document.querySelector('#trend-dialog');
-  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期趋势详情</h2><p class="subtext">分项趋势 · 队友对比 · 图表导出</p><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭趋势详情">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场；掉线不打断，也不计场数，仅作疑似识别</p></div><div id="trend-people"></div><div class="trend-display-controls"><div class="chart-mode-switch" role="group" aria-label="趋势数值类型"><button data-trend-mode="quantity" aria-pressed="true">数量</button><button data-trend-mode="share" aria-pressed="false">占比</button></div><label class="trend-total-toggle" id="trend-total-control"><input type="checkbox" id="show-trend-total"><span class="team-total-swatch" aria-hidden="true"></span>团队合计（四人）</label><div class="chart-mode-switch" id="trend-share-scale" role="group" aria-label="占比纵轴范围" hidden><button data-share-scale="auto" aria-pressed="true">自动缩放</button><button data-share-scale="fixed" aria-pressed="false">0–100%</button></div><label class="trend-total-toggle" id="trend-quarter-control" title="四人均分参考，不代表及格线"><input type="checkbox" id="show-trend-quarter">25% 参考线</label><details class="trend-more-charts"><summary>更多图表</summary><div class="trend-more-options">${Object.entries(TREND_METRICS).filter(([,metric])=>metric.preference).map(([key,metric])=>`<label><input type="checkbox" data-extra-chart="${key}" ${trendState[metric.preference]?'checked':''}>${metric.label}</label>`).join('')}</div></details><span class="trend-measure-note" id="trend-measure-note"></span></div><details class="trend-range" aria-label="选择连续场次与导出"><summary><span>场次筛选与导出</span><span id="trend-range-summary"></span></summary><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><fieldset class="trend-export-selection"><legend>导出图表</legend><p id="trend-export-help">勾选图表，拖动右侧手柄排序；也可聚焦手柄后按 ↑ / ↓ 调整。</p><ul id="trend-export-charts"></ul><p id="trend-export-count" aria-live="polite"></p><span id="trend-export-reorder-status" class="export-sort-status" role="status"></span></fieldset><div class="trend-export-controls"><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></details><div id="trend-plots"></div><p class="trend-footnote" id="trend-footnote"></p></div>`;
+  dialog.innerHTML=`<header class="trend-header"><div><div class="eyebrow">SHIFT COMPARISON</div><h2 id="trend-title">本期趋势详情</h2><p class="subtext">分项趋势 · 队友对比 · 图表导出</p><p class="subtext">${esc(shift().stage.name)} · 本期已保存 ${shift().saved??jobs.length} / ${shift().total} 场 · 从早到晚</p></div><button class="close-chat" id="close-trend" aria-label="关闭趋势详情">×</button></header><div class="trend-body"><div class="trend-toolbar"><button class="button" id="include-teammates" aria-pressed="false" ${teammates.length?'':'disabled'}>加入疑似组队队友（${teammates.length}）</button><p>已确认连续的记录内同队 ≥ 3 场；掉线不打断，也不计场数，仅作疑似识别</p></div><div id="trend-people"></div><div class="trend-display-controls"><div class="chart-mode-switch" role="group" aria-label="趋势数值类型"><button data-trend-mode="quantity" aria-pressed="true">数量</button><button data-trend-mode="share" aria-pressed="false">占比</button></div><label class="trend-total-toggle" id="trend-total-control"><input type="checkbox" id="show-trend-total"><span class="team-total-swatch" aria-hidden="true"></span>团队合计（四人）</label><div class="chart-mode-switch" id="trend-share-scale" role="group" aria-label="占比纵轴范围" hidden><button data-share-scale="auto" aria-pressed="true">自动缩放</button><button data-share-scale="fixed" aria-pressed="false">0–100%</button></div><label class="trend-total-toggle" id="trend-quarter-control" title="四人均分参考，不代表及格线"><input type="checkbox" id="show-trend-quarter">25% 参考线</label><details class="trend-more-charts"><summary>更多图表</summary><div class="trend-more-options">${Object.entries(TREND_METRICS).filter(([,metric])=>metric.preference).map(([key,metric])=>`<label><input type="checkbox" data-extra-chart="${key}" ${trendState[metric.preference]?'checked':''}>${metric.label}</label>`).join('')}</div></details><span class="trend-measure-note" id="trend-measure-note"></span></div><details class="trend-range" aria-label="选择连续场次与导出"><summary><span>场次筛选与导出</span><span id="trend-range-summary"></span></summary><div class="trend-range-fields"><label>起始场次<select id="trend-from">${jobs.map((j,i)=>`<option value="${i}">${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><label>结束场次<select id="trend-to">${jobs.map((j,i)=>`<option value="${i}" ${i===jobs.length-1?'selected':''}>${j.interrupted?'对局中断':'第 '+j.index+' 场'} · ${date(j.time,true)}</option>`).join('')}</select></label><button class="button" id="trend-reset">恢复全部</button></div><fieldset class="trend-export-selection"><legend>导出图表</legend><p id="trend-export-help">勾选图表，拖动右侧手柄排序；也可聚焦手柄后按 ↑ / ↓ 调整。</p><ul id="trend-export-charts"></ul><p id="trend-export-count" aria-live="polite"></p><span id="trend-export-reorder-status" class="export-sort-status" role="status"></span></fieldset><div class="trend-export-controls"><button class="button primary" data-export-trend="png">导出 PNG</button><button class="button" data-export-trend="svg">导出 SVG</button><span class="inkling-png-note">鱿鱼语仅支持 PNG，避免导出字体文件。</span></div><p id="trend-range-note"></p><div id="trend-export-status" role="status" aria-live="polite"></div></details><div id="trend-plots"></div><p class="trend-footnote" id="trend-footnote"></p></div>`;
   document.querySelector('#close-trend').onclick=()=>dialog.close();
   document.querySelectorAll('[data-trend-mode]').forEach(button=>button.onclick=()=>{trendState.mode=button.dataset.trendMode;window.SalmonPreferences.save({mode:trendState.mode});document.querySelector('#trend-export-status').textContent='';renderTrend()});
   document.querySelectorAll('[data-share-scale]').forEach(button=>button.onclick=()=>{trendState.shareScale=button.dataset.shareScale;window.SalmonPreferences.save({shareScale:trendState.shareScale});document.querySelector('#trend-export-status').textContent='';renderTrend()});
@@ -210,27 +214,68 @@ function renderTrend(){
   document.querySelectorAll('[data-trend-player]').forEach(el=>el.onchange=()=>{el.checked?selected.add(el.dataset.trendPlayer):selected.delete(el.dataset.trendPlayer);renderTrend()});
   bindTrendInteractions(plots,jobs,shown);
 }
+// Position around the whole selected job column, not its wide hit rectangle.
+function trendTooltipPlacement(anchor,bounds,{width=340,height=240}={}){
+  const gap=14,availableWidth=Math.max(1,bounds.right-bounds.left);
+  const desired=Math.min(width,availableWidth),minimum=Math.min(260,desired);
+  const right=bounds.right-anchor.x-gap,left=anchor.x-gap-bounds.left;
+  let x,y,w=desired,maxHeight=bounds.bottom-bounds.top;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(v,Math.max(a,b)));
+  if(Math.max(left,right)>=minimum){
+    const useRight=right>=desired||right>=left;
+    w=Math.min(desired,useRight?right:left);
+    x=useRight?anchor.x+gap:anchor.x-gap-w;
+    y=clamp((anchor.top+anchor.bottom-height)/2,bounds.top,bounds.bottom-height);
+  }else{
+    const above=anchor.top-gap-bounds.top,below=bounds.bottom-anchor.bottom-gap;
+    const useBelow=below>=height||below>=above;
+    maxHeight=Math.max(1,useBelow?below:above);
+    x=clamp(anchor.x-w/2,bounds.left,bounds.right-w);
+    y=useBelow?anchor.bottom+gap:anchor.top-gap-Math.min(height,maxHeight);
+  }
+  return {left:x,top:y,width:w,maxHeight:Math.max(1,maxHeight)};
+}
 function bindTrendInteractions(plots,jobs,people){
   let pointerTarget=null,focusTarget=null,pointerPlayer=null,focusPlayer=null;
+  let lastTarget,lastKey,lastJob,lastTip=null;
+  const pointsBySvg=new WeakMap();
   const nearestPlayer=(el,event)=>{
     const svg=el.closest('svg'),box=svg.getBoundingClientRect(),scale=box.height/svg.viewBox.baseVal.height;
-    const points=[...svg.querySelectorAll('[data-point-job]')].filter(p=>p.dataset.pointJob===el.dataset.trendJob);
+    let indexed=pointsBySvg.get(svg);
+    if(!indexed){indexed=new Map();for(const point of svg.querySelectorAll('[data-point-job]')){const id=point.dataset.pointJob;if(!indexed.has(id))indexed.set(id,[]);indexed.get(id).push(point);}pointsBySvg.set(svg,indexed);}
+    const points=indexed.get(el.dataset.trendJob)||[];
     const nearest=points.map(p=>({key:p.dataset.seriesKey,distance:Math.abs(box.top+Number(p.getAttribute('cy'))*scale-event.clientY)})).sort((a,b)=>a.distance-b.distance)[0];
     return nearest?.distance<=14?nearest.key:null;
   };
   const update=()=>{
     const target=pointerTarget||focusTarget,key=pointerPlayer||focusPlayer,job=jobs.find(j=>j.id===target?.dataset.trendJob);
-    syncTrendFocus(plots,job,key,people);
-    plots.querySelectorAll('.trend-tooltip').forEach(t=>t.style.display='none');
+    if(target===lastTarget&&key===lastKey)return;
+    if(job!==lastJob||key!==lastKey)syncTrendFocus(plots,job,key,people);
+    const targetChanged=target!==lastTarget;
+    lastTarget=target;lastKey=key;lastJob=job;
+    if(!targetChanged)return;
+    if(lastTip)lastTip.style.display='none';
     if(!target||!job)return;
     const plot=target.closest('.trend-plot'),tip=plot.querySelector('.tooltip');
-    tip.innerHTML=trendTooltip(job,people,target.dataset.metric,{showQuarter:trendState.showQuarter});tip.style.display='block';
-    const a=target.getBoundingClientRect(),b=plot.getBoundingClientRect();
-    tip.style.left=Math.max(4,Math.min(a.x-b.x+15,b.width-tip.offsetWidth-4))+'px';tip.style.top='60px';
+    tip.innerHTML=trendTooltip(job,people,target.dataset.metric,{showQuarter:trendState.showQuarter});
+    window.SalmonI18n?.apply(tip);tip.style.display='block';lastTip=tip;
+    const a=target.getBoundingClientRect(),b=plot.getBoundingClientRect(),svg=target.closest('svg'),s=svg.getBoundingClientRect();
+    const body=plot.closest('.trend-body').getBoundingClientRect();
+    const points=[...svg.querySelectorAll('[data-point-job]')].filter(p=>p.dataset.pointJob===job.id).map(p=>p.getBoundingClientRect());
+    const x=Number.isFinite(Number(target.dataset.jobX))?s.left+Number(target.dataset.jobX)/svg.viewBox.baseVal.width*s.width:a.left+a.width/2;
+    const anchor={x,top:points.length?Math.min(...points.map(p=>p.top)):a.bottom-14,bottom:points.length?Math.max(...points.map(p=>p.bottom)):a.bottom};
+    const bounds={left:Math.max(b.left,body.left)+4,right:Math.min(b.right,body.right)-4,top:Math.max(0,body.top)+8,bottom:Math.min(window.innerHeight,body.bottom)-8};
+    tip.style.width='340px';tip.style.maxHeight='none';
+    let place=trendTooltipPlacement(anchor,bounds,{width:tip.offsetWidth,height:tip.offsetHeight});
+    tip.style.width=place.width+'px';
+    // A narrower side placement may wrap notes, so measure its final height.
+    place=trendTooltipPlacement(anchor,bounds,{width:place.width,height:tip.offsetHeight});
+    tip.style.left=place.left-b.left+'px';tip.style.top=place.top-b.top+'px';tip.style.maxHeight=place.maxHeight+'px';
+    tip.onpointerleave=()=>{pointerTarget=null;pointerPlayer=null;update()};
   };
   plots.querySelectorAll('[data-trend-job]').forEach(el=>{
     el.onpointerenter=el.onpointermove=e=>{pointerTarget=el;pointerPlayer=nearestPlayer(el,e);update()};
-    el.onpointerleave=()=>{pointerTarget=null;pointerPlayer=null;update()};
+    el.onpointerleave=e=>{if(lastTip?.contains(e?.relatedTarget))return;pointerTarget=null;pointerPlayer=null;update()};
     el.onfocus=()=>{focusTarget=el;focusPlayer=null;update()};
     el.onblur=()=>{focusTarget=null;update()};
     const go=()=>{document.querySelector('#trend-dialog').close();location.hash=el.dataset.trendJob};
@@ -304,13 +349,13 @@ function largeChart(jobs,people,metric,{interactive=true,showNames=true,mode='qu
   const labelEntries=(showNames?lines:[]).flatMap(p=>{
     const end=p.segments.flat().filter(v=>!jobs[v.index].interrupted).at(-1);if(!end)return [];
     const name=p.name+(p.self?' · 我':'');let shortName='',used=0;
-    for(const char of name){const size=char.charCodeAt(0)>255?13:7.5;if(used+size>110){shortName+='…';used+=13;break}shortName+=char;used+=size}
-    return [{p,end,name,shortName,width:Math.min(136,used+12),px:x(end.index),py:y(end.value)}];
+    for(const char of p.name){const size=char.charCodeAt(0)>255?13:7.5;if(used+size>(p.self?70:110)){shortName+='…';used+=13;break}shortName+=char;used+=size}
+    return [{p,end,name,shortName,width:Math.min(136,used+12+(p.self?40:0)),px:x(end.index),py:y(end.value)}];
   });
   const obstacles=lines.flatMap(p=>p.segments.flatMap(segment=>segment.map((v,i)=>[{x:x(v.index),y:y(v.value)},{x:x(segment[Math.max(0,i-1)].index),y:y(segment[Math.max(0,i-1)].value)}])));
   const labels=trendLabelLayout(labelEntries,{left:L,right:W-4,top:T,bottom:H-B},obstacles).map(({p,px,py,name,shortName,width,left,top,crowded})=>{
     const anchorX=Math.max(left,Math.min(left+width,px)),anchorY=Math.max(top,Math.min(top+22,py));
-    return `<g class="trend-line-label${crowded?' label-crowded':''}" data-line-label="${esc(p.key)}" data-series-key="${esc(p.key)}" ${interactive?`tabindex="0" role="img" aria-label="突出显示 ${esc(name)}"`:''}><title>${esc(name)}</title><path d="M${px},${py} L${anchorX},${anchorY}" stroke="${p.color}" stroke-width="1" opacity=".5"/><rect x="${left}" y="${top}" width="${width}" height="22" rx="4"/><text x="${left+6}" y="${top+15}" fill="${p.color}">${esc(shortName)}</text></g>`;
+    return `<g class="trend-line-label${crowded?' label-crowded':''}" data-line-label="${esc(p.key)}" data-series-key="${esc(p.key)}" ${interactive?`tabindex="0" role="img" aria-label="突出显示 ${esc(name)}"`:''}><title>${esc(name)}</title><path d="M${px},${py} L${anchorX},${anchorY}" stroke="${p.color}" stroke-width="1" opacity=".5"/><rect x="${left}" y="${top}" width="${width}" height="22" rx="4"/><text x="${left+6}" y="${top+15}" fill="${p.color}">${p.total?`<tspan data-translate-ui="true">${esc(shortName)}</tspan>`:`<tspan translate="no">${esc(shortName)}</tspan>${p.self?'<tspan data-translate-ui="true"> · 我</tspan>':''}`}</text></g>`;
   }).join('');
   let reference=mode==='share'&&showQuarter?`<g class="trend-quarter" pointer-events="none"><title>25%：四人均分参考，不代表及格线</title><line x1="${L}" x2="${W-R}" y1="${y(25)}" y2="${y(25)}" stroke="#b9c2c8" stroke-width="1.2" stroke-dasharray="8 5"/><text x="${L+6}" y="${y(25)-6}" fill="#c5cdd1" style="font-size:12px;paint-order:stroke;stroke:#202528;stroke-width:3px">25% 均分参考</text></g>`:'';
   if(mode==='quantity'&&showQuarter)reference=`<g class="trend-quarter" pointer-events="none"><title>25%：每场四人合计 ÷ 4，不代表及格线</title>${quarterSegments.map(segment=>`<polyline class="chart-line quarter-line" fill="none" stroke="#b9c2c8" style="stroke-width:1.5" stroke-dasharray="3 4" points="${segment.map(v=>`${x(v.index)},${y(v.value)}`).join(' ')}"/>${segment.length===1?`<circle cx="${x(segment[0].index)}" cy="${y(segment[0].value)}" r="3" fill="#b9c2c8"/>`:''}`).join('')}<text x="${L+6}" y="12" fill="#c5cdd1" style="font-size:12px">25% 均分参考 · 当场合计 ÷ 4</text></g>`;
@@ -323,5 +368,5 @@ function trendTooltip(job,people,metric,{showQuarter=false}={}){
   const total=SalmonStats.teamTotal(job,metric),unit=TREND_METRICS[metric].unit;
   const present=people.flatMap(who=>{const player=job.players.find(p=>p.key===who.key);return player?[{...who,player}]:[]});
   const note=total===null?'四人结算数据不完整，占比不可用。':total===0?(metric==='deaths'?'本场全队无人被救援，占比按 0% 展示。':'全队为 0，占比按 0% 展示。'):'';
-  return `<strong>第 ${esc(job.index)} 场 · ${job.clear?'通过':'未通过'} · ${esc(date(job.time,true))}</strong><div class="trend-team-summary">四人合计：<b>${fmt(total)} ${unit}</b>${showQuarter&&total!==null?`<small>25% 均分参考：${fmt(total/4)} ${unit}</small>`:''}</div>${present.map(who=>{const p=who.player,share=SalmonStats.share(job,p.key,metric);return `<div class="trend-tip-row"><span><i style="background:${who.color}"></i>${esc(who.name)}</span><b>${fmt(p[metric])} ${unit}<span class="trend-tip-share">占比 ${share===null?'—':fmt(share)+'%'}</span>${metric==='eggs'?`<span class="tip-assist">协助 ${fmt(p.assist)} 颗（不计入占比）</span>`:''}</b></div>`}).join('')}${note?`<small>${note}</small>`:''}<small>点击查看场次详情 ↗</small>`;
+  return `<strong>第 ${esc(job.index)} 场 · ${job.clear?'通过':'未通过'} · ${esc(date(job.time,true))}</strong><div class="trend-team-summary">四人合计：<b>${fmt(total)} ${unit}</b>${showQuarter&&total!==null?`<small>25% 均分参考：${fmt(total/4)} ${unit}</small>`:''}</div>${present.map(who=>{const p=who.player,share=SalmonStats.share(job,p.key,metric);return `<div class="trend-tip-row"><span class="trend-tip-name" translate="no" title="${esc(who.name)}"><i style="background:${who.color}"></i><span>${esc(who.name)}</span></span><b>${fmt(p[metric])} ${unit}<span class="trend-tip-share">占比 ${share===null?'—':fmt(share)+'%'}</span></b>${metric==='eggs'?`<span class="tip-assist">协助 ${fmt(p.assist)} 颗（不计入占比）</span>`:''}</div>`}).join('')}${note?`<small>${note}</small>`:''}<small>点击查看场次详情 ↗</small>`;
 }

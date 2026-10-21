@@ -42,7 +42,8 @@ window.SalmonKillDetails=(()=>{
     }));
     return images;
   }
-  function svg(jobs,shift,from=0,to=jobs.length-1,images=new Map()){
+  function svg(...args){const result=sourceSvg(...args);if(window.SalmonI18n)result.svg=window.SalmonI18n.svg(result.svg,{rasterize:true});return result;}
+  function sourceSvg(jobs,shift,from=0,to=jobs.length-1,images=new Map()){
     const result=calculate(jobs,from,to),selected=jobs.slice(from,to+1);
     if(!result.included)throw new Error('no_results');
     const width=960,tableTop=300,rowHeight=52,footer=tableTop+42+result.rows.length*rowHeight;
@@ -98,6 +99,7 @@ window.SalmonKillDetails=(()=>{
         const rows=calculate(jobs,exportFrom,exportTo).rows,images=await loadImages(rows);
         if(!dialog.open||!status.isConnected||current!==revision)return;
         const missingImages=rows.some(row=>row.image&&!images.has(row.image));
+        await window.SalmonI18n?.prepareExport();
         const output=svg(jobs,shift,exportFrom,exportTo,images);
         await document.fonts?.ready;
         const picture=new Image();
