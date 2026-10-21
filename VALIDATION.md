@@ -215,3 +215,17 @@
 - This refresh retains the private repository and unpublished v0.4.0 draft.
   Final commit/image/asset verification is recorded in VALIDATION-RELEASE.md
   alongside the rebuilt release attachments.
+
+## 2026-10-22 README screenshot refresh
+
+- Replaced the earlier showcase with the four supplied application screenshots,
+  arranged as performance, radar, score and teammate quantity charts. The fourth
+  screenshot uses count axes and the varying team-total / 4 reference line.
+- Overwrote 12 player-name boxes with consistent anonymous labels. Pixel
+  comparison confirmed that every pixel outside those boxes is unchanged.
+  The other three standalone screenshots are byte-identical to the supplied
+  files. Every panel is pasted into the composite at its native resolution.
+- Retained both README feature headings and separate full-size image links;
+  displayed the combined image once to keep the feature section compact.
+- This is a documentation/image-only change. Release materials are rebuilt
+  against the new commit; current artifact checks are in VALIDATION-RELEASE.md.

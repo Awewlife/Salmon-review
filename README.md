@@ -38,17 +38,17 @@ Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具
 
 #### 个人趋势图
 
-支持数量／占比切换、队友对比、25% 参考线和五维图。下图将四种视图合并展示，点击图片可查看原图。
+支持数量／占比切换、队友对比、25% 参考线和五维图。下图由实际界面截图拼接：P1 表现趋势、P2 五维图与场均数据、P3 分数变化、P4 队友数量对比。点击图片可放大查看。
 
-[![个人趋势图：搬蛋数量、巨大鲑鱼击杀占比、红蛋数量与五维图](docs/images/personal-trends.png)](docs/images/personal-trends.png)
+[![实际界面截图：表现趋势、五维图、分数变化，以及搬蛋和巨大鲑鱼击杀数量对比](docs/images/personal-trends.png)](docs/images/personal-trends.png)
+
+单独查看：[表现趋势](docs/images/performance-trend.png) · [五维图](docs/images/radar-chart.png) · [队友数量对比](docs/images/quantity-trends.png)。P4 的虚线表示当场四人合计除以 4，纵轴为实际数量。
 
 #### 分数曲线图
 
-按场次展示结束分数，自动缩放纵轴，并区分通过、未通过和掉线。
+上图 P3 按场次展示结束分数，自动缩放纵轴，并区分通过、未通过和掉线。[单独查看分数曲线图](docs/images/score-curve.png)。
 
-[![分数曲线图：漂浮落难船本期分数从传说 220 到传说 630，含结果图例](docs/images/score-curve.png)](docs/images/score-curve.png)
-
-以上示例使用 10/12—10/14 的漂浮落难船记录：55 场有效结算、2 次掉线。占比对比选取第 38—42 场，其余视图展示整期数据；玩家名称已匿名。
+以上示例使用 10/12—10/14 的漂浮落难船整期记录：55 场有效结算、2 次掉线。玩家 ID 已替换为“玩家”和队友 A–F；同一队友在两张数量图中使用相同代号。截图保留原始曲线、数值和图例。
 
 ### 使用范围
 
