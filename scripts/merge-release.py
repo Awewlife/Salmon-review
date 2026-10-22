@@ -35,7 +35,7 @@ def merge(parts, output):
         actual = {file.name for file in directory.iterdir() if file.name != 'SHA256SUMS.txt'}
         if actual != listed:
             raise ValueError('Unverified release assets')
-    (output / 'SHA256SUMS.txt').write_text(''.join(f'{digest(file)}  {file.name}\n' for file in sorted(output.iterdir())), encoding='ascii')
+    (output / 'SHA256SUMS.txt').write_text(''.join(f'{digest(file)}  {file.name}\n' for file in sorted(output.iterdir())), encoding='ascii', newline='\n')
 
 
 if __name__ == '__main__':

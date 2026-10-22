@@ -56,6 +56,7 @@ class ReleaseIdentityTests(unittest.TestCase):
                 else:
                     merge_release.merge(root, root/'combined')
                     self.assertEqual(len(list((root/'combined').iterdir())), 4)
+                    self.assertNotIn(b'\r', (root/'combined/SHA256SUMS.txt').read_bytes())
                     for line in (root/'combined/SHA256SUMS.txt').read_text('ascii').splitlines():
                         expected, name = line.split('  ', 1)
                         self.assertEqual(package.sha256(root/'combined'/name), expected)

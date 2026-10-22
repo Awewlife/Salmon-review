@@ -173,7 +173,7 @@ def main():
                   'imageIds': metadata['imageIds'], 'asset': archive.name,
                   'bytes': archive.stat().st_size, 'sha256': sha256(archive)}
         unsigned = output / ('unsigned-'+update_name)
-        unsigned.write_text(json.dumps(update, separators=(',', ':'))+'\n', encoding='utf-8')
+        unsigned.write_text(json.dumps(update, separators=(',', ':'))+'\n', encoding='utf-8', newline='\n')
         if args.signing_key:
             subprocess.run(['node', str(ROOT/'scripts/sign-update.mjs'), str(unsigned),
                             str(Path(args.signing_key).resolve()), str(output/update_name)], check=True)
@@ -228,7 +228,7 @@ def main():
             for file in sorted(third_party.rglob('*')):
                 if file.is_file():
                     result.write(file, file.relative_to(third_party), compress_type=zipfile.ZIP_STORED if file.suffix in ['.gz','.xz','.bz2','.zip'] else zipfile.ZIP_DEFLATED)
-        (output/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(output.iterdir()) if p.is_file() and p.name != 'SHA256SUMS.txt'),encoding='ascii')
+        (output/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in sorted(output.iterdir()) if p.is_file() and p.name != 'SHA256SUMS.txt'),encoding='ascii',newline='\n')
         print(json.dumps({'version':version,'commit':commit,'imageId':info['Id'],'files':[{'name':p.name,'bytes':p.stat().st_size} for p in sorted(output.iterdir())]},indent=2))
 
 
