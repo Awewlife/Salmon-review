@@ -141,7 +141,7 @@ bash Start.command --project-name 原项目名 --port 8787
 
 密码和验证码只在任天堂页面输入。登录链接有效期约 10 分钟；过期后请重新生成。验证期间请等待，不要重复提交。
 
-无需申请开发者资格或配置 `NXAPI_AUTH_CLIENT_ID`。程序使用独立的登录缓存，不读取 Windows 上其他 nxapi 或 s3s 安装的登录文件。
+无需申请开发者资格或配置 `NXAPI_AUTH_CLIENT_ID`。程序使用独立的登录缓存，不读取本机其他 nxapi 或 s3s 安装的登录文件。
 
 ## 三、日常使用
 
@@ -190,7 +190,7 @@ bash Start.command --project-name 原项目名 --port 8787
 docker compose -p salmon-review stop
 ```
 
-再次使用时，先启动 Docker Desktop，再运行 **`Start.cmd`**。使用自定义项目名或端口时，应继续传入原参数。新版启动器会保留网页更新已安装的较高版本。
+再次使用时，先启动 Docker Desktop；Windows 运行 **`Start.cmd`**，Mac 运行 **`Start.command`**。使用自定义项目名或端口时，应继续传入原参数。新版启动器会保留网页更新已安装的较高版本。
 
 ## 四、导入已有文件
 
@@ -243,11 +243,11 @@ docker compose -p salmon-review stop
 
 1. 下载数据备份。
 2. 记录原 Compose 项目名和端口。
-3. 将新版 Windows 安装包完整解压到新目录。
+3. 下载适合本机系统及芯片的新版安装包，完整解压到新目录。Mac 包仍处于未实机测试状态，见前文说明。
 4. 如有旧 `.env`，将其复制到新目录。
 5. 使用新版启动器，沿用原项目名和端口。
 
-例如，原项目名为 `salmon-review-dev`：
+例如，Windows 上原项目名为 `salmon-review-dev`：
 
 ```powershell
 .\Start.cmd -ProjectName salmon-review-dev
@@ -259,9 +259,15 @@ docker compose -p salmon-review stop
 .\Start.cmd -ProjectName salmon-review-dev -Port 8788
 ```
 
-`-Port` 仅作用于本次启动。后续启动需使用同一参数，或在安装目录的 `.env` 中保存 `SALMON_PORT=8788`。使用该端口时，访问 `http://127.0.0.1:8788/`。
+Mac 用户在解压目录执行相应命令：
 
-同一项目会沿用原数据卷，无需再次导入战绩。更新完成后刷新浏览器；界面未更新时按 `Ctrl + F5`。
+```sh
+bash Start.command --project-name salmon-review-dev --port 8788
+```
+
+Windows 的 `-Port` 和 Mac 的 `--port` 仅作用于本次启动。后续启动需使用同一参数，或在安装目录的 `.env` 中保存 `SALMON_PORT=8788`。使用该端口时，访问 `http://127.0.0.1:8788/`。
+
+同一项目会沿用原数据卷，无需再次导入战绩。更新完成后刷新浏览器；界面未更新时，Windows 可按 `Ctrl + F5`，Mac 请使用浏览器的强制重新加载功能。
 
 **不要删除数据卷，也不要执行 `docker compose down -v`。** 重置 Docker Desktop 也可能删除本地记录。复制安装目录不能代替数据备份。
 
@@ -281,12 +287,12 @@ docker compose -p salmon-review stop
 | --- | --- |
 | 找不到 `docker`，或无法连接 Docker 引擎 | 确认 Docker Desktop 已安装且引擎正在运行，再重新启动程序。 |
 | 找不到配置文件 | 在包含 `compose.yaml` 的安装目录打开终端。 |
-| 安装时出现 build、npm 或 Docker Hub 下载 | 核对是否下载了 Windows 发行包，并使用包内的 `Start.cmd`。 |
+| 安装时出现 build、npm 或 Docker Hub 下载 | 核对是否下载了对应系统及芯片的完整发行包，并使用包内启动器：Windows 为 `Start.cmd`，Mac 为 `Start.command`。 |
 | 镜像文件缺失或校验失败 | 重新下载并完整解压安装包，避免混用不同版本的文件。 |
-| 提示发现已有项目 | 用 `Start.cmd -ProjectName 原项目名` 启动。 |
-| 端口被占用 | 在 Docker Desktop 中检查是否已有实例运行；需要时使用 `-Port` 指定空闲端口。 |
+| 提示发现已有项目 | Windows 用 `Start.cmd -ProjectName 原项目名`，Mac 用 `bash Start.command --project-name 原项目名`。 |
+| 端口被占用 | 在 Docker Desktop 中检查是否已有实例运行；需要时用 Windows 的 `-Port` 或 Mac 的 `--port` 指定空闲端口。 |
 | 浏览器无法访问 | 核对本地地址及端口，执行 `docker compose -p salmon-review ps` 检查服务状态。 |
-| 页面样式缺失或仍显示旧版 | 先按 `Ctrl + F5`；仍有异常时检查容器状态和安装包版本。 |
+| 页面样式缺失或仍显示旧版 | 使用浏览器的强制重新加载功能（Windows 可按 `Ctrl + F5`）；仍有异常时检查容器状态和安装包版本。 |
 | 登录链接无效或过期 | 重新生成链接，并复制任天堂页面上“选择此账号”按钮的链接地址。 |
 | `Remote configuration prevents Coral authentication` 或 f-generation 服务不可用 | 检查 nxapi 上游服务状态，稍后重试；该提示不一定表示密码错误。 |
 | 账号已连接但同步失败 | 查看具体提示：认证失效时重新连接；网络错误或限流时按提示等待。 |
