@@ -1,3 +1,4 @@
+import {runtimePlatform} from '../server/updater/platform.js';
 // Integration runner: mounted into an isolated Compose project, never real data.
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
@@ -18,7 +19,7 @@ const imported=await appHTTP(address,'/api/import',{csrf:before.csrf,body:{docum
 await writeFile('/data/update-fixture-secret.txt','local-only-fixture',{mode:0o600});
 const image=await u.docker.image('salmon-review:local');
 const version=image.Config.Labels['org.opencontainers.image.version'];
-const manifest={version,image:'salmon-review:local',imageIds:[image.Id],commit:image.Config.Labels['org.opencontainers.image.revision']};
+const manifest={platform:runtimePlatform(),version,image:'salmon-review:local',imageIds:[image.Id],commit:image.Config.Labels['org.opencontainers.image.revision']};
 u.manifest=async()=>manifest;u.download=async()=>{};u.docker.load=async()=>{};
 u.info={available:true,latest:version};await u.install(version);await u.completion;
 assert.equal(u.info.phase,'success',JSON.stringify(u.info));

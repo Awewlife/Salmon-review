@@ -10,6 +10,7 @@ import {Retention} from './retention.js';
 import {Bundle,bundleProtocol} from './bundle.js';
 import {appHTTP} from './app-http.js';
 import {version as updaterVersion} from '../version.js';
+import {runtimePlatform} from './platform.js';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const messages={release_missing:'目前还没有可用的更新。',release_limited:'下载源暂时限制请求，请稍后重试。',download_failed:'下载未完成，旧版继续运行；请检查网络后重试。',invalid_signature:'更新签名校验失败，已拒绝安装。',invalid_manifest:'此更新与当前安装方式不兼容，请下载完整安装包。',invalid_download:'下载文件校验失败，旧版继续运行。',disk_space:'磁盘空间不足，已停止更新。',project_mismatch:'无法确认原有项目和数据卷，已停止更新。',busy:'正在同步、导入或登录，请完成后重试更新。',no_update:'目前没有比当前版本更新的可安装版本。',unhealthy:'新版启动或数据检查未通过。',backup_failed:'数据备份未完成，已停止更新。',recovery_failed:'自动恢复未完成。已保留旧容器和备份，请勿删除数据卷；请查看 Docker 中更新组件日志并联系维护者。'};
 function publicMessage(e){return messages[e?.message]??'更新未完成，请检查网络、磁盘空间和 Docker 状态后重试。'}
@@ -122,6 +123,8 @@ export class Updater{
       if(!this.helper)await this.save({phase:'verifying',progress:0,available:false,message:'正在核对更新签名…'});
       signal.throwIfAborted();
       const m=await this.manifest(version,{signal});signal.throwIfAborted();old=await this.discover();signal.throwIfAborted();
+      // Reject a foreign-architecture update before download or touching data.
+      if(m.platform!==runtimePlatform())throw new Error('invalid_manifest');
       if(compareVersions(m.version,old.Config.Labels['org.opencontainers.image.version'])<=0)throw new Error('no_update');
       if(!this.helper){
         await this.save({phase:'downloading',message:'正在下载新版，仍可使用当前版本。'});
@@ -131,7 +134,7 @@ export class Updater{
         await this.save({phase:'loading',message:'文件已校验，正在导入镜像…'});await this.docker.load(imageFile);
       }
       const image=await this.docker.image(this.bundleState?.imageId??m.image);
-      if(!m.imageIds.includes(image.Id)||image.Os!=='linux'||image.Architecture!=='amd64'||image.Config.Labels?.['org.opencontainers.image.revision']!==m.commit||image.Config.Labels?.['org.opencontainers.image.version']!==m.version)throw new Error('invalid_download');
+      if(!m.imageIds.includes(image.Id)||image.Os!=='linux'||`linux/${image.Architecture}`!==runtimePlatform()||image.Config.Labels?.['org.opencontainers.image.revision']!==m.commit||image.Config.Labels?.['org.opencontainers.image.version']!==m.version)throw new Error('invalid_download');
       if(m.updaterProtocol===bundleProtocol&&!this.helper){await this.bundle.begin(m,image.Id);return}
       old=await this.discover();
       const id=randomBytes(12).toString('hex');journal={id,oldId:old.Id,oldVersion:old.Config.Labels['org.opencontainers.image.version'],name:old.Name.slice(1),backup:this.file('backups/'+id),backupComplete:false,version,created:Date.now()};

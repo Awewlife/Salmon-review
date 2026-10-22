@@ -10,7 +10,7 @@
 
 下载失败不会停止旧版。新版启动或数据检查失败时，更新组件会尝试恢复旧容器和更新前的数据。如果提示“自动恢复未完成”，不要删除容器或数据卷；保留 updater 日志，联系维护者。重启 Docker 后会根据更新日志继续恢复。
 
-安装包仍可以手动更新。继续使用相同项目名；新版启动器会识别网页已安装的更高版本，不会自动降级。手工执行旧版 `docker compose up` 不包含这个保护，应使用启动器。
+安装包仍可以手动更新。继续使用相同项目名；Windows 的 `Start.cmd` 和 Mac 的 `Start.command` 都会识别网页已安装的更高版本，不会自动降级。Mac 自定义项目使用 `bash Start.command --project-name 原项目名`。手工执行旧版 `docker compose up` 不包含这个保护，应使用启动器。
 
 ## 公开版和可选凭据
 
@@ -31,7 +31,7 @@
 - updater 按自身 Compose 项目标签定位 app，同时验证数据卷和 127.0.0.1 端口绑定。
 - `<项目名>_salmon-data` 保存原有数据；`<项目名>_salmon-updates` 保存下载、更新日志和备份。备份包含本机凭据，**不要分享这个卷或其中的备份**。网页导出的战绩 JSON 仍不含凭据。
 - 更新协议 2 会同时替换主程序和更新组件，先检查主程序的数据，再检查更新组件及主程序到组件的连接，通过后才提交。助手固定使用当前已安装镜像的不可变 ID，新组件也按校验后的镜像 ID 启动。未知协议、数据或设置格式迁移仍需要完整包；程序不会强行升级。
-- 目前仅支持既有 Linux/amd64 镜像和数据库格式 1。格式迁移需要单独实现和验证，不通过改清单强行升级。
+- 支持 Linux/amd64（Windows x64、Intel Mac）和 Linux/arm64（M 系列 Mac），数据库格式仍为 1。更新组件只接受本机架构的签名清单与镜像，不会跨架构降级或回退到其他架构的附件。格式迁移需要单独实现和验证。
 - v0.3.9 更新组件在成功更新后按下文保留策略清理旧镜像和备份；旧组件仍保留备份。空间不足时停止更新。
 
 ## 维护者发布
@@ -41,16 +41,19 @@
 先完成测试与许可核对，再提交源码、按提交构建版本镜像，运行：
 
 ```text
-python scripts/package-release.py --sources <已校验的源码缓存目录> --output <仓库外输出目录> --signing-key <私钥文件>
+python scripts/package-release.py --platform linux/amd64 --sources <已校验的源码缓存目录> --output <仓库外amd64输出目录> --signing-key <私钥文件>
+python scripts/package-release.py --platform linux/arm64 --sources <已校验的源码缓存目录> --output <仓库外arm64输出目录> --signing-key <同一私钥文件>
 ```
 
-除了完整 Windows 安装包、对应源码和许可材料，还生成单独的镜像归档与签名 `update.json`。完整上传到原仓库 `Awewlife/Salmon-review` 同名版本的 Release 后，最后发布 Release；不要提前发布不完整附件。更新组件会从已发布版本中选取版本号最高且带 `update.json` 的版本，包括本项目的预发布版。
+分别在两种架构的构建机上构建同一提交的 `salmon-review:<版本>`，再执行相应打包命令；每次打包都校验镜像架构、提交及源码材料。amd64 生成原名 Windows ZIP、`macos-x64` ZIP、镜像归档及 `update.json`；arm64 生成 `macos-arm64` ZIP、ARM64 镜像归档及 `update-arm64.json`。原有 Windows 附件名称、启动器及 `update.json` 格式保持兼容。ARM64 的第三方附件名附加 `-arm64`，应用源码 ZIP 共用。
 
-签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、容器内 `node --test tests/*.test.js`、`tests/installer.Tests.ps1`、`tests/run-bundle-docker.ps1`。最后一项创建专用 `salmon-bundle-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。
+两组输出分别放在 `<parts>/amd64` 和 `<parts>/arm64`，运行 `python scripts/merge-release.py --parts <parts> --output <仓库外空目录>` 合并并重新生成总校验和。合并会拒绝被改动的附件或内容不同的同名源码包。完整上传到原仓库同名版本的 Release 后，最后发布；不要提前发布不完整附件。两种架构各自选择版本号最高且带对应签名清单的版本，包括本项目的预发布版。
+
+签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、两种架构容器内 `node --test tests/*.test.js`、`tests/installer.Tests.ps1`（PowerShell 5.1 / 7）、`node --test tests/macos-installer.test.js`（Mac）、`tests/run-bundle-docker.ps1`。容器运行单元测试时同时把源码 `tests/` 和 `release/` 只读挂载到 `/app/tests`、`/app/release`。最后一项创建专用 `salmon-bundle-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。发布前还需在真实 Intel / M 系列 Mac 验证下载后首次启动、登录同步、导出及更新数据保留。
 
 **分发材料：** `splatnet3-types` 已替换为带来源记录的本地模块，`tr46` 的 MIT 正文及版权声明已补齐。打包前运行 `scripts/collect-release-sources.py --image salmon-review:0.4.0 --output <仓库外目录>`；系统、Node 和原生库版本必须与源码锁定清单一致，文件缺失或哈希不符时停止打包。字体行为保持不变，第三方权利和源码重建说明见 `THIRD_PARTY_NOTICES.md` 与 `licenses/SOURCE-BUILD.md`。
 
-GitHub Actions 只构建草稿附件，不持有更新签名私钥，也不自动公开仓库或发布草稿。维护者须验证镜像和源码附件，再本地签署 `update.json`，补齐校验和，最后发布。没有签名清单的版本不会被网页列为可安装更新。
+GitHub Actions 在两种架构的原生 Linux runner 上构建，合并后只上传草稿附件，不持有更新签名私钥，也不自动公开仓库或发布草稿。不带私钥打包时生成 `unsigned-update.json` 和 `unsigned-update-arm64.json` 供本地签署：使用 `node scripts/sign-update.mjs <unsigned文件> <私钥文件> <对应update文件>`，然后重新生成总校验和。没有对应架构签名清单的版本不会被该架构的网页列为可安装更新。
 
 
 ## 取消更新与磁盘占用

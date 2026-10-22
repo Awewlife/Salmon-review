@@ -229,3 +229,41 @@
   displayed the combined image once to keep the feature section compact.
 - This is a documentation/image-only change. Release materials are rebuilt
   against the new commit; current artifact checks are in VALIDATION-RELEASE.md.
+
+## 2026-10-22 Mac launcher and ARM64 support
+
+- Added a Bash 3.2-compatible Mac launcher, packaged separately for Intel
+  (`macos-x64`) and Apple Silicon (`macos-arm64`). The ZIP records executable
+  permissions, and Mac scripts, metadata and checksum lists use LF even when
+  packaged on Windows. No host Node.js, Python or Homebrew is required.
+- Windows `Start.cmd`, `Start.ps1`, the default amd64 Compose configuration,
+  installer filename and signed `update.json` format remain unchanged. ARM64
+  uses `update-arm64.json`; signed manifests and loaded images must match the
+  updater's architecture before stopping an application or changing data.
+- Both Linux images built successfully. The ARM64 native sharp pipeline ran
+  successfully under Docker Desktop emulation. Exact runtime versions and
+  Debian source-package versions match amd64; separate binary inventories are
+  locked. All 598 corresponding-source archive hashes were reverified.
+- Windows PowerShell 5.1 and PowerShell 7 each passed all 13 existing installer
+  scenarios. The amd64 container passed all 258 Node test entries, including
+  42 Mac launcher scenarios with a simulated Docker boundary. ARM64 runtime
+  tests passed separately (217 runner entries, excluding repeated launcher
+  subprocess scenarios under emulation). All 9 Python packaging tests passed,
+  including ZIP permissions, line endings, checksums, CPU selection and asset
+  merging. Workflow YAML parsed successfully; notice checks passed.
+- Real Compose tests used WSL only as a shell host, with actual amd64 and
+  emulated ARM64 containers. Disposable `salmon-mac-qa-*` projects verified
+  actual offline import after removing the fixture image tag, startup,
+  restart/data preservation, retention of newer app/updater versions,
+  and refusal to overwrite unfinished update transactions. No production
+  volumes were used. Both architectures also passed real bundle-update tests:
+  successful upgrade, failed-updater rollback, interruption before/after
+  commit, credential/data retention and helper cleanup.
+- CI now includes Intel/ARM Mac shell-runner jobs and a native Linux ARM64
+  image job. These remote jobs have not been dispatched in this local change.
+  Actual Mac Finder/quarantine behavior, browser login, synchronization,
+  chart export and installation from a downloaded ZIP still require physical
+  Intel/Apple Silicon Mac acceptance testing. WSL/QEMU results do not certify
+  those macOS-specific behaviors.
+- Changes remain local. No repository visibility, release publication, signing
+  key, production image tag or existing player data was changed.

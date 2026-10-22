@@ -1,3 +1,4 @@
+param([ValidateSet('amd64','arm64')][string]$Architecture='amd64')
 $ErrorActionPreference='Stop'
 $project='salmon-bundle-test'
 if (@(docker ps -a --filter "label=com.docker.compose.project=$project" --format '{{.ID}}').Count -or @(docker volume ls --filter "label=com.docker.compose.project=$project" --format '{{.Name}}').Count) { throw 'Disposable bundle test project already exists.' }
@@ -13,12 +14,15 @@ $tests=$PSScriptRoot.Replace('\','/')
 @"
 services:
   app:
+    platform: linux/$Architecture
     image: salmon-review:bundle-old-test
     ports: !override
       - '127.0.0.1:19879:8787'
   updater:
+    platform: linux/$Architecture
     image: salmon-review:bundle-old-test
   driver:
+    platform: linux/$Architecture
     image: salmon-review:bundle-target-test
     user: root
     command: ['node','tests/bundle-docker.mjs']
@@ -47,7 +51,7 @@ COPY fixture-hooks.mjs /app/server/updater/fixture-hooks.mjs
 RUN sed -i "1i import './fixture-hooks.mjs';" server/updater/helper.js && sed -i "s/new Updater({helper:true})/new Updater({helper:true,attempts:3})/" server/updater/helper.js && sed -i "s/async images(state){/async images(state){return 0;/" server/updater/retention.js
 USER node
 '@ | Set-Content (Join-Path $scratch 'Dockerfile') -Encoding utf8
-    docker build -t salmon-review:bundle-target-test $scratch
+    docker build --platform "linux/$Architecture" -t salmon-review:bundle-target-test $scratch
     if($LASTEXITCODE){throw 'Target fixture build failed'}
     foreach($variant in @('old','bad','next')){
         $version=if($variant -eq 'old'){'0.0.0'}else{$nextVersion}
@@ -60,7 +64,7 @@ LABEL org.opencontainers.image.version="$version"
 $break
 USER node
 "@ | Set-Content (Join-Path $scratch 'Dockerfile') -Encoding utf8
-        docker build -t "salmon-review:bundle-$variant-test" $scratch
+        docker build --platform "linux/$Architecture" -t "salmon-review:bundle-$variant-test" $scratch
         if($LASTEXITCODE){throw 'Fixture build failed'}
     }
     docker compose -p $project -f $compose -f $override up -d --no-build --pull never --wait app updater

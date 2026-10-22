@@ -1,0 +1,6 @@
+# Apply after compose.yaml (and compose.build.yaml when building from source).
+services:
+  app:
+    platform: linux/arm64
+  updater:
+    platform: linux/arm64

@@ -1,20 +1,31 @@
-name: Build release draft
+name: Prepare Windows and Mac release draft
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag, for example v0.3.5
+        description: Existing release tag
         required: true
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: release-${{ inputs.tag }}
+  group: package-release-${{ inputs.tag }}
   cancel-in-progress: false
 jobs:
   package:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,32 +50,64 @@ jobs:
           npm audit --omit=dev --audit-level=low
           npm test
           python -m unittest discover -s tests -p test_release_package.py
-      - name: Build and test release image
+      - name: Build and test native release image
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
-          docker build --platform linux/amd64 --build-arg VCS_REF="$(git rev-parse HEAD)" -t "salmon-review:$VERSION" .
-          docker run --rm --mount type=bind,source="$PWD/tests",target=/app/tests,readonly "salmon-review:$VERSION" node --test tests/*.test.js
-      - name: Package image, source and notices
+          docker build --platform "linux/$ARCH" --build-arg VCS_REF="$(git rev-parse HEAD)" -t "salmon-review:$VERSION" .
+          docker run --rm --network none --mount type=bind,source="$PWD/tests",target=/app/tests,readonly --mount type=bind,source="$PWD/release",target=/app/release,readonly "salmon-review:$VERSION" node --test tests/*.test.js
+      - name: Package installers, image and unsigned update payload
+        env:
+          ARCH: ${{ matrix.arch }}
         run: |
           VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
           python scripts/collect-release-sources.py --image "salmon-review:$VERSION" --output "$RUNNER_TEMP/source-cache"
-          python scripts/package-release.py --sources "$RUNNER_TEMP/source-cache" --output "$RUNNER_TEMP/salmon-artifacts"
+          python scripts/package-release.py --platform "linux/$ARCH" --sources "$RUNNER_TEMP/source-cache" --output "$RUNNER_TEMP/salmon-artifacts"
       - name: Verify empty startup without container network access
         run: |
           VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
           docker run -d --name salmon-release-check --network none --tmpfs /data:uid=1000,gid=1000 "salmon-review:$VERSION"
+          trap 'docker rm -f salmon-release-check' EXIT
           for i in $(seq 1 20); do
-            if docker exec salmon-release-check node -e 'fetch("http://127.0.0.1:8787/api/status").then(r=>r.json()).then(s=>{if(s.records!==0||s.connected)process.exit(1)})'; then
-              docker rm -f salmon-release-check
-              exit 0
-            fi
+            if docker exec salmon-release-check node -e 'fetch("http://127.0.0.1:8787/api/status").then(r=>r.json()).then(s=>{if(s.records!==0||s.connected)process.exit(1)})'; then exit 0; fi
             sleep 2
           done
-          docker rm -f salmon-release-check
           exit 1
-      - name: Upload artifacts to an unpublished draft
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.arch }}
+          path: ${{ runner.temp }}/salmon-artifacts/*
+          retention-days: 7
+  stage:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-amd64
+          path: ${{ runner.temp }}/parts/amd64
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-arm64
+          path: ${{ runner.temp }}/parts/arm64
+      - run: python scripts/merge-release.py --parts "$RUNNER_TEMP/parts" --output "$RUNNER_TEMP/release"
+      - name: Upload complete assets to an unpublished draft only
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/salmon-artifacts/"* --verify-tag --draft --latest=false --title "Salmon Review $RELEASE_TAG — Windows 离线安装包" --notes-file release/RELEASE_NOTES.md
+          if gh release view "$RELEASE_TAG" --json isDraft > "$RUNNER_TEMP/draft.json"; then
+            test "$(jq -r .isDraft "$RUNNER_TEMP/draft.json")" = true
+            gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/release/"* --clobber
+          else
+            gh release create "$RELEASE_TAG" "$RUNNER_TEMP/release/"* --verify-tag --draft --latest=false --title "Salmon Review $RELEASE_TAG — Windows / macOS" --notes-file release/RELEASE_NOTES.md
+          fi

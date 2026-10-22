@@ -1,3 +1,4 @@
+import {runtimePlatform} from '../server/updater/platform.js';
 // Isolated Docker test; never mounts production volumes or downloads releases.
 import assert from 'node:assert/strict';
 import {readFile,writeFile,rm} from 'node:fs/promises';
@@ -29,7 +30,7 @@ async function begin(tag,{defer=false}={}){
  d.inspect=id=>inspect(id===process.env.HOSTNAME?old.Id:id);
  const u=new Updater({docker:d});u.token=(await readFile('/updates/channel.token','utf8')).trim();
  u.credential=await json('/updates/github.json');u.info=await json('/updates/status.json',{});
- const image=await docker.image(tag),m={updaterProtocol:2,version:image.Config.Labels['org.opencontainers.image.version'],image:tag,imageIds:[image.Id],commit:image.Config.Labels['org.opencontainers.image.revision']};
+ const image=await docker.image(tag),m={platform:runtimePlatform(),updaterProtocol:2,version:image.Config.Labels['org.opencontainers.image.version'],image:tag,imageIds:[image.Id],commit:image.Config.Labels['org.opencontainers.image.revision']};
  if(defer)u.bundle.ensureHelper=async()=>{};
  try{await u.bundle.begin(m,image.Id)}catch(e){console.error(JSON.stringify({service:old.Config.Labels['com.docker.compose.service'],mounts:old.Mounts,ports:old.HostConfig.PortBindings,appMounts:(await container('app')).Mounts}));throw e}return {old,state:await json('/updates/bundle.json')};
 }

@@ -4,11 +4,13 @@ import {generateKeyPairSync,sign,createHash} from 'node:crypto';
 import {mkdtemp,readFile,rm,writeFile,mkdir,symlink,stat} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {validateManifest,compareVersions,repository,downloadImage,githubFetch,verifyAccess,releaseClient,manifestFor} from '../server/updater/release.js';
+import {validateManifest,compareVersions,repository,downloadImage,githubFetch,verifyAccess,releaseClient,manifestFor,latestRelease} from '../server/updater/release.js';
 import {candidateConfig,sameProjectApp} from '../server/updater/docker.js';
 import {Updater} from '../server/updater/service.js';
 import {backupData,treeHash,inspectTree} from '../server/updater/files.js';
-const manifest={format:1,updaterProtocol:1,dataFormat:1,repository,version:'0.3.6',platform:'linux/amd64',image:'salmon-review:0.3.6',commit:'a'.repeat(40),asset:'salmon-review-0.3.6-linux-amd64.tar.gz',bytes:100,sha256:'b'.repeat(64),imageIds:['sha256:'+'c'.repeat(64)]};
+import {runtimePlatform,manifestAsset} from '../server/updater/platform.js';
+const platform=runtimePlatform(),arch=platform.split('/')[1];
+const manifest={format:1,updaterProtocol:1,dataFormat:1,repository,version:'0.3.6',platform,image:'salmon-review:0.3.6',commit:'a'.repeat(40),asset:`salmon-review-0.3.6-linux-${arch}.tar.gz`,bytes:100,sha256:'b'.repeat(64),imageIds:['sha256:'+'c'.repeat(64)]};
 test('only authentic compatible manifests and fixed release URLs are accepted',()=>{
   const {privateKey,publicKey}=generateKeyPairSync('ed25519');
   const envelope=m=>{const b=Buffer.from(JSON.stringify(m));return {payload:b.toString('base64'),signature:sign(null,b,privateKey).toString('base64')}};
@@ -18,6 +20,38 @@ test('only authentic compatible manifests and fixed release URLs are accepted',(
   for(const patch of [{version:'9.0.0'},{dataFormat:2},{updaterProtocol:3},{asset:'../../evil'},{image:'other:latest'},{repository:'attacker/repo'},{bytes:3*1024**3}])assert.throws(()=>validateManifest(envelope({...manifest,...patch}),publicKey,'0.3.6'));
   assert.equal(compareVersions('0.3.10','0.3.9'),1);assert.throws(()=>compareVersions('latest','0.3.5'));
 });
+test('both architectures require their own signed manifest and exact image asset name',()=>{
+  const {privateKey,publicKey}=generateKeyPairSync('ed25519');
+  const envelope=m=>{const b=Buffer.from(JSON.stringify(m));return {payload:b.toString('base64'),signature:sign(null,b,privateKey).toString('base64')}};
+  for(const arch of ['amd64','arm64']){
+    const platform=`linux/${arch}`,m={...manifest,platform,asset:`salmon-review-0.3.6-linux-${arch}.tar.gz`};
+    assert.equal(validateManifest(envelope(m),publicKey,m.version,platform).platform,platform);
+    const other=arch==='amd64'?'linux/arm64':'linux/amd64';
+    assert.throws(()=>validateManifest(envelope(m),publicKey,m.version,other),/invalid_manifest/);
+    assert.throws(()=>validateManifest(envelope({...m,asset:manifest.asset+'-wrong'}),publicKey,m.version,platform),/invalid_manifest/);
+  }
+  assert.equal(manifestAsset(runtimePlatform('x64')),'update.json');
+  assert.equal(manifestAsset(runtimePlatform('arm64')),'update-arm64.json');
+  assert.throws(()=>runtimePlatform('ia32'),/invalid_manifest/);
+});
+test('release discovery selects only the matching architecture and never falls back to another CPU',async()=>{
+  for(const platform of ['linux/amd64','linux/arm64']){
+    const name=manifestAsset(platform),other=manifestAsset(platform==='linux/amd64'?'linux/arm64':'linux/amd64');
+    const releases=[{tag_name:'v9.0.0',assets:[{id:90,name:other}]},{tag_name:'v0.3.6',assets:[{id:36,name}]}];
+    const requests=[];
+    const transport=async url=>{
+      const u=String(url);requests.push(u);
+      if(u.includes('/releases?'))return Response.json(releases);
+      if(u.includes('/tags/'))return Response.json({draft:false,assets:[{id:36,name}]});
+      return Response.json({payload:'e30=',signature:'invalid'});
+    };
+    await assert.rejects(latestRelease({platform,transport}),/invalid_signature/);
+    assert.ok(requests.some(u=>u.endsWith('/tags/v0.3.6')));
+    assert.ok(requests.some(u=>u.endsWith('/assets/36')));
+    assert.ok(!requests.some(u=>u.includes('v9.0.0')));
+    await assert.rejects(latestRelease({platform,transport:async()=>Response.json([releases[0]])}),/release_missing/);
+  }
+});
 const old=()=>({Id:'old',Name:'/sample-app-1',Config:{Image:'salmon-review:0.3.5',User:'node',Env:['UPDATE_DIR=/updates'],Labels:{'org.opencontainers.image.version':'0.3.5','com.docker.compose.project':'sample','com.docker.compose.service':'app'}},Mounts:[{Type:'volume',Name:'sample_salmon-data',Destination:'/data'}],HostConfig:{PortBindings:{'8787/tcp':[{HostIp:'127.0.0.1',HostPort:'8787'}]}},NetworkSettings:{Networks:{sample_default:{Aliases:['app'],IPAddress:'172.0.0.2'}}},State:{Running:true,Status:'running'}});
 test('container replacement preserves data volume, ports and isolation; rejects a different project',()=>{
   const app=old(),self={Config:{Labels:{'com.docker.compose.project':'sample'}},Mounts:app.Mounts};
@@ -26,11 +60,11 @@ test('container replacement preserves data volume, ports and isolation; rejects 
   app.Mounts[0].Name='different';assert.throws(()=>sameProjectApp({...self,Mounts:[{Type:'volume',Name:'sample_salmon-data',Destination:'/data'}]},app));
   app.HostConfig.PortBindings['8787/tcp'][0].HostIp='0.0.0.0';assert.throws(()=>sameProjectApp(self,app));
 });
-async function fixture(t,{corrupt=false,failCreate=false}={}){
+async function fixture(t,{corrupt=false,failCreate=false,imageArch=arch}={}){
   const directory=await mkdtemp(path.join(os.tmpdir(),'salmon-updater-'));t.after(()=>rm(directory,{recursive:true,force:true}));
   const trace=[],app=old();let candidate=null;
   const docker={
-    load:async()=>trace.push('load'),image:async()=>({Id:corrupt?'bad':manifest.imageIds[0],Os:'linux',Architecture:'amd64',Config:{Labels:{'org.opencontainers.image.revision':manifest.commit,'org.opencontainers.image.version':manifest.version}}}),
+    load:async()=>trace.push('load'),image:async()=>({Id:corrupt?'bad':manifest.imageIds[0],Os:'linux',Architecture:imageArch,Config:{Labels:{'org.opencontainers.image.revision':manifest.commit,'org.opencontainers.image.version':manifest.version}}}),
     stop:async id=>{trace.push('stop:'+id);(id==='old'?app:candidate).State.Running=false},
     rename:async(id,name)=>{trace.push('rename:'+id);app.Name='/'+name},
     create:async(name,config)=>{trace.push('create');if(failCreate)throw new Error('docker_failed');candidate={...old(),Id:'new',Config:config,Name:'/'+name};return {Id:'new'}},
@@ -46,6 +80,14 @@ async function fixture(t,{corrupt=false,failCreate=false}={}){
 test('download/image validation failure never stops old app or writes its data',async t=>{
   const {u,trace}=await fixture(t,{corrupt:true});await u.install('0.3.6');await u.completion;
   assert.deepEqual(trace,['download','load']);assert.equal(u.info.phase,'failed');
+});
+test('foreign CPU manifests fail before download and foreign images fail before stopping the app',async t=>{
+  const other=arch==='amd64'?'arm64':'amd64';
+  const first=await fixture(t);first.u.manifest=async()=>({...manifest,platform:`linux/${other}`});
+  await first.u.install(manifest.version);await first.u.completion;
+  assert.deepEqual(first.trace,[]);assert.equal(first.u.info.phase,'failed');
+  const second=await fixture(t,{imageArch:other});await second.u.install(manifest.version);await second.u.completion;
+  assert.deepEqual(second.trace,['download','load']);assert.equal(second.u.info.phase,'failed');
 });
 test('failed replacement restores backup and old app; no volume is removed',async t=>{
   const {u,trace,directory}=await fixture(t,{failCreate:true});await u.install('0.3.6');await u.completion;
@@ -78,7 +120,7 @@ test('public client ignores a saved stale token and verifies the signed manifest
   const transport=async(url,options)=>{
     requests.push({url:String(url),...options});
     if(String(url).endsWith(repository))return Response.json({full_name:repository,private:false});
-    if(String(url).includes('/tags/'))return Response.json({draft:false,assets:[{id:42,name:'update.json'}]});
+    if(String(url).includes('/tags/'))return Response.json({draft:false,assets:[{id:42,name:manifestAsset(platform)}]});
     return Response.json({payload:'e30=',signature:'invalid'});
   };
   await assert.rejects(releaseClient(()=>fixtureToken,{transport}).manifest('0.3.6'),/invalid_signature/);
@@ -93,7 +135,7 @@ test('private access and late anonymous rate limits can use explicitly saved cre
       if(u.endsWith('/user'))return Response.json({login:'tester'});
       if(u.endsWith(repository))return privateRepo&&!authorized?new Response(null,{status:404}):Response.json({full_name:repository,private:privateRepo,permissions:{pull:true}});
       if(!authorized)return new Response(null,{status:429});
-      if(u.includes('/tags/'))return Response.json({draft:false,assets:[{id:42,name:'update.json'}]});
+      if(u.includes('/tags/'))return Response.json({draft:false,assets:[{id:42,name:manifestAsset(platform)}]});
       if(u.includes('/assets/'))return Response.json({payload:'e30=',signature:'invalid'});
       return Response.json([]);
     };
@@ -155,7 +197,7 @@ test('cached availability cannot bypass revoked authorization before installatio
 
 test('private manifest resolves numeric asset ID through API with octet-stream negotiation',async()=>{
   const requests=[];
-  const transport=async(url,options)=>{requests.push({url:String(url),headers:options.headers});return String(url).endsWith('/releases/tags/v0.3.6')?Response.json({draft:false,assets:[{id:42,name:'update.json',browser_download_url:'https://evil.example/ignored'}]}):Response.json({payload:'e30=',signature:'invalid'})};
+  const transport=async(url,options)=>{requests.push({url:String(url),headers:options.headers});return String(url).endsWith('/releases/tags/v0.3.6')?Response.json({draft:false,assets:[{id:42,name:manifestAsset(platform),browser_download_url:'https://evil.example/ignored'}]}):Response.json({payload:'e30=',signature:'invalid'})};
   await assert.rejects(manifestFor('0.3.6',{token:fixtureToken,transport}),/invalid_signature/);
   assert.equal(requests.length,2);assert.equal(requests[0].headers.Accept,'application/vnd.github+json');assert.equal(requests[1].url,`https://api.github.com/repos/${repository}/releases/assets/42`);assert.equal(requests[1].headers.Accept,'application/octet-stream');
 });

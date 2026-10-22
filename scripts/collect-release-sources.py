@@ -43,7 +43,10 @@ def image_inventory(image):
 
 
 def verify_image(image, lock):
-    if image_inventory(image) != lock['imageInventory']:
+    info = json.loads(subprocess.check_output(['docker', 'image', 'inspect', image]).decode('utf-8'))[0]
+    platform = f"{info['Os']}/{info['Architecture']}"
+    expected = lock['imageInventory'] if platform == 'linux/amd64' else lock.get('platformInventories', {}).get(platform)
+    if expected is None or image_inventory(image) != expected:
         raise ValueError('Source lock does not match installed system/native versions; regenerate and review it')
 
 

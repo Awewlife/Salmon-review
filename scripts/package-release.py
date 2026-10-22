@@ -1,4 +1,4 @@
-"""Package an already-built Linux/amd64 image; never reads a running data volume."""
+"""Package a single-architecture Linux image; never reads a running data volume."""
 import argparse
 import gzip
 import hashlib
@@ -62,7 +62,7 @@ def verify_notice_bundle(directory):
                 raise ValueError('tr46 image supplemental notice missing or changed')
 
 
-def image_ids(archive, image, inspected_id, revision):
+def image_ids(archive, image, inspected_id, revision, platform='linux/amd64'):
     """Classic stores expose the config ID; containerd may expose the index ID."""
     with tarfile.open(archive, 'r:gz') as saved:
         manifests = json.load(saved.extractfile('manifest.json'))
@@ -71,7 +71,7 @@ def image_ids(archive, image, inspected_id, revision):
             raise ValueError('Expected exactly one tagged image in docker save archive')
         config_bytes = saved.extractfile(matches[0]['Config']).read()
         config = json.loads(config_bytes)
-        if (config.get('os'), config.get('architecture')) != ('linux', 'amd64'):
+        if platform not in ['linux/amd64', 'linux/arm64'] or f"{config.get('os')}/{config.get('architecture')}" != platform:
             raise ValueError('Archived image platform mismatch')
         if config.get('config', {}).get('Labels', {}).get('org.opencontainers.image.revision') != revision:
             raise ValueError('Archived image source revision mismatch')
@@ -79,11 +79,51 @@ def image_ids(archive, image, inspected_id, revision):
         return sorted(set([inspected_id, config_id]))
 
 
+def installer_targets(platform):
+    if platform == 'linux/amd64':
+        return ['windows-x64', 'macos-x64']
+    if platform == 'linux/arm64':
+        return ['macos-arm64']
+    raise ValueError('Unsupported release platform')
+
+
+def write_installer(scratch, output, target, metadata, archive):
+    name = f"SalmonReview-v{metadata['version']}-{target}"
+    package = scratch / name
+    package.mkdir()
+    copy_documentation(package)
+    compose = (package / 'compose.yaml').read_text('utf-8')
+    (package / 'compose.yaml').write_text(compose.replace('platform: linux/amd64', 'platform: '+metadata['platform']), encoding='utf-8', newline='\n')
+    shutil.copy2(archive, package / 'salmon-review-image.tar.gz')
+    (package / 'release.json').write_text(json.dumps(metadata, indent=2)+'\n', encoding='utf-8', newline='\n')
+    if target == 'windows-x64':
+        # BOM is intentional for Windows PowerShell 5.1; preserve its existing entry points.
+        (package / 'Start.ps1').write_text((ROOT/'release/Start.ps1').read_text('utf-8-sig'), encoding='utf-8-sig', newline='\r\n')
+        (package / 'Start.cmd').write_text((ROOT/'release/Start.cmd').read_text('utf-8'), encoding='ascii', newline='\r\n')
+    else:
+        for filename in ['Start.command', 'start-macos.sh']:
+            (package / filename).write_text((ROOT/'release'/filename).read_text('utf-8'), encoding='utf-8', newline='\n')
+        # Data, never sourced as shell code. macOS needs no host Node/Python installation.
+        (package / 'release.env').write_text(
+            f"VERSION={metadata['version']}\nPLATFORM={metadata['platform']}\nCOMMIT={metadata['commit']}\nIMAGE_IDS={','.join(metadata['imageIds'])}\n", encoding='ascii', newline='\n')
+    (package/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.relative_to(package).as_posix()}\n' for p in sorted(package.rglob('*')) if p.is_file()), encoding='ascii', newline='\n')
+    with zipfile.ZipFile(output/(name+'.zip'), 'w') as result:
+        for file in sorted(package.rglob('*')):
+            if file.is_file():
+                member = zipfile.ZipInfo.from_file(file, name+'/'+file.relative_to(package).as_posix())
+                member.create_system = 3
+                member.external_attr = (0o100755 if file.name in ['Start.command', 'start-macos.sh'] else 0o100644) << 16
+                member.compress_type = zipfile.ZIP_STORED if file.suffix == '.gz' else zipfile.ZIP_DEFLATED
+                with file.open('rb') as source, result.open(member, 'w') as destination:
+                    shutil.copyfileobj(source, destination)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
     parser.add_argument('--sources', required=True, help='Verified corresponding-source cache outside the checkout')
     parser.add_argument('--signing-key', help='Private update-signing key outside the repository; enables web-update assets')
+    parser.add_argument('--platform', choices=['linux/amd64', 'linux/arm64'], default='linux/amd64')
     args = parser.parse_args()
     output = Path(args.output).resolve()
     if output == ROOT or ROOT in output.parents:
@@ -94,8 +134,8 @@ def main():
         raise SystemExit('Commit source changes before packaging a release.')
     image = f'salmon-review:{version}'
     info = json.loads(run('docker', 'image', 'inspect', image))[0]
-    if (info['Os'], info['Architecture']) != ('linux', 'amd64'):
-        raise SystemExit('This release supports Linux/amd64 images only.')
+    if f"{info['Os']}/{info['Architecture']}" != args.platform:
+        raise SystemExit('Release image platform mismatch: '+args.platform)
     if info['Config']['Labels'].get('org.opencontainers.image.revision') != commit:
         raise SystemExit('Rebuild the image with --build-arg VCS_REF=<current commit>.')
     sources = Path(args.sources).resolve()
@@ -103,18 +143,18 @@ def main():
     release_sources.verify_image(image, source_lock)
     release_sources.verify_files(sources, source_lock)
     output.mkdir(parents=True, exist_ok=True)
-    package_name = f'SalmonReview-v{version}-windows-x64'
-    if any((output / name).exists() for name in [package_name+'.zip', f'SalmonReview-v{version}-source.zip', f'SalmonReview-v{version}-third-party.zip']):
+    targets = installer_targets(args.platform)
+    suffix = '' if args.platform == 'linux/amd64' else '-arm64'
+    notice_name = f'SalmonReview-v{version}-third-party{suffix}.zip'
+    update_name = f'update{suffix}.json'
+    image_name = f"salmon-review-{version}-{args.platform.replace('/', '-')}.tar.gz"
+    names = [f'SalmonReview-v{version}-{target}.zip' for target in targets]
+    names += [f'SalmonReview-v{version}-source.zip', notice_name, image_name, update_name, 'unsigned-'+update_name]
+    if any((output / name).exists() for name in names):
         raise SystemExit('Release output already exists; choose a new empty output directory.')
     with tempfile.TemporaryDirectory(prefix='salmon-release-') as temporary:
         scratch = Path(temporary)
-        package = scratch / package_name
-        package.mkdir()
-        copy_documentation(package)
-        # BOM is intentional: Windows PowerShell 5.1 otherwise decodes Chinese as ANSI.
-        (package / 'Start.ps1').write_text((ROOT/'release/Start.ps1').read_text('utf-8-sig'), encoding='utf-8-sig', newline='\r\n')
-        (package / 'Start.cmd').write_text((ROOT/'release/Start.cmd').read_text('utf-8'), encoding='ascii', newline='\r\n')
-        archive = package / 'salmon-review-image.tar.gz'
+        archive = output / image_name
         with archive.open('wb') as raw, gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) as compressed:
             process = subprocess.Popen(['docker', 'save', image], stdout=subprocess.PIPE, cwd=ROOT)
             try:
@@ -124,25 +164,19 @@ def main():
             if process.wait():
                 raise SystemExit('docker save failed')
         metadata = {'version': version, 'commit': commit, 'image': image, 'imageId': info['Id'],
-                    'imageIds': image_ids(archive, image, info['Id'], commit), 'platform': 'linux/amd64'}
-        (package/'release.json').write_text(json.dumps(metadata, indent=2)+'\n', encoding='utf-8')
+                    'imageIds': image_ids(archive, image, info['Id'], commit, args.platform), 'platform': args.platform}
+        for target in targets:
+            write_installer(scratch, output, target, metadata, archive)
+        update = {'format': 1, 'updaterProtocol': 2, 'dataFormat': 1,
+                  'repository': 'Awewlife/Salmon-review', 'version': version,
+                  'commit': commit, 'platform': args.platform, 'image': image,
+                  'imageIds': metadata['imageIds'], 'asset': archive.name,
+                  'bytes': archive.stat().st_size, 'sha256': sha256(archive)}
+        unsigned = output / ('unsigned-'+update_name)
+        unsigned.write_text(json.dumps(update, separators=(',', ':'))+'\n', encoding='utf-8')
         if args.signing_key:
-            update_image = output / f'salmon-review-{version}-linux-amd64.tar.gz'
-            shutil.copy2(archive, update_image)
-            update = {'format': 1, 'updaterProtocol': 2, 'dataFormat': 1,
-                      'repository': 'Awewlife/Salmon-review', 'version': version,
-                      'commit': commit, 'platform': 'linux/amd64', 'image': image,
-                      'imageIds': metadata['imageIds'], 'asset': update_image.name,
-                      'bytes': update_image.stat().st_size, 'sha256': sha256(update_image)}
-            unsigned = scratch / 'unsigned-update.json'
-            unsigned.write_text(json.dumps(update, separators=(',', ':')), encoding='utf-8')
             subprocess.run(['node', str(ROOT/'scripts/sign-update.mjs'), str(unsigned),
-                            str(Path(args.signing_key).resolve()), str(output/'update.json')], check=True)
-        (package/'SHA256SUMS.txt').write_text(''.join(f'{sha256(p)}  {p.relative_to(package).as_posix()}\n' for p in sorted(package.rglob('*')) if p.is_file()), encoding='ascii')
-        with zipfile.ZipFile(output/(package_name+'.zip'), 'w', compression=zipfile.ZIP_DEFLATED) as result:
-            for path in sorted(package.rglob('*')):
-                if path.is_file():
-                    result.write(path, package_name+'/'+path.relative_to(package).as_posix(), compress_type=zipfile.ZIP_STORED if path.suffix=='.gz' else zipfile.ZIP_DEFLATED)
+                            str(Path(args.signing_key).resolve()), str(output/update_name)], check=True)
         subprocess.run(['git', 'archive', '--format=zip', f'--prefix=SalmonReview-v{version}-source/', '-o', str(output/f'SalmonReview-v{version}-source.zip'), commit], cwd=ROOT, check=True)
 
         # Copy only software notices from a fresh, never-started container; no user volumes.
@@ -190,7 +224,7 @@ def main():
         (third_party/'dist/fonts').mkdir(parents=True)
         for name in ['README.md', 'OFL.txt', 'INKLING-NOTICE.txt']:
             shutil.copy2(ROOT/'dist/fonts'/name, third_party/'dist/fonts'/name)
-        with zipfile.ZipFile(output/f'SalmonReview-v{version}-third-party.zip', 'w') as result:
+        with zipfile.ZipFile(output/notice_name, 'w') as result:
             for file in sorted(third_party.rglob('*')):
                 if file.is_file():
                     result.write(file, file.relative_to(third_party), compress_type=zipfile.ZIP_STORED if file.suffix in ['.gz','.xz','.bz2','.zip'] else zipfile.ZIP_DEFLATED)

@@ -21,7 +21,7 @@ jobs:
           python-version: '3.13'
       - run: python -m unittest discover -s tests -p test_release_package.py
       - run: docker build -t salmon-review:ci -t salmon-review:bundle-test .
-      - run: docker run --rm --mount type=bind,source="${{ github.workspace }}/tests",target=/app/tests,readonly salmon-review:ci node --test tests/*.test.js
+      - run: docker run --rm --mount type=bind,source="${{ github.workspace }}/tests",target=/app/tests,readonly --mount type=bind,source="${{ github.workspace }}/release",target=/app/release,readonly salmon-review:ci node --test tests/*.test.js
       - name: Verify updater self-replacement and recovery in isolated Docker project
         shell: pwsh
         run: ./tests/run-bundle-docker.ps1
@@ -35,3 +35,21 @@ jobs:
       - name: PowerShell 7 installer regression
         shell: pwsh
         run: ./tests/installer.Tests.ps1
+  macos-installer:
+    strategy:
+      matrix:
+        runner: [macos-15-intel, macos-latest]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+      - run: /bin/bash -n release/Start.command && /bin/bash -n release/start-macos.sh
+      - run: node --test tests/macos-installer.test.js
+  arm64-image:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --platform linux/arm64 -t salmon-review:ci-arm64 .
+      - run: docker run --rm --network none --mount type=bind,source="${{ github.workspace }}/tests",target=/app/tests,readonly --mount type=bind,source="${{ github.workspace }}/release",target=/app/release,readonly salmon-review:ci-arm64 node --test tests/*.test.js

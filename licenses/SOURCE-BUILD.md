@@ -1,12 +1,12 @@
 # Source materials and rebuilding
 
-This document accompanies the exact Linux/amd64 release image. Each release
+This document accompanies the Linux/amd64 and Linux/arm64 release images. Each release
 provides the application source ZIP and a third-party ZIP. The latter contains
 installed license notices, Debian copyright files, and `sources/` with the
 source archives and patches listed in `release-sources.json`.
 
 The index records upstream locations, revisions or versions, byte sizes and
-SHA-256 values. `imageInventory` identifies the installed Debian source/binary
+SHA-256 values. `imageInventory` (amd64) and `platformInventories` (arm64) identify the installed Debian source/binary
 versions and the versions reported by Node, sharp and nxapi. Packaging stops if
 that inventory or any source file differs. This is a copy of source materials,
 not merely a promise to provide them later.
@@ -19,6 +19,11 @@ Use the application source ZIP matching the image's
 ```sh
 docker build --platform linux/amd64 --build-arg VCS_REF=<commit> -t salmon-review:0.4.0 .
 ```
+
+For Apple Silicon, use `--platform linux/arm64` and package with the same
+`--platform linux/arm64` option. Build/package the architectures separately;
+the Windows and Intel Mac installers share the amd64 image. The base digest
+is a multi-architecture index; both images use the same application source.
 
 The Dockerfile pins its base digest and security updates. npm dependencies and
 their integrity hashes are locked in `package-lock.json`. The local
@@ -36,7 +41,7 @@ the application source; nxapi's published executable is not patched.
 
 `sources/upstream/node-v22.23.2.tar.xz` contains Node's source, bundled library
 sources, licenses and `BUILDING.md`. Follow that document to build Node on
-Linux/amd64. The Docker Node recipe source is also included for reference.
+the matching Linux architecture. The Docker Node recipe source is also included for reference.
 The final image excludes npm, Corepack and Yarn; they are used during building
 only. Removed files are not retained in the final image's lower layers.
 
@@ -67,19 +72,20 @@ index. Preserve the listed patches when rebuilding; the LGPL and other
 upstream license notices remain with the source and installed libraries.
 
 On a Linux build machine, unpack sharp-libvips and follow its README:
-`./build.sh linux-x64`. Its script sets the library versions and build options.
+`./build.sh linux-x64` or `./build.sh linux-arm64`. Its script sets the library versions and build options.
 The librsvg Rust crate sources are also supplied under `sources/rust/`, verified
 against its Cargo.lock checksums. The supplied archives can be substituted for its network fetches using the
 index; the original script may also fetch build tools. Build sharp's Node
 addon from its supplied source using the matching Node headers and rebuilt
 libvips, following sharp's installation/build documentation in that tree.
 
-The application uses a dynamically linked Linux/glibc/x64 addon. It does not
+The application uses a dynamically linked Linux/glibc addon for x64 or arm64. It does not
 ship the musl or statically linked WebAssembly variants. A compatible rebuilt
 library can replace
 `/app/node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.*` in a custom
 image; a rebuilt addon can replace
 `/app/node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64.node`.
+For arm64, substitute `arm64` for `x64` in these package and file paths.
 No application signing key is needed to build or run a modified image.
 Use your own Compose image setting; the official web updater accepts only
 official signed releases and is not the installation mechanism for modified

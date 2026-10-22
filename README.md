@@ -57,7 +57,9 @@ Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具
 - 关闭网页不会停止后台服务。电脑关机、休眠或 Docker 停止时，同步也会停止。
 - 登录、同步和首次加载图片需要网络。已保存的记录可在本地服务运行时离线查看。
 
-## 一、首次安装（Windows）
+## 一、首次安装（Windows / macOS）
+
+Windows 用户按以下步骤安装；Mac 用户见本节末尾的 [Mac 安装](#mac-安装intel--m-系列)。
 
 ### 1. 准备运行环境
 
@@ -100,7 +102,26 @@ Salmon Review 是一个本地运行的 Splatoon 3 鲑鱼跑记录与复盘工具
 
 首次使用时没有战绩。请连接自己的任天堂账号，或按第四部分导入已有记录。
 
-Linux x86-64 用户可使用 Docker Engine 和 Compose 插件，按文末命令手动启动。Windows 启动器不适用于 Linux。macOS 和 ARM 平台暂未提供已验证的安装包。
+Linux 用户可使用 Docker Engine 和 Compose 插件，按文末命令手动启动对应架构的完整发行包。
+
+### Mac 安装（Intel / M 系列）
+
+> **尚未实机测试：Intel Mac 和 M 系列 Mac 安装包均未经过真实 Mac 测试。** 目前仅完成脚本与 Linux 容器验证（ARM64 使用模拟运行）；macOS 上的实际安装、登录同步及图表导出仍待验证。
+
+1. 安装适合本机芯片的 [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/)，打开并等待引擎就绪。
+2. 在发行版的 **Assets** 中选择安装包：Intel Mac 下载 **`SalmonReview-v0.4.0-macos-x64.zip`**；Apple M 系列下载 **`SalmonReview-v0.4.0-macos-arm64.zip`**。可在“关于本机”查看芯片类型。
+3. 将 ZIP 完整解压到固定目录，双击 **`Start.command`**。启动器会校验文件、导入本机架构的镜像、启动两个服务，并打开本地网页。
+4. 使用和 Windows 相同的网页完成登录与同步。无需安装 Homebrew、Node.js 或 Python；M 系列安装包使用 ARM64 原生镜像。
+
+如果 macOS 提示无法打开，请先核对下载来源，再按系统提示允许打开。若解压工具丢失了脚本执行权限，也可以在终端切换到解压目录后运行 `bash Start.command`，不需要修改系统安全设置。
+
+已有数据请继续使用原 Compose 项目名。自定义项目或端口可在解压目录执行：
+
+```sh
+bash Start.command --project-name 原项目名 --port 8787
+```
+
+默认项目仍为 `salmon-review`，数据卷命名与 Windows 相同。启动器会保留网页已安装的更高版本；更新或恢复未完成时会停止启动并提示，不会覆盖组件。
 
 ## 二、连接账号并同步记录
 
@@ -338,7 +359,7 @@ docker compose -p salmon-review logs --tail=100 app
 
 ### 手动启动与源码运行
 
-以下命令用于从完整发行包首次手动启动 Linux/amd64 容器：
+以下命令用于从对应架构的完整发行包首次手动启动 Linux 容器：
 
 ```sh
 docker load -i salmon-review-image.tar.gz
@@ -346,12 +367,18 @@ docker compose -p salmon-review up -d --no-build --pull never
 docker compose -p salmon-review ps
 ```
 
-确认服务状态为 `healthy` 后访问本地页面。网页更新后，旧 `compose.yaml` 可能仍指定旧镜像；Windows 用户应使用新版启动器重启，避免降级。
+确认服务状态为 `healthy` 后访问本地页面。网页更新后，旧 `compose.yaml` 可能仍指定旧镜像；Windows 和 Mac 用户应使用启动器重启，避免降级。
 
 从源码构建使用独立配置，需要访问 Docker 镜像仓库和 npm：
 
 ```powershell
 docker compose -p salmon-review-dev -f compose.yaml -f compose.build.yaml up -d --build
+```
+
+M 系列 Mac 或其他 ARM64 主机从源码构建时，在上述配置后加上 ARM64 覆盖文件：
+
+```sh
+docker compose -p salmon-review-dev -f compose.yaml -f compose.build.yaml -f compose.arm64.yaml up -d --build
 ```
 
 直接运行源码需要 Node.js `22.23.2`：
@@ -385,15 +412,10 @@ Data provided by Lean · [Leanny/splat3](https://github.com/Leanny/splat3)。游
 
 ### 发布与许可证
 
-项目代码采用 **AGPL-3.0-or-later**，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。第三方组件及 Nintendo 资源保留各自权利。依赖清单见 [THIRD_PARTY_PACKAGES.json](THIRD_PARTY_PACKAGES.json)，许可状态见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+项目代码采用 **AGPL-3.0-or-later**，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。第三方组件遵循各自许可证；Nintendo 游戏文本、图片、商标和远程字体不包含在本项目的 AGPL 授权中。
 
-新构建已用本地兼容模块替换 `splatnet3-types`，常量来源和许可记录见 [兼容模块说明](packages/splatnet3-compat/README.md)，nxapi 继续负责登录和打工同步。新构建也补齐了 `tr46 0.0.3` 的上游版权声明与 MIT 正文，并校验来源和打包完整性。发行附件包含对应应用源码、依赖声明和按最终镜像核对的系统及原生库源码；源码索引与重建说明见 [SOURCE-BUILD.md](licenses/SOURCE-BUILD.md)。历史私有附件已单独归档，不再公开分发。
+程序使用 Node.js 运行后端及内置 SQLite 数据库，使用 nxapi 完成账号认证、凭据刷新和打工记录下载。完整依赖版本与来源见 [依赖清单](THIRD_PARTY_PACKAGES.json)，第三方许可证、版权声明及资源使用条件见 [第三方说明](THIRD_PARTY_NOTICES.md)。
 
-维护者应先完成测试并提交源码，再按该提交构建镜像。镜像版本标签和 `VCS_REF` 必须与源码一致。使用仓库外的签名私钥生成发行附件：
+发行附件提供 Windows x64、Mac Intel 和 Mac M 系列安装包、容器镜像、应用源码、第三方源码与许可材料，以及签名更新清单和 SHA-256 校验和。源码与第三方材料按对应发行镜像核对；日常安装只需下载适合本机的安装包。源码索引和重建说明见 [SOURCE-BUILD.md](licenses/SOURCE-BUILD.md)。
 
-```sh
-python scripts/collect-release-sources.py --image salmon-review:0.4.0 --output <仓库外的源码缓存目录>
-python scripts/package-release.py --sources <源码缓存目录> --output <仓库外的空目录> --signing-key <私钥文件>
-```
-
-先上传全部附件到发行版草稿，再发布。私钥不得提交到仓库或打包。现有 Actions 打包流程不持有该私钥，不能单独生成网页更新所需的签名清单。完整发布流程见 [UPDATING.md](UPDATING.md#维护者发布)。
+维护者的构建、签名和发布步骤见 [发布流程](UPDATING.md#维护者发布)。

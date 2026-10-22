@@ -6,14 +6,62 @@ import tarfile
 import tempfile
 import unittest
 import shutil
+import zipfile
+from unittest.mock import patch
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('package_release', Path(__file__).resolve().parents[1] / 'scripts/package-release.py')
 package = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(package)
+merge_spec = importlib.util.spec_from_file_location('merge_release', package.ROOT/'scripts/merge-release.py')
+merge_release = importlib.util.module_from_spec(merge_spec)
+merge_spec.loader.exec_module(merge_release)
 
 
 class ReleaseIdentityTests(unittest.TestCase):
+    def test_source_inventory_is_selected_and_checked_for_each_cpu(self):
+        lock = {'imageInventory': {'fixture': 'amd64'}, 'platformInventories': {'linux/arm64': {'fixture': 'arm64'}}}
+        for arch in ['amd64', 'arm64', 'riscv64']:
+            inspected = json.dumps([{'Os': 'linux', 'Architecture': arch}]).encode()
+            with patch.object(package.release_sources.subprocess, 'check_output', return_value=inspected), patch.object(package.release_sources, 'image_inventory', return_value={'fixture': arch}):
+                if arch == 'riscv64':
+                    with self.assertRaises(ValueError):
+                        package.release_sources.verify_image('fixture', lock)
+                else:
+                    package.release_sources.verify_image('fixture', lock)
+            with patch.object(package.release_sources.subprocess, 'check_output', return_value=inspected), patch.object(package.release_sources, 'image_inventory', return_value={'fixture': 'altered'}):
+                with self.assertRaises(ValueError):
+                    package.release_sources.verify_image('fixture', lock)
+
+    def test_merge_verifies_both_archives_and_shared_source_without_overwriting(self):
+        for fault in [None, 'changed-archive', 'conflicting-source', 'extra-file', 'unsafe-path']:
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                for arch in ['amd64', 'arm64']:
+                    directory = root / arch
+                    directory.mkdir()
+                    (directory / (arch+'.zip')).write_bytes(arch.encode())
+                    (directory / 'fixture-source.zip').write_bytes(b'common source' if fault != 'conflicting-source' or arch == 'amd64' else b'other source')
+                    sums = ''.join(f'{package.sha256(file)}  {file.name}\n' for file in sorted(directory.iterdir()))
+                    if fault == 'unsafe-path':
+                        sums += 'a'*64+'  ../outside\n'
+                    (directory / 'SHA256SUMS.txt').write_text(sums, encoding='ascii')
+                if fault == 'changed-archive':
+                    (root/'arm64/arm64.zip').write_bytes(b'altered')
+                if fault == 'extra-file':
+                    (root/'arm64/unverified.zip').write_bytes(b'extra')
+                if fault:
+                    with self.assertRaises(ValueError):
+                        merge_release.merge(root, root/'combined')
+                else:
+                    merge_release.merge(root, root/'combined')
+                    self.assertEqual(len(list((root/'combined').iterdir())), 4)
+                    for line in (root/'combined/SHA256SUMS.txt').read_text('ascii').splitlines():
+                        expected, name = line.split('  ', 1)
+                        self.assertEqual(package.sha256(root/'combined'/name), expected)
+                    with self.assertRaises(ValueError):
+                        merge_release.merge(root, root/'combined')
+
     def test_installer_contains_readme_images_and_resource_notices(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
@@ -94,6 +142,46 @@ class ReleaseIdentityTests(unittest.TestCase):
             index_id = 'sha256:' + 'a' * 64
             self.assertEqual(package.image_ids(archive, 'salmon-review:0.3.4', index_id, 'fixture'), sorted([index_id, config_id]))
             self.assertEqual(package.image_ids(archive, 'salmon-review:0.3.4', config_id, 'fixture'), [config_id])
+
+    def test_arm64_archive_requires_explicit_matching_platform(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive, config_id = self.archive(directory, arch='arm64')
+            self.assertEqual(package.image_ids(archive, 'salmon-review:0.3.4', config_id, 'fixture', 'linux/arm64'), [config_id])
+            with self.assertRaises(ValueError):
+                package.image_ids(archive, 'salmon-review:0.3.4', config_id, 'fixture')
+
+    def test_all_installers_have_matching_platform_checksums_and_launchers(self):
+        for platform in ['linux/amd64', 'linux/arm64']:
+            with self.subTest(platform=platform), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                archive = root / 'image.gz'
+                archive.write_bytes(b'fixture image')
+                output = root / 'out'
+                output.mkdir()
+                metadata = dict(version='0.4.0', commit='a'*40, platform=platform,
+                                image='salmon-review:0.4.0', imageId='sha256:'+'b'*64, imageIds=['sha256:'+'b'*64])
+                for target in package.installer_targets(platform):
+                    package.write_installer(root, output, target, metadata, archive)
+                    name = f'SalmonReview-v0.4.0-{target}'
+                    with zipfile.ZipFile(output / (name+'.zip')) as saved:
+                        read = lambda file: saved.read(name+'/'+file)
+                        self.assertEqual(json.loads(read('release.json')), metadata)
+                        self.assertEqual(read('compose.yaml').decode().count('platform: '+platform), 2)
+                        self.assertEqual(read('salmon-review-image.tar.gz'), archive.read_bytes())
+                        self.assertNotIn(b'\r', read('SHA256SUMS.txt'))
+                        for line in read('SHA256SUMS.txt').decode().splitlines():
+                            digest, file = line.split('  ', 1)
+                            self.assertEqual(hashlib.sha256(read(file)).hexdigest(), digest)
+                        if target == 'windows-x64':
+                            self.assertEqual(read('Start.ps1').decode('utf-8-sig'), (package.ROOT/'release/Start.ps1').read_text('utf-8-sig').replace('\n', '\r\n'))
+                            self.assertNotIn(name+'/Start.command', saved.namelist())
+                        else:
+                            self.assertIn('PLATFORM='+platform, read('release.env').decode())
+                            self.assertNotIn(b'\r', read('release.env'))
+                            self.assertNotIn(b'\r', read('start-macos.sh'))
+                            for file in ['Start.command', 'start-macos.sh']:
+                                self.assertEqual(saved.getinfo(name+'/'+file).external_attr >> 16 & 0o777, 0o755)
+                            self.assertNotIn(name+'/Start.cmd', saved.namelist())
 
     def test_wrong_tag_platform_or_revision_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
