@@ -7,7 +7,7 @@
   const paintedText=new WeakMap();
   const setText=(element,value)=>{if(paintedText.get(element)===value)return;paintedText.set(element,value);element.textContent=value};
   const stamp=value=>value?new Date(value).toLocaleString('zh-CN',{hour12:false}):'尚无';
-  const errors={auth_required:'请重新连接账号',upstream_disabled:'上游暂时禁止认证',upstream:'上游接口异常，需要检查版本',rate_limited:'请求受限，已延后',network:'网络暂时不可用',interrupted:'任务中断，可再次同步继续',account_mismatch:'账号与已有战绩不一致',disk:'请检查磁盘空间或数据卷权限'};
+  const errors={auth_required:'请重新连接账号',upstream_disabled:'登录服务暂不接受认证',upstream:'在线服务响应异常，请检查是否有新版',rate_limited:'请求受限，已延后',network:'网络暂时不可用',interrupted:'任务中断，可再次同步继续',account_mismatch:'账号与已有战绩不一致',disk:'请检查磁盘空间或数据卷权限'};
   async function request(url,body){
     const response=await fetch(url,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json','X-Salmon-CSRF':state?.csrf??''},body:body===undefined?undefined:JSON.stringify(body),...(body===undefined?{signal:AbortSignal.timeout(30000)}:{})});
     const result=await response.json();if(!response.ok)throw Object.assign(new Error(result.message??'操作未完成'),{code:result.code});return result;
@@ -109,7 +109,7 @@
     <div class="manage-body"><p class="manage-message" id="manage-message" role="status">一个实例保存一位玩家的数据。导入、同步和升级均保留已归档场次。</p>
     <section><h3>导入已有记录</h3><p>选择 nxapi 导出的打工详情与排班汇总 JSON。可多选；没有汇总的记录会先保存，等待归类。重复导入会自动去重。</p><label class="file-picker">选择 JSON 文件<input id="import-files" type="file" accept=".json,application/json" multiple></label><button class="button primary" id="import-records">导入所选文件</button></section>
     <section class="auth-section" id="account-section" tabindex="-1" aria-labelledby="account-heading"><div class="auth-heading"><h3 id="account-heading">连接任天堂账号</h3><span class="auth-local">仅在本机保存</span></div><p id="account-state">${state.sync.paused==='auth_required'?'登录已失效，请重新连接后再同步。':state.connected?'已保存登录状态。':'尚未连接账号。'}</p>
-    <p>准备好玩喷喷的任天堂账号，按照下面三步操作。密码只在任天堂页面输入。</p>
+    <p>使用游玩 Splatoon 3 的任天堂账号，按以下三步连接。密码只在任天堂页面输入。</p>
     <button class="button primary" id="connect-account">开始连接 / 重新连接</button> <button class="button" id="disconnect-account" ${state.connected?'':'disabled'}>退出账号</button>
     <p class="manage-message auth-message" id="auth-message" role="status" aria-live="polite" hidden></p>
     <ol class="auth-guide" aria-label="登录操作指南">
@@ -121,10 +121,10 @@
     </ol>
     <div id="auth-steps" hidden><p id="auth-expiry"></p><label for="auth-link">③ 粘贴按钮的返回链接</label><input id="auth-link" type="password" autocomplete="off" spellcheck="false" aria-describedby="auth-link-help" placeholder="npf71b963c1b7b6d119://auth…"><p id="auth-link-help">链接仅提交给本机服务，无需发到聊天窗口。</p><button class="button primary" id="finish-auth" disabled>完成连接</button></div>
     <details class="auth-faq"><summary>没有看到按钮，或链接提示无效？</summary><p>请使用这次生成的登录页面，重新复制“选择此账号”按钮的完整链接。若已跳转到 App、链接过期或关掉了登录页面，点击“重新生成登录链接”再试。</p><p>登录和刷新由 nxapi 处理，无需配置客户端 ID。登录缓存保存在本机数据卷；认证过程需要向第三方认证服务发送短期令牌。</p></details></section>
-    <section id="sync-settings" tabindex="-1"><h3>同步设置</h3><p id="sync-details"></p><button class="button primary" id="sync-now">立即同步</button><label class="auto-label">自动同步<select id="auto-sync"><option value="0">关闭自动同步</option><option value="15">每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每小时</option><option value="120">每 2 小时</option></select></label><p>容器运行时生效。上游认证或接口异常时自动暂停；仍可查看已保存的战绩。</p></section>
+    <section id="sync-settings" tabindex="-1"><h3>同步设置</h3><p id="sync-details"></p><button class="button primary" id="sync-now">立即同步</button><label class="auto-label">自动同步<select id="auto-sync"><option value="0">关闭自动同步</option><option value="15">每 15 分钟</option><option value="30">每 30 分钟</option><option value="60">每小时</option><option value="120">每 2 小时</option></select></label><p>程序运行期间自动同步；登录或战绩服务异常时暂停，已保存的战绩仍可查看。</p></section>
     <section><h3>诊断与排查</h3><p>检查本地服务、战绩读取、同步与更新状态，导出不含账号凭据和战绩明细的诊断报告。</p><button class="button" id="open-diagnostics">一键诊断与导出</button></section>
     <section><h3>版本与更新</h3><p id="manage-update-status">启动时自动检查新版，也可以在这里手动检查和更新。</p><button class="button" id="open-update">查看版本与更新</button></section><section><h3>备份与恢复</h3><p>备份包含原始战绩和排班汇总，不包含登录凭据或图片缓存。恢复会合并同账号记录，不覆盖现有记录。备份含玩家昵称，请妥善保存。</p><a class="button" href="/api/backup" download>下载数据备份</a><label class="file-picker">选择备份<input id="restore-file" type="file" accept=".json,application/json"></label><button class="button" id="restore-backup">恢复并合并</button></section>
-    <section><h3>暂未纳入统计的记录</h3><p>缺少排班、结算字段不完整或未支持的模式会保留原始数据；不会按零分参与均值。</p><div id="excluded-records"></div></section></div>`;
+    <section><h3>暂未纳入统计的记录</h3><p>缺少排班信息、结算不完整或暂不支持的模式仍会保存，但不计入场均。</p><div id="excluded-records"></div></section></div>`;
     document.querySelector('#open-diagnostics').onclick=()=>window.SalmonDiagnostics.open();
     document.querySelector('#auto-sync').value=state.sync.autoMinutes;
     document.querySelector('#open-update').onclick=()=>window.SalmonUpdates?.open();window.SalmonUpdates?.paintEntry();

@@ -36,6 +36,7 @@ def copy_documentation(package):
         shutil.copytree(ROOT / name, package / name)
     fonts = package / 'dist/fonts'
     fonts.mkdir(parents=True)
+    shutil.copy2(ROOT / 'dist/reference-NOTICE.txt', package / 'dist/reference-NOTICE.txt')
     for name in ['README.md', 'OFL.txt', 'INKLING-NOTICE.txt']:
         shutil.copy2(ROOT / 'dist/fonts' / name, fonts / name)
 
@@ -222,6 +223,7 @@ def main():
         for name in ['docs', 'licenses', 'packages/splatnet3-compat']:
             shutil.copytree(ROOT/name, third_party/name)
         (third_party/'dist/fonts').mkdir(parents=True)
+        shutil.copy2(ROOT/'dist/reference-NOTICE.txt', third_party/'dist/reference-NOTICE.txt')
         for name in ['README.md', 'OFL.txt', 'INKLING-NOTICE.txt']:
             shutil.copy2(ROOT/'dist/fonts'/name, third_party/'dist/fonts'/name)
         with zipfile.ZipFile(output/notice_name, 'w') as result:

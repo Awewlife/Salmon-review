@@ -101,3 +101,37 @@ test('range including interruption preserves selected boundaries but excludes in
  assert.equal(model(jobs).rows[0].personal,20);
  assert.match(exporter.svg(jobs,shift).svg,/本期第 5—7 场 · 已选 3 场 · 统计 2 场 · 1 场未计入/);
 });
+
+
+test('history combines all shifts and archive exclusions once, without using official career totals',()=>{
+ const first={...job([10,10,10,10]),id:'a',shift:'s1',index:1,time:'2026-10-01T20:00:00Z'};
+ const last={...job([90,0,0,10]),id:'b',shift:'s2',index:1,time:'2026-10-03T00:00:00Z'};
+ const interrupted={...job([0,0,0,0]),id:'c',time:'2026-10-04T00:00:00Z',interrupted:true,supported:false};
+ const data={jobs:[last,first],chartJobs:[last,first,interrupted],excluded:[{id:'c',time:interrupted.time},{id:'d',time:'2026-09-30T00:00:00Z'}],record:{enemies:[{count:99999}]}};
+ const before=JSON.stringify(data),history=ctx.window.SalmonRadar.historyJobs(data),m=model(history);
+ assert.deepEqual(Array.from(history,j=>j.id),['d','a','b','c']);
+ assert.equal(m.count,2);assert.equal(m.excluded,2);assert.equal(m.rows[0].personal,50);
+ assert.ok(Math.abs(m.rows[0].index-285.714285714)<1e-8);assert.equal(JSON.stringify(data),before);
+ assert.equal(ctx.window.SalmonRadar.historySummary(history),'已保存 4 场 · 有效 2 场 · 2 场未计入');
+ assert.match(ctx.window.SalmonRadar.historyRange(history),/2026-09-30 — 2026-10-04/);
+});
+
+test('historical export uses archive dates and local scope, not shift numbering',()=>{
+ const jobs=[{...job([10,10,10,10]),id:'a',index:9,time:'2026-10-01T20:00:00Z'}, {id:'b',supported:false,time:'2026-10-04T00:00:00Z'}];
+ const out=exporter.svg(jobs,null,'Player <&>',{history:true});
+ for(const text of ['历史五维图','本地记录 · 2026-10-02 — 2026-10-04','已保存 2 场 · 有效 1 场 · 1 场未计入','非官方完整生涯','全队 25% · 100% 基准','Player &lt;&amp;&gt;'])assert.ok(out.svg.includes(text),text);
+ assert.doesNotMatch(out.svg,/本期|排班：|NaN|Infinity/);
+ assert.match(render(jobs,{history:true}),/career-radar-survival-tip/);
+ assert.doesNotMatch(render(jobs,{history:true}),/本期第/);
+ assert.match(exporter.controls(jobs,{id:'career-radar'}),/id="career-radar-export-status"/);
+});
+
+test('empty or excluded-only local archive remains an explicit no-data state',()=>{
+ assert.equal(ctx.window.SalmonRadar.historyJobs().length,0);
+ const jobs=ctx.window.SalmonRadar.historyJobs({excluded:[{id:'x',time:'2026-10-05T00:00:00Z'}]});
+ assert.match(ctx.window.SalmonRadar.historySummary(jobs),/已保存 1 场 · 有效 0 场 · 1 场未计入/);
+ assert.match(exporter.controls(jobs,{id:'career-radar'}),/disabled/);
+ assert.doesNotMatch(render(jobs,{history:true}),/<svg/);
+ assert.throws(()=>exporter.svg(jobs,null,'',{history:true}));
+ assert.match(ctx.window.SalmonRadar.historyRange([{time:'invalid'}]),/日期未提供/);
+});

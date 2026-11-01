@@ -4,10 +4,12 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import {mkdirSync} from 'node:fs';
 import {classify} from './errors.js';
+import {RETRY_MARKER,safeRetryMetadata} from './rate-limit.js';
 
 const require=createRequire(import.meta.url);
 const entry=path.resolve(path.dirname(require.resolve('nxapi')),'../../bin/nxapi.js');
 const preload=new URL('./nxapi-language.js',import.meta.url).href;
+const retryPreload=new URL('./nxapi-retry.js',import.meta.url).href;
 
 // Run the published executable as a subprocess. Its own client registration,
 // authentication, rate limiting and refresh logic remain owned by nxapi.
@@ -22,14 +24,17 @@ export function launchProfile(profile,executable,args=[]){
     NXAPI_DATA_PATH:profile,HOME:profile,APPDATA:profile,LOCALAPPDATA:profile,
     XDG_DATA_HOME:profile,XDG_CACHE_HOME:path.join(profile,'cache'),XDG_CONFIG_HOME:profile,XDG_STATE_HOME:profile,
   });
-  return spawn(process.execPath,['--import',preload,executable,...(executable===entry?['--data-path',profile]:[]),...args],{
+  return spawn(process.execPath,['--import',preload,'--import',retryPreload,executable,...(executable===entry?['--data-path',profile]:[]),...args],{
     cwd:profile,env,stdio:['pipe','pipe','pipe'],windowsHide:true,
   });
 }
 
 // Never return raw CLI output: nso auth prints a session token to stdout.
 export function cliError(text){
-  if(/Too many attempts|429|rate.?limit/i.test(text))return Object.assign(new Error('rate_limited'),{retryAfter:3600});
+  for(const line of text.split(/\r?\n/).reverse())if(line.startsWith(RETRY_MARKER)){
+    try{const metadata=safeRetryMetadata(JSON.parse(line.slice(RETRY_MARKER.length)));if(metadata.retryAt!==undefined)return Object.assign(new Error('rate_limited'),metadata)}catch{}
+  }
+  if(/Too many attempts|\b429\b|rate.?limit/i.test(text))return new Error('rate_limited');
   if(/Invalid token|No valid bullet_token|401|invalid_grant/i.test(text))return new Error('auth_required');
   return new Error(classify(new Error(text)));
 }

@@ -1,0 +1,157 @@
+Salmon Run handbook data
+
+Source: Inkipedia contributors, "Salmon Run Next Wave data"
+https://splatoonwiki.org/wiki/Salmon_Run_Next_Wave_data
+Revision 738411 (checked 2026-11-01):
+https://splatoonwiki.org/w/index.php?title=Salmon_Run_Next_Wave_data&oldid=738411
+Contributor history:
+https://splatoonwiki.org/w/index.php?title=Salmon_Run_Next_Wave_data&action=history
+
+The selected tables, adapted descriptions and their translations are provided
+under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
+License: https://creativecommons.org/licenses/by-sa/4.0/
+Legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+Source copyright policy: https://splatoonwiki.org/wiki/Inkipedia:Copyrights
+
+Changes by Salmon Review contributors (2026): selected Salmonid HP, Salmon Run
+weapon statistics and common timing columns, rank/IDV and quota tables;
+omitted PvP columns and unrelated sections; reformatted data for offline use;
+translated and condensed explanations into Chinese and Japanese; added search.
+Reference-data.js and adapted table explanations retain CC BY-SA 4.0.
+Application code retains its separate AGPL-3.0-or-later license.
+Game names retain the rights of Nintendo and other original rights holders.
+No image or font binaries are bundled. The application downloads the source
+page's game icons from Inkipedia on first view and caches them locally. These
+images have separate rights, not the table text's CC BY-SA license. See each
+file page linked below for its provenance and rights statement; Nintendo game
+artwork remains the property of Nintendo. Remote loading does not grant an
+additional license. No affiliation or endorsement is implied.
+
+Some source values are unknown (N/A, ?) or internally inconsistent. These are
+preserved unless an explicit correction is recorded below. Roller DPS order
+is horizontal/vertical.
+Snipewriter DPS labels distinguish the charge-and-burst cycle, burst alone,
+and uncharged taps. This is a dated community reference, not a
+live game-parameter feed.
+
+Icon file pages (checked 2026-11-01):
+Smallfry: https://splatoonwiki.org/wiki/File:S3_Icon_Smallfry.png
+Chum: https://splatoonwiki.org/wiki/File:S3_Icon_Chum.png
+Cohock: https://splatoonwiki.org/wiki/File:S3_Icon_Cohock.png
+Snatcher: https://splatoonwiki.org/wiki/File:S3_Tableturf_Battle_card_Snatcher.png
+Drizzler: https://splatoonwiki.org/wiki/File:S3_Icon_Drizzler.png
+Flyfish: https://splatoonwiki.org/wiki/File:S3_Icon_Flyfish.png
+Maws: https://splatoonwiki.org/wiki/File:S3_Icon_Maws.png
+Scrapper: https://splatoonwiki.org/wiki/File:S3_Icon_Scrapper.png
+Steel Eel: https://splatoonwiki.org/wiki/File:S3_Icon_Steel_Eel.png
+Stinger: https://splatoonwiki.org/wiki/File:S3_Icon_Stinger.png
+Steelhead: https://splatoonwiki.org/wiki/File:S3_Icon_Steelhead.png
+Fish Stick: https://splatoonwiki.org/wiki/File:S3_Icon_Fish_Stick.png
+Slammin' Lid: https://splatoonwiki.org/wiki/File:S3_Icon_Slammin'_Lid.png
+Flipper-Flopper: https://splatoonwiki.org/wiki/File:S3_Icon_Flipper-Flopper.png
+Big Shot: https://splatoonwiki.org/wiki/File:S3_Icon_Big_Shot.png
+Goldie: https://splatoonwiki.org/wiki/File:S3_Icon_Goldie.png
+Griller: https://splatoonwiki.org/wiki/File:S3_Icon_Griller.png
+Mothership: https://splatoonwiki.org/wiki/File:S3_Tableturf_Battle_card_Mothership.png
+Chinook: https://splatoonwiki.org/wiki/File:S3_Icon_Chinook.png
+Mudmouth: https://splatoonwiki.org/wiki/File:S3_Icon_Mudmouth.png
+Cohozuna: https://splatoonwiki.org/wiki/File:S3_Icon_Cohozuna.png
+Horrorboros: https://splatoonwiki.org/wiki/File:S3_Icon_Horrorboros.png
+Megalodontia: https://splatoonwiki.org/wiki/File:S3_Icon_Megalodontia.png
+.52 Gal: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_.52_Gal.png
+.96 Gal: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_.96_Gal.png
+Aerospray MG: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Aerospray_MG.png
+Jet Squelcher: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Jet_Squelcher.png
+N-ZAP '85: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_N-ZAP_'85.png
+Splash-o-matic: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splash-o-matic.png
+Splattershot: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot.png
+Splattershot Jr.: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot_Jr..png
+Splattershot Nova: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot_Nova.png
+Splattershot Pro: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot_Pro.png
+Sploosh-o-matic: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Sploosh-o-matic.png
+H-3 Nozzlenose: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_H-3_Nozzlenose.png
+L-3 Nozzlenose: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_L-3_Nozzlenose.png
+Squeezer: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Squeezer.png
+Big Swig Roller: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Big_Swig_Roller.png
+Carbon Roller: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Carbon_Roller.png
+Dynamo Roller: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dynamo_Roller.png
+Flingza Roller: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Flingza_Roller.png
+Splat Roller: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Roller.png
+Grizzco Roller: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Roller_2D_Current.png
+Bamboozler 14 Mk I: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Bamboozler_14_Mk_I.png
+Classic Squiffer: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Classic_Squiffer.png
+E-liter 4K: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_E-liter_4K.png
+Goo Tuber: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Goo_Tuber.png
+Snipewriter 5H: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Snipewriter_5H.png
+Splat Charger: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Charger.png
+Grizzco Charger: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Charger_2D_Current.png
+Bloblobber: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Bloblobber.png
+Dread Wringer: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dread_Wringer.png
+Explosher: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Explosher.png
+Slosher: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Slosher.png
+Sloshing Machine: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Sloshing_Machine.png
+Tri-Slosher: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Tri-Slosher.png
+Grizzco Slosher: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Slosher_2D_Current.png
+Ballpoint Splatling: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Ballpoint_Splatling.png
+Heavy Edit Splatling: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Heavy_Edit_Splatling.png
+Heavy Splatling: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Heavy_Splatling.png
+Hydra Splatling: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Hydra_Splatling.png
+Mini Splatling: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Mini_Splatling.png
+Nautilus 47: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Nautilus_47.png
+Dapple Dualies: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dapple_Dualies.png
+Dark Tetra Dualies: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dark_Tetra_Dualies.png
+Douser Dualies FF: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Douser_Dualies_FF.png
+Dualie Squelchers: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dualie_Squelchers.png
+Glooga Dualies: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Glooga_Dualies.png
+Splat Dualies: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Dualies.png
+Grizzco Dualies: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Dualies_2D_Current.png
+Recycled Brella 24 Mk I: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Recycled_Brella_24_Mk_I.png
+Splat Brella: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Brella.png
+Tenta Brella: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Tenta_Brella.png
+Undercover Brella: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Undercover_Brella.png
+Grizzco Brella: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Brella_2D_Current.png
+Blaster: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Blaster.png
+Clash Blaster: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Clash_Blaster.png
+Luna Blaster: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Luna_Blaster.png
+Range Blaster: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Range_Blaster.png
+Rapid Blaster: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Rapid_Blaster.png
+Rapid Blaster Pro: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Rapid_Blaster_Pro.png
+S-BLAST '92: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_S-BLAST_'92.png
+Grizzco Blaster: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Blaster_2D_Current.png
+Inkbrush: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Inkbrush.png
+Octobrush: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Octobrush.png
+Painbrush: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Painbrush.png
+REEF-LUX 450: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_REEF-LUX_450.png
+Tri-Stringer: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Tri-Stringer.png
+Wellstring V: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Wellstring_V.png
+Grizzco Stringer: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Stringer_2D_Current.png
+Mint Decavitator: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Mint_Decavitator.png
+Splatana Stamper: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splatana_Stamper.png
+Splatana Wiper: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splatana_Wiper.png
+Grizzco Splatana: https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Splatana_2D_Current.png
+Booyah Bomb: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Booyah_Bomb.png
+Crab Tank: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Crab_Tank.png
+Inkjet: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Inkjet.png
+Killer Wail 5.1: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Killer_Wail_5.1.png
+Kraken Royale: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Kraken_Royale.png
+Reefslider: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Reefslider.png
+Triple Inkstrike: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Triple_Inkstrike.png
+Triple Splashdown: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Triple_Splashdown.png
+Wave Breaker: https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Wave_Breaker.png
+Splat Bomb: https://splatoonwiki.org/wiki/File:S3_Weapon_Sub_Splat_Bomb.png
+Ink Cannon: https://splatoonwiki.org/wiki/File:S2_Icon_Ink_Cannon.png
+Egg cannon: https://splatoonwiki.org/wiki/File:SRNW_egg_cannon_render.png
+
+Dynamo Roller correction (2026-11-01):
+The Inkipedia snapshot listed 184.6/138.5 DPS and 65/85 frames. Cross-checks:
+https://wikiwiki.jp/splatoon3mix/サーモンラン/ブキ別立ち回り/ローラー属
+  Horizontal: 200 damage, 66 frames, 181.8 DPS.
+  Vertical: 300 damage, 85 frames, 211.8 DPS.
+https://overfishing.wiki/ウェポン情報
+  Same damage/intervals, rounded DPS 182/212.
+The displayed data uses 66/85 frames and locally calculated DPS:
+  horizontal = 200 * 60 / 66 = 181.818...;
+  vertical = 300 * 60 / 85 = 211.764... .
+Rounded to one decimal: 181.8/211.8. This is maximum continuous-flick DPS,
+not DPS including ink refill time. Only these factual numeric values were
+cross-checked; no prose, images or page templates from these two sites were copied.

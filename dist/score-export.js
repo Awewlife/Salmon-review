@@ -17,7 +17,7 @@ window.SalmonScoreExport=(()=>{
   }
   function controls(jobs){
     const available=window.SalmonGradeChart.model(jobs).count>0;
-    return `<div class="score-export-toolbar"><span>点击节点查看场次 →</span><details class="score-export-menu" id="score-export-menu"><summary>导出图片</summary><div class="score-export-options"><button class="button" data-export-score="png" ${available?'':'disabled'}>导出 PNG（推荐）</button><button class="button" data-export-score="svg" ${available?'':'disabled'}>导出 SVG</button><span class="inkling-png-note">鱿鱼语仅支持 PNG，避免导出字体文件。</span>${available?'':'<span>暂无可导出的分数</span>'}</div></details></div><div id="score-export-status" class="score-export-status" role="status" aria-live="polite"></div>`;
+    return `<div class="score-export-toolbar"><span>点击节点查看场次 →</span><details class="score-export-menu" id="score-export-menu"><summary>导出图片</summary><div class="score-export-options"><button class="button" data-export-score="png" ${available?'':'disabled'}>导出 PNG（推荐）</button><button class="button" data-export-score="svg" ${available?'':'disabled'}>导出 SVG</button><span class="inkling-png-note">鱿鱼语仅支持 PNG 导出。</span>${available?'':'<span>暂无可导出的分数</span>'}</div></details></div><div id="score-export-status" class="score-export-status" role="status" aria-live="polite"></div>`;
   }
   function bind(jobs,shift){
     if(downloadUrl){URL.revokeObjectURL(downloadUrl);downloadUrl=null}

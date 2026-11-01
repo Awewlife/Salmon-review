@@ -1,6 +1,7 @@
 import {fileURLToPath} from 'node:url';
 import {launchProfile} from './nxapi-cli.js';
 import {validateCareer} from './career.js';
+import {safeRetryMetadata} from './rate-limit.js';
 export function fetchCareer(input,{signal,launch=launchProfile}={}){
   if(input.credentials?.backend!=='nxapi-cli'||!input.credentials.profile)throw new Error('auth_required');
   return new Promise((resolve,reject)=>{
@@ -14,7 +15,7 @@ export function fetchCareer(input,{signal,launch=launchProfile}={}){
       signal?.removeEventListener('abort',stop);
       if(signal?.aborted)return reject(new Error('interrupted'));
       if(tooLarge)return reject(new Error('too_large'));
-      try{const value=JSON.parse(text);if(code!==0||value.error)throw new Error(value.error??'upstream');resolve(validateCareer(value))}catch(error){reject(new Error(['auth_required','rate_limited','network','upstream_disabled'].includes(error.message)?error.message:'upstream'))}
+      try{const value=JSON.parse(text);if(code!==0||value.error)throw Object.assign(new Error(value.error??'upstream'),safeRetryMetadata(value));resolve(validateCareer(value))}catch(error){reject(Object.assign(new Error(['auth_required','rate_limited','network','upstream_disabled'].includes(error.message)?error.message:'upstream'),safeRetryMetadata(error)))}
     });child.stdin.end();
   });
 }

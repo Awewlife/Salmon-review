@@ -28,7 +28,7 @@ COPY --from=prepared / /
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.source="https://github.com/Awewlife/Salmon-review" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
-      org.opencontainers.image.version="0.4.0" \
+      org.opencontainers.image.version="0.4.1" \
       org.opencontainers.image.revision=$VCS_REF
 WORKDIR /app
 ENV NODE_ENV=production BIND_ADDRESS=0.0.0.0 PORT=8787 DATA_DIR=/data

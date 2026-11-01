@@ -8,7 +8,38 @@ import {createApp} from '../server/main.js';
 import {Tasks,workerCall} from '../server/tasks.js';
 import {classify} from '../server/errors.js';
 import {fixture} from './fixtures.js';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 async function setup(t){const directory=mkdtempSync(path.join(os.tmpdir(),'salmon-http-'));const app=await createApp({directory});await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+app.server.address().port;const status=await fetch(base+'/api/status').then(r=>r.json());t.after(async()=>{await app.close();rmSync(directory,{recursive:true,force:true})});return {...app,base,csrf:status.csrf}}
+test('offline reference scripts, styles and attribution are served before login',async t=>{
+  const {base}=await setup(t);
+  for(const file of ['reference.js','reference-data.js','reference-icons.js','reference-i18n.js','reference.css','reference-NOTICE.txt']){
+    const res=await fetch(base+'/'+file);assert.equal(res.status,200,file);
+    assert.match(res.headers.get('content-type'),file.endsWith('.js')?/^text\/javascript/:file.endsWith('.css')?/^text\/css/:/^text\/plain/);
+    assert.ok((await res.text()).length>100);
+  }
+});
+
+test('reference icons download once, persist in cache and reject unlisted hosts from imported assets',async t=>{
+  const {base,store}=await setup(t),nativeFetch=globalThis.fetch;
+  const icons=JSON.parse(readFileSync(new URL('../server/reference-icons.json',import.meta.url)));
+  const url=icons.Smallfry.url,id=createHash('sha256').update(url).digest('hex');
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aE1cAAAAASUVORK5CYII=','base64');let downloads=0;
+  t.mock.method(globalThis,'fetch',async(input,options)=>{
+    if(String(input).startsWith(base))return nativeFetch(input,options);
+    assert.equal(input,url);assert.equal(options.redirect,'error');downloads++;
+    return new Response(png,{headers:{'Content-Type':'image/png'}});
+  });
+  const changes=store.db.prepare('SELECT total_changes() AS n').get().n;
+  for(let attempt=0;attempt<2;attempt++){
+    const res=await fetch(base+'/assets/'+id);assert.equal(res.status,200);
+    assert.equal(res.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await res.arrayBuffer()),png);
+  }
+  assert.equal(downloads,1);assert.equal(store.db.prepare('SELECT total_changes() AS n').get().n,changes);
+  assert.deepEqual(readFileSync(path.join(store.directory,'assets',id)),png);
+  const unknown='a'.repeat(64);store.db.prepare('INSERT INTO assets(id,url) VALUES(?,?)').run(unknown,'https://cdn.wikimg.net/en/splatoonwiki/images/not-listed.png');
+  assert.equal((await fetch(base+'/assets/'+unknown)).status,404);assert.equal(downloads,1);
+});
 test('diagnostics reads aggregate local health without writing or disclosing settings, paths or credentials',async t=>{
   const {base,store,csrf,tasks}=await setup(t),f=fixture();
   store.import([f.record,f.summary]);store.set('diagnostic-secret','SECRET_TOKEN_VALUE');
@@ -114,6 +145,39 @@ test('expired stored credentials block retries until successful account reconnec
   const response=await fetch(base+'/api/auth/complete',{method:'POST',headers:{'Content-Type':'application/json','X-Salmon-CSRF':csrf},body:JSON.stringify({url:'test-only'})});
   assert.equal(response.status,200);assert.equal(tasks.status().paused,null);assert.equal(tasks.status().manualNextAttempt,0);
   assert.equal(store.get('failures'),0);tasks.runner=async()=>{};tasks.start();await tasks.completion;
+});
+
+test('precise limits below fifteen minutes survive restart/reconnect and expire without restarting an hour',async t=>{
+  const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});
+  t.mock.timers.enable({apis:['Date'],now:1900000000000});
+  const until=Date.now()+42000,error=Object.assign(new Error('rate_limited'),{retryAt:until,retrySource:'upstream'});
+  let tasks=new Tasks(store,account,async()=>{throw error});tasks.start();await tasks.completion;
+  assert.equal(tasks.status().nextAttempt,until);assert.equal(tasks.status().manualNextAttempt,until);
+  await assert.rejects(tasks.refreshCareer(),/cooldown/);
+  t.mock.timers.tick(41000);tasks=new Tasks(store,account,async()=>{});tasks.reconnected();
+  assert.equal(tasks.status().nextAttempt,until);assert.throws(()=>tasks.start(),/cooldown/);
+  t.mock.timers.tick(1000);tasks.start({automatic:true});await tasks.completion;
+  assert.equal(tasks.status().last.state,'success');
+});
+
+test('missing timing defaults to an hour; career limit blocks sync and retains the snapshot',async t=>{
+  const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});
+  t.mock.timers.enable({apis:['Date'],now:1900000000000});
+  const tasks=new Tasks(store,account,async()=>{throw new Error('rate_limited')});
+  tasks.start();await tasks.completion;assert.equal(tasks.status().nextAttempt,Date.now()+3600000);
+  t.mock.timers.tick(3600000);const until=Date.now()+20000;
+  tasks.runner=async()=>{throw Object.assign(new Error('rate_limited'),{retryAt:until,retrySource:'nxapi'})};
+  await assert.rejects(tasks.refreshCareer(),/rate_limited/);
+  assert.equal(tasks.status().manualNextAttempt,until);assert.equal(store.get('careerNextAttempt'),until);
+  assert.throws(()=>tasks.start(),/cooldown/);assert.throws(()=>tasks.start({automatic:true}),/cooldown/);
+});
+
+test('an explicit zero wait is not replaced by fallback or a fifteen-minute minimum',async t=>{
+  const {store,account}=await setup(t);account.read=()=>({backend:'nxapi-cli',profile:'fixture'});
+  t.mock.timers.enable({apis:['Date'],now:1900000000000});
+  const tasks=new Tasks(store,account,async()=>{throw Object.assign(new Error('rate_limited'),{retryAt:Date.now(),retrySource:'upstream'})});
+  tasks.start();await tasks.completion;assert.equal(tasks.status().nextAttempt,Date.now());
+  tasks.runner=async()=>{};tasks.start();await tasks.completion;assert.equal(tasks.status().last.state,'success');
 });
 
 test('legacy network cooldown is shortened only for manual retry, while legacy rate limits stay binding',async t=>{

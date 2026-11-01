@@ -11,9 +11,11 @@ import {CliAccount} from './account.js';
 import {Tasks,workerCall} from './tasks.js';
 import {publicError} from './errors.js';
 import {safeAssetUrl} from './normalize.js';
+import {referenceIconUrl} from './reference-icons.js';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const staticFiles=new Map(['index.html','i18n.js','i18n-catalog.js','byname-catalog.js','i18n.css','career.js','preferences.js','personal-records.js','player-card.js','kill-details.js','release-notes.js','view-data.js','app.js','radar.js','radar-export.js','radar-view.js','metrics.js','chart-dialog.js','grade-chart.js','score-export.js','style.css','manage.js','manage.css','update.js','diagnostics.js'].map(name=>['/'+name,path.join(root,'../dist',name)]));
+const staticFiles=new Map(['index.html','i18n.js','i18n-catalog.js','byname-catalog.js','i18n.css','career.js','preferences.js','personal-records.js','player-card.js','kill-details.js','release-notes.js','view-data.js','app.js','radar.js','radar-compare.js','radar-export.js','radar-view.js','metrics.js','chart-dialog.js','grade-chart.js','score-export.js','style.css','manage.js','manage.css','update.js','diagnostics.js'].map(name=>['/'+name,path.join(root,'../dist',name)]));
+for(const name of ['reference.js','reference-data.js','reference-icons.js','reference-i18n.js','reference.css','reference-NOTICE.txt'])staticFiles.set('/'+name,path.join(root,'../dist',name));
 staticFiles.set('/LICENSE',path.join(root,'../LICENSE'));
 for(const name of ['MPLUSRounded1c-ExtraBold.ttf','OFL.txt','INKLING-NOTICE.txt'])staticFiles.set('/fonts/'+name,path.join(root,'../dist/fonts',name));
 const imageType=body=>body.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))?'image/png':body[0]===255&&body[1]===216&&body[2]===255?'image/jpeg':body.toString('ascii',0,4)==='RIFF'&&body.toString('ascii',8,12)==='WEBP'?'image/webp':null;
@@ -44,7 +46,7 @@ export async function createApp({directory=process.env.DATA_DIR??path.join(root,
     const file=path.join(directory,'assets',id);try{return await readFile(file)}catch{}
     if(assetJobs.has(id))return assetJobs.get(id);
     const task=(async()=>{
-      const row=store.db.prepare('SELECT url FROM assets WHERE id=?').get(id),url=safeAssetUrl(row?.url);if(!url)throw new Error('not_found');
+      const url=referenceIconUrl(id)??safeAssetUrl(store.db.prepare('SELECT url FROM assets WHERE id=?').get(id)?.url);if(!url)throw new Error('not_found');
       const response=await fetch(url,{signal:AbortSignal.timeout(15000),redirect:'error'});
       if(!response.ok||!response.headers.get('content-type')?.startsWith('image/'))throw new Error('not_found');
       let size=0;const chunks=[];for await(const part of response.body){size+=part.length;if(size>5*1024*1024)throw new Error('too_large');chunks.push(part)}

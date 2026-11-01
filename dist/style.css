@@ -156,3 +156,34 @@
 /* A narrow chart can place the tooltip above/below the selected nodes. */
 .trend-tooltip{overflow-y:auto;pointer-events:auto;overscroll-behavior:contain}
 .nameplate-byname>span{display:inline-block;white-space:nowrap;transform-origin:left center}
+
+/* Historical profile reuses the radar without adding another full-width dashboard. */
+#career-dialog.career-history{width:min(1000px,calc(100vw - 32px))}
+.career-tabs{display:flex;gap:4px;border-bottom:1px solid #394044;padding-bottom:12px;margin-bottom:18px}
+.career-tabs button{background:transparent;border:0;border-radius:7px;color:var(--muted);padding:9px 15px;cursor:pointer;font:inherit;font-size:13px}
+.career-tabs button[aria-selected="true"]{background:var(--lime);color:#17201a;font-weight:600}
+.career-tabs button:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.career-body .career-history-content{margin:0}.career-history-content h3{margin:0 0 8px}
+.career-history-coverage{display:flex;gap:8px 24px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:14px 0}
+.career-history-coverage p{margin:0}.career-history-content .radar-layout{grid-template-columns:minmax(0,42%) minmax(0,1fr);padding:10px 0;gap:20px}
+.career-history-content .radar-plot{max-width:380px}.career-history-content .radar-export-toolbar{padding:12px 0}
+.career-history-context{border-top:1px solid #394044;padding-top:14px;line-height:1.8}
+@media(max-width:780px){.career-history-content .radar-layout{grid-template-columns:minmax(0,1fr)}.career-history-content .radar-plot{max-width:340px}.career-history-coverage{display:block}.career-history-coverage p+p{margin-top:7px}}
+
+.career-history .career-head{padding:16px 28px}.career-history .career-head h2{margin:4px 0}
+.career-history .career-body{padding-top:16px}.career-history-content .radar-layout{align-items:start}
+.career-history-content .radar-plot{max-width:360px}.radar-method>summary{font-size:12px;color:var(--muted);cursor:pointer;padding:10px 0 0}
+
+.career-history-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.history-mode,.radar-table-mode{display:flex;gap:4px;flex-wrap:wrap}.history-mode .button,.radar-table-mode .button{font-size:12px;padding:6px 10px}
+.history-mode [aria-pressed="true"],.radar-table-mode [aria-pressed="true"]{background:var(--lime);color:#17201a;border-color:var(--lime)}
+.radar-table-mode{margin-bottom:10px}.radar-comparison-coverage{font-size:12px;color:var(--muted);line-height:1.7;margin:12px 0}
+.radar-comparison-coverage p{margin:3px 0}.radar-historical{fill:none;stroke:#b99aff;stroke-width:2;stroke-dasharray:6 5}
+.radar-history-node{fill:var(--panel);stroke:#b99aff;stroke-width:1.5}.radar-reference{stroke:#7a8388}
+.radar-key.historical{border-color:#b99aff;border-top-style:dashed}.radar-key.reference{border-color:#7a8388;border-top-width:1px}
+.radar-data .radar-comparison-table{min-width:380px}.radar-data .radar-comparison-table td:last-child{color:var(--text)}
+.radar-data .radar-comparison-table th,.radar-data .radar-comparison-table td{white-space:normal;padding:10px 5px}
+
+.comparison-period{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.comparison-period .button{font-size:12px;padding:6px 10px}
+.comparison-period [aria-pressed="true"]{background:var(--lime);color:#17201a;border-color:var(--lime)}

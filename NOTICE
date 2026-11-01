@@ -14,3 +14,6 @@ Source: https://github.com/Awewlife/Salmon-review
 Third-party components retain their own copyrights and licenses.
 See THIRD_PARTY_NOTICES.md and THIRD_PARTY_PACKAGES.json.
 Nintendo game names, artwork and trademarks are not licensed by this project.
+
+Offline handbook tables and adapted explanations: Inkipedia contributors,
+CC BY-SA 4.0. See dist/reference-NOTICE.txt for source, revision and changes.

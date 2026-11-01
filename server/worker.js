@@ -1,6 +1,7 @@
 import {fetchCareer} from './career-cli.js';
 import {syncCli} from './sync-cli.js';
 import {classify} from './errors.js';
+import {safeRetryMetadata} from './rate-limit.js';
 const pending=new Map();let sequence=0;
 const controller=new AbortController();
 const emit=(type,value)=>new Promise((resolve,reject)=>{
@@ -16,6 +17,6 @@ process.on('message',async message=>{
     const result=message.value.action==='career'?await fetchCareer(message.value,{signal:controller.signal}):await syncCli(message.value,emit,{signal:controller.signal});
     if(process.connected)process.send({type:'result',value:result},()=>process.exit(0));else process.exit(0);
   }catch(error){
-    if(process.connected)process.send({type:'error',value:{code:classify(error),retryAfter:error.retryAfter??0}},()=>process.exit(1));else process.exit(1);
+    if(process.connected)process.send({type:'error',value:{code:classify(error),...safeRetryMetadata(error)}},()=>process.exit(1));else process.exit(1);
   }
 });

@@ -5,6 +5,7 @@ import path from 'node:path';
 import {readFile} from 'node:fs/promises';
 import {loadOfficialCareer} from './career.js';
 import {classify} from './errors.js';
+import {retryMetadata} from './rate-limit.js';
 const require=createRequire(import.meta.url);
 const base=path.resolve(path.dirname(require.resolve('nxapi')),'..');
 try{
@@ -19,4 +20,4 @@ try{
   const nso=await storage.getItem('NsoToken.'+token);
   const value=await loadOfficialCareer(splatnet,query.sha256Hash,nso?.nsoAccount?.user?.imageUri);
   process.stdout.write(JSON.stringify(value));
-}catch(error){process.stdout.write(JSON.stringify({error:classify(error)}));process.exitCode=1}
+}catch(error){const retry=retryMetadata(error);process.stdout.write(JSON.stringify({error:retry.retryAt!==undefined?'rate_limited':classify(error),...retry}));process.exitCode=1}

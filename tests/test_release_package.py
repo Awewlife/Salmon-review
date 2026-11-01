@@ -68,7 +68,7 @@ class ReleaseIdentityTests(unittest.TestCase):
             directory = Path(temporary)
             package.copy_documentation(directory)
             for name in ['docs/images/personal-trends.png', 'docs/images/score-curve.png',
-                         'dist/fonts/INKLING-NOTICE.txt', 'licenses/SOURCE-BUILD.md',
+                         'dist/fonts/INKLING-NOTICE.txt', 'dist/reference-NOTICE.txt', 'licenses/SOURCE-BUILD.md',
                          'packages/splatnet3-compat/README.md', 'docs/RESOURCE_RIGHTS.md']:
                 self.assertEqual((directory/name).read_bytes(), (package.ROOT/name).read_bytes())
             self.assertFalse(list(directory.rglob('*.otf')))

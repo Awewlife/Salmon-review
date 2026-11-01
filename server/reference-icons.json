@@ -1,0 +1,426 @@
+{
+  "Smallfry": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/87/S3_Icon_Smallfry.png/32px-S3_Icon_Smallfry.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Smallfry.png"
+  },
+  "Chum": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/39/S3_Icon_Chum.png/32px-S3_Icon_Chum.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Chum.png"
+  },
+  "Cohock": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/82/S3_Icon_Cohock.png/32px-S3_Icon_Cohock.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Cohock.png"
+  },
+  "Snatcher": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/9/94/S3_Tableturf_Battle_card_Snatcher.png/34px-S3_Tableturf_Battle_card_Snatcher.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Tableturf_Battle_card_Snatcher.png"
+  },
+  "Drizzler": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/b/bd/S3_Icon_Drizzler.png/32px-S3_Icon_Drizzler.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Drizzler.png"
+  },
+  "Flyfish": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/f/f1/S3_Icon_Flyfish.png/45px-S3_Icon_Flyfish.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Flyfish.png"
+  },
+  "Maws": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/a/ac/S3_Icon_Maws.png/32px-S3_Icon_Maws.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Maws.png"
+  },
+  "Scrapper": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/b/b2/S3_Icon_Scrapper.png/32px-S3_Icon_Scrapper.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Scrapper.png"
+  },
+  "Steel Eel": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/0/0f/S3_Icon_Steel_Eel.png/32px-S3_Icon_Steel_Eel.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Steel_Eel.png"
+  },
+  "Stinger": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/11/S3_Icon_Stinger.png/32px-S3_Icon_Stinger.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Stinger.png"
+  },
+  "Steelhead": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/64/S3_Icon_Steelhead.png/50px-S3_Icon_Steelhead.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Steelhead.png"
+  },
+  "Fish Stick": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/44/S3_Icon_Fish_Stick.png/32px-S3_Icon_Fish_Stick.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Fish_Stick.png"
+  },
+  "Slammin' Lid": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/1e/S3_Icon_Slammin%27_Lid.png/32px-S3_Icon_Slammin%27_Lid.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Slammin'_Lid.png"
+  },
+  "Flipper-Flopper": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/63/S3_Icon_Flipper-Flopper.png/32px-S3_Icon_Flipper-Flopper.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Flipper-Flopper.png"
+  },
+  "Big Shot": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/22/S3_Icon_Big_Shot.png/32px-S3_Icon_Big_Shot.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Big_Shot.png"
+  },
+  "Goldie": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/7/7f/S3_Icon_Goldie.png/50px-S3_Icon_Goldie.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Goldie.png"
+  },
+  "Griller": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/a/a4/S3_Icon_Griller.png/50px-S3_Icon_Griller.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Griller.png"
+  },
+  "Mothership": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/8f/S3_Tableturf_Battle_card_Mothership.png/36px-S3_Tableturf_Battle_card_Mothership.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Tableturf_Battle_card_Mothership.png"
+  },
+  "Chinook": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/d/d8/S3_Icon_Chinook.png/22px-S3_Icon_Chinook.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Chinook.png"
+  },
+  "Mudmouth": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/b/b2/S3_Icon_Mudmouth.png/50px-S3_Icon_Mudmouth.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Mudmouth.png"
+  },
+  "Cohozuna": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/8b/S3_Icon_Cohozuna.png/50px-S3_Icon_Cohozuna.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Cohozuna.png"
+  },
+  "Horrorboros": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/4d/S3_Icon_Horrorboros.png/50px-S3_Icon_Horrorboros.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Horrorboros.png"
+  },
+  "Megalodontia": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/40/S3_Icon_Megalodontia.png/50px-S3_Icon_Megalodontia.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Icon_Megalodontia.png"
+  },
+  ".52 Gal": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/e/ed/S3_Weapon_Main_.52_Gal.png/24px-S3_Weapon_Main_.52_Gal.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_.52_Gal.png"
+  },
+  ".96 Gal": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/55/S3_Weapon_Main_.96_Gal.png/24px-S3_Weapon_Main_.96_Gal.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_.96_Gal.png"
+  },
+  "Aerospray MG": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/c/c5/S3_Weapon_Main_Aerospray_MG.png/24px-S3_Weapon_Main_Aerospray_MG.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Aerospray_MG.png"
+  },
+  "Jet Squelcher": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/69/S3_Weapon_Main_Jet_Squelcher.png/24px-S3_Weapon_Main_Jet_Squelcher.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Jet_Squelcher.png"
+  },
+  "N-ZAP '85": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/f/f6/S3_Weapon_Main_N-ZAP_%2785.png/24px-S3_Weapon_Main_N-ZAP_%2785.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_N-ZAP_'85.png"
+  },
+  "Splash-o-matic": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/7/7b/S3_Weapon_Main_Splash-o-matic.png/24px-S3_Weapon_Main_Splash-o-matic.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splash-o-matic.png"
+  },
+  "Splattershot": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/b/bf/S3_Weapon_Main_Splattershot.png/24px-S3_Weapon_Main_Splattershot.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot.png"
+  },
+  "Splattershot Jr.": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/1e/S3_Weapon_Main_Splattershot_Jr..png/24px-S3_Weapon_Main_Splattershot_Jr..png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot_Jr..png"
+  },
+  "Splattershot Nova": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/10/S3_Weapon_Main_Splattershot_Nova.png/24px-S3_Weapon_Main_Splattershot_Nova.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot_Nova.png"
+  },
+  "Splattershot Pro": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/7/77/S3_Weapon_Main_Splattershot_Pro.png/24px-S3_Weapon_Main_Splattershot_Pro.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splattershot_Pro.png"
+  },
+  "Sploosh-o-matic": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/59/S3_Weapon_Main_Sploosh-o-matic.png/24px-S3_Weapon_Main_Sploosh-o-matic.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Sploosh-o-matic.png"
+  },
+  "H-3 Nozzlenose": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/5a/S3_Weapon_Main_H-3_Nozzlenose.png/24px-S3_Weapon_Main_H-3_Nozzlenose.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_H-3_Nozzlenose.png"
+  },
+  "L-3 Nozzlenose": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/2c/S3_Weapon_Main_L-3_Nozzlenose.png/24px-S3_Weapon_Main_L-3_Nozzlenose.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_L-3_Nozzlenose.png"
+  },
+  "Squeezer": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/c/cb/S3_Weapon_Main_Squeezer.png/24px-S3_Weapon_Main_Squeezer.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Squeezer.png"
+  },
+  "Big Swig Roller": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/8e/S3_Weapon_Main_Big_Swig_Roller.png/24px-S3_Weapon_Main_Big_Swig_Roller.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Big_Swig_Roller.png"
+  },
+  "Carbon Roller": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/21/S3_Weapon_Main_Carbon_Roller.png/24px-S3_Weapon_Main_Carbon_Roller.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Carbon_Roller.png"
+  },
+  "Dynamo Roller": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/5e/S3_Weapon_Main_Dynamo_Roller.png/24px-S3_Weapon_Main_Dynamo_Roller.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dynamo_Roller.png"
+  },
+  "Flingza Roller": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/d/d2/S3_Weapon_Main_Flingza_Roller.png/24px-S3_Weapon_Main_Flingza_Roller.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Flingza_Roller.png"
+  },
+  "Splat Roller": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/c/c7/S3_Weapon_Main_Splat_Roller.png/24px-S3_Weapon_Main_Splat_Roller.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Roller.png"
+  },
+  "Grizzco Roller": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/a/a8/S3_Weapon_Main_Grizzco_Roller_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Roller_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Roller_2D_Current.png"
+  },
+  "Bamboozler 14 Mk I": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/6d/S3_Weapon_Main_Bamboozler_14_Mk_I.png/24px-S3_Weapon_Main_Bamboozler_14_Mk_I.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Bamboozler_14_Mk_I.png"
+  },
+  "Classic Squiffer": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/3c/S3_Weapon_Main_Classic_Squiffer.png/24px-S3_Weapon_Main_Classic_Squiffer.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Classic_Squiffer.png"
+  },
+  "E-liter 4K": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/10/S3_Weapon_Main_E-liter_4K.png/24px-S3_Weapon_Main_E-liter_4K.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_E-liter_4K.png"
+  },
+  "Goo Tuber": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/8a/S3_Weapon_Main_Goo_Tuber.png/24px-S3_Weapon_Main_Goo_Tuber.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Goo_Tuber.png"
+  },
+  "Snipewriter 5H": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/34/S3_Weapon_Main_Snipewriter_5H.png/24px-S3_Weapon_Main_Snipewriter_5H.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Snipewriter_5H.png"
+  },
+  "Splat Charger": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/41/S3_Weapon_Main_Splat_Charger.png/24px-S3_Weapon_Main_Splat_Charger.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Charger.png"
+  },
+  "Grizzco Charger": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/9/9e/S3_Weapon_Main_Grizzco_Charger_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Charger_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Charger_2D_Current.png"
+  },
+  "Bloblobber": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/41/S3_Weapon_Main_Bloblobber.png/24px-S3_Weapon_Main_Bloblobber.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Bloblobber.png"
+  },
+  "Dread Wringer": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/6c/S3_Weapon_Main_Dread_Wringer.png/24px-S3_Weapon_Main_Dread_Wringer.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dread_Wringer.png"
+  },
+  "Explosher": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/d/de/S3_Weapon_Main_Explosher.png/24px-S3_Weapon_Main_Explosher.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Explosher.png"
+  },
+  "Slosher": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/42/S3_Weapon_Main_Slosher.png/24px-S3_Weapon_Main_Slosher.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Slosher.png"
+  },
+  "Sloshing Machine": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/38/S3_Weapon_Main_Sloshing_Machine.png/24px-S3_Weapon_Main_Sloshing_Machine.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Sloshing_Machine.png"
+  },
+  "Tri-Slosher": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/d/dc/S3_Weapon_Main_Tri-Slosher.png/24px-S3_Weapon_Main_Tri-Slosher.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Tri-Slosher.png"
+  },
+  "Grizzco Slosher": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/36/S3_Weapon_Main_Grizzco_Slosher_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Slosher_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Slosher_2D_Current.png"
+  },
+  "Ballpoint Splatling": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/f/f9/S3_Weapon_Main_Ballpoint_Splatling.png/24px-S3_Weapon_Main_Ballpoint_Splatling.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Ballpoint_Splatling.png"
+  },
+  "Heavy Edit Splatling": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/24/S3_Weapon_Main_Heavy_Edit_Splatling.png/24px-S3_Weapon_Main_Heavy_Edit_Splatling.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Heavy_Edit_Splatling.png"
+  },
+  "Heavy Splatling": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/5e/S3_Weapon_Main_Heavy_Splatling.png/24px-S3_Weapon_Main_Heavy_Splatling.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Heavy_Splatling.png"
+  },
+  "Hydra Splatling": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/d/d1/S3_Weapon_Main_Hydra_Splatling.png/24px-S3_Weapon_Main_Hydra_Splatling.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Hydra_Splatling.png"
+  },
+  "Mini Splatling": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/86/S3_Weapon_Main_Mini_Splatling.png/24px-S3_Weapon_Main_Mini_Splatling.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Mini_Splatling.png"
+  },
+  "Nautilus 47": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/81/S3_Weapon_Main_Nautilus_47.png/24px-S3_Weapon_Main_Nautilus_47.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Nautilus_47.png"
+  },
+  "Dapple Dualies": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/54/S3_Weapon_Main_Dapple_Dualies.png/24px-S3_Weapon_Main_Dapple_Dualies.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dapple_Dualies.png"
+  },
+  "Dark Tetra Dualies": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/c/c9/S3_Weapon_Main_Dark_Tetra_Dualies.png/24px-S3_Weapon_Main_Dark_Tetra_Dualies.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dark_Tetra_Dualies.png"
+  },
+  "Douser Dualies FF": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/2c/S3_Weapon_Main_Douser_Dualies_FF.png/24px-S3_Weapon_Main_Douser_Dualies_FF.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Douser_Dualies_FF.png"
+  },
+  "Dualie Squelchers": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/5a/S3_Weapon_Main_Dualie_Squelchers.png/24px-S3_Weapon_Main_Dualie_Squelchers.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Dualie_Squelchers.png"
+  },
+  "Glooga Dualies": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/9/99/S3_Weapon_Main_Glooga_Dualies.png/24px-S3_Weapon_Main_Glooga_Dualies.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Glooga_Dualies.png"
+  },
+  "Splat Dualies": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/e/e8/S3_Weapon_Main_Splat_Dualies.png/24px-S3_Weapon_Main_Splat_Dualies.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Dualies.png"
+  },
+  "Grizzco Dualies": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/7/7c/S3_Weapon_Main_Grizzco_Dualies_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Dualies_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Dualies_2D_Current.png"
+  },
+  "Recycled Brella 24 Mk I": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/d/d0/S3_Weapon_Main_Recycled_Brella_24_Mk_I.png/24px-S3_Weapon_Main_Recycled_Brella_24_Mk_I.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Recycled_Brella_24_Mk_I.png"
+  },
+  "Splat Brella": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/27/S3_Weapon_Main_Splat_Brella.png/24px-S3_Weapon_Main_Splat_Brella.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splat_Brella.png"
+  },
+  "Tenta Brella": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/1e/S3_Weapon_Main_Tenta_Brella.png/24px-S3_Weapon_Main_Tenta_Brella.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Tenta_Brella.png"
+  },
+  "Undercover Brella": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/5d/S3_Weapon_Main_Undercover_Brella.png/24px-S3_Weapon_Main_Undercover_Brella.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Undercover_Brella.png"
+  },
+  "Grizzco Brella": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/2c/S3_Weapon_Main_Grizzco_Brella_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Brella_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Brella_2D_Current.png"
+  },
+  "Blaster": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/a/a7/S3_Weapon_Main_Blaster.png/24px-S3_Weapon_Main_Blaster.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Blaster.png"
+  },
+  "Clash Blaster": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/2f/S3_Weapon_Main_Clash_Blaster.png/24px-S3_Weapon_Main_Clash_Blaster.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Clash_Blaster.png"
+  },
+  "Luna Blaster": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/59/S3_Weapon_Main_Luna_Blaster.png/24px-S3_Weapon_Main_Luna_Blaster.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Luna_Blaster.png"
+  },
+  "Range Blaster": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/1d/S3_Weapon_Main_Range_Blaster.png/24px-S3_Weapon_Main_Range_Blaster.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Range_Blaster.png"
+  },
+  "Rapid Blaster": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/6a/S3_Weapon_Main_Rapid_Blaster.png/24px-S3_Weapon_Main_Rapid_Blaster.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Rapid_Blaster.png"
+  },
+  "Rapid Blaster Pro": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/c/c6/S3_Weapon_Main_Rapid_Blaster_Pro.png/24px-S3_Weapon_Main_Rapid_Blaster_Pro.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Rapid_Blaster_Pro.png"
+  },
+  "S-BLAST '92": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/2/2d/S3_Weapon_Main_S-BLAST_%2792.png/24px-S3_Weapon_Main_S-BLAST_%2792.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_S-BLAST_'92.png"
+  },
+  "Grizzco Blaster": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/5/55/S3_Weapon_Main_Grizzco_Blaster_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Blaster_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Blaster_2D_Current.png"
+  },
+  "Inkbrush": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/4a/S3_Weapon_Main_Inkbrush.png/24px-S3_Weapon_Main_Inkbrush.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Inkbrush.png"
+  },
+  "Octobrush": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/3d/S3_Weapon_Main_Octobrush.png/24px-S3_Weapon_Main_Octobrush.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Octobrush.png"
+  },
+  "Painbrush": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/7/79/S3_Weapon_Main_Painbrush.png/24px-S3_Weapon_Main_Painbrush.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Painbrush.png"
+  },
+  "REEF-LUX 450": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/66/S3_Weapon_Main_REEF-LUX_450.png/24px-S3_Weapon_Main_REEF-LUX_450.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_REEF-LUX_450.png"
+  },
+  "Tri-Stringer": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/49/S3_Weapon_Main_Tri-Stringer.png/24px-S3_Weapon_Main_Tri-Stringer.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Tri-Stringer.png"
+  },
+  "Wellstring V": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/37/S3_Weapon_Main_Wellstring_V.png/24px-S3_Weapon_Main_Wellstring_V.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Wellstring_V.png"
+  },
+  "Grizzco Stringer": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/0/0f/S3_Weapon_Main_Grizzco_Stringer_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Stringer_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Stringer_2D_Current.png"
+  },
+  "Mint Decavitator": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/c/c9/S3_Weapon_Main_Mint_Decavitator.png/24px-S3_Weapon_Main_Mint_Decavitator.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Mint_Decavitator.png"
+  },
+  "Splatana Stamper": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/4/4d/S3_Weapon_Main_Splatana_Stamper.png/24px-S3_Weapon_Main_Splatana_Stamper.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splatana_Stamper.png"
+  },
+  "Splatana Wiper": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/e/e5/S3_Weapon_Main_Splatana_Wiper.png/24px-S3_Weapon_Main_Splatana_Wiper.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Splatana_Wiper.png"
+  },
+  "Grizzco Splatana": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/87/S3_Weapon_Main_Grizzco_Splatana_2D_Current.png/24px-S3_Weapon_Main_Grizzco_Splatana_2D_Current.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Main_Grizzco_Splatana_2D_Current.png"
+  },
+  "Booyah Bomb": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/0/00/S3_Weapon_Special_Booyah_Bomb.png/24px-S3_Weapon_Special_Booyah_Bomb.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Booyah_Bomb.png"
+  },
+  "Crab Tank": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/88/S3_Weapon_Special_Crab_Tank.png/24px-S3_Weapon_Special_Crab_Tank.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Crab_Tank.png"
+  },
+  "Inkjet": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/80/S3_Weapon_Special_Inkjet.png/24px-S3_Weapon_Special_Inkjet.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Inkjet.png"
+  },
+  "Killer Wail 5.1": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/1a/S3_Weapon_Special_Killer_Wail_5.1.png/24px-S3_Weapon_Special_Killer_Wail_5.1.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Killer_Wail_5.1.png"
+  },
+  "Kraken Royale": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/c/c1/S3_Weapon_Special_Kraken_Royale.png/24px-S3_Weapon_Special_Kraken_Royale.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Kraken_Royale.png"
+  },
+  "Reefslider": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/1/10/S3_Weapon_Special_Reefslider.png/24px-S3_Weapon_Special_Reefslider.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Reefslider.png"
+  },
+  "Triple Inkstrike": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/3/3a/S3_Weapon_Special_Triple_Inkstrike.png/24px-S3_Weapon_Special_Triple_Inkstrike.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Triple_Inkstrike.png"
+  },
+  "Triple Splashdown": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/b/b3/S3_Weapon_Special_Triple_Splashdown.png/24px-S3_Weapon_Special_Triple_Splashdown.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Triple_Splashdown.png"
+  },
+  "Wave Breaker": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/6/67/S3_Weapon_Special_Wave_Breaker.png/24px-S3_Weapon_Special_Wave_Breaker.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Special_Wave_Breaker.png"
+  },
+  "Splat Bomb": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/8/8a/S3_Weapon_Sub_Splat_Bomb.png/24px-S3_Weapon_Sub_Splat_Bomb.png",
+    "source": "https://splatoonwiki.org/wiki/File:S3_Weapon_Sub_Splat_Bomb.png"
+  },
+  "Ink Cannon": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/0/02/S2_Icon_Ink_Cannon.png/28px-S2_Icon_Ink_Cannon.png",
+    "source": "https://splatoonwiki.org/wiki/File:S2_Icon_Ink_Cannon.png"
+  },
+  "Egg cannon": {
+    "url": "https://cdn.wikimg.net/en/splatoonwiki/images/thumb/7/78/SRNW_egg_cannon_render.png/28px-SRNW_egg_cannon_render.png",
+    "source": "https://splatoonwiki.org/wiki/File:SRNW_egg_cannon_render.png"
+  }
+}

@@ -7,7 +7,7 @@ function setup(saved,extras={}){
   const storage=new Map(saved?[['salmon-language-v1',saved]]:[]);
   const window={localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},dispatchEvent(){}};
   const context=vm.createContext({window,Event,...extras});
-  for(const name of ['byname-catalog','i18n-catalog','i18n'])vm.runInContext(readFileSync(new URL(`../dist/${name}.js`,import.meta.url),'utf8'),context);
+  for(const name of ['byname-catalog','i18n-catalog','reference-i18n','i18n'])vm.runInContext(readFileSync(new URL(`../dist/${name}.js`,import.meta.url),'utf8'),context);
   return {api:window.SalmonI18n,storage};
 }
 test('language preference defaults safely, persists and keeps Inkling separate from English text',()=>{
@@ -178,9 +178,9 @@ test('language observer only walks changed subtrees and still reverses text on l
 test('diagnostic states and public server errors have complete English and Inkling translations',async()=>{
  const {messages}=await import('../server/errors.js');const {api}=setup();
  const samples=[...Object.values(messages),
- '需要重新连接账号','上游暂时禁止认证','请求受限，请遵守等待时间','数据库读取失败',
+ '需要重新连接账号','登录服务暂不接受认证','请求受限，请遵守等待时间','数据库读取失败',
  '突出显示 Test player','掉线：无有效波次结算，不计入表现统计',
- '版本 0.4.0 · 已保存 479 场 · 已保存账号连接。当前未在同步；最近任务 完成，50/50，耗时 41.0 秒。上次成功：2026/10/21 19:06:28。连接状态未向上游重新验证。',
+ '版本 0.4.0 · 已保存 479 场 · 已保存账号连接。当前未在同步；最近任务 完成，50/50，耗时 41.0 秒。上次成功：2026/10/21 19:06:28。本次检查未验证登录是否仍有效。',
  '数据库读取正常（1 ms），数据库 4 MiB，数据卷可用 80 GiB。读写权限检查通过。权限检查未实际写入；可用空间属于容器所在文件系统。',
  '读取并校验完成：475 场可统计、20 期排班、4 条未纳入统计。诊断不会替换当前显示的战绩。',
  '阶段：空闲 · 当前空闲。状态更新于 2026/10/21 19:06:28。本次只读取组件状态，未请求下载源。'];
@@ -198,4 +198,15 @@ test('translation cache invalidates when protected nicknames change and separate
  api.protectNames([text]);assert.equal(api.t(text,'en'),text);
  api.protectNames([]);assert.notEqual(api.t(text,'en'),text);
  assert.equal(api.t('搬蛋','ja'),'金イクラ');assert.equal(api.t('搬蛋','en'),'Golden Eggs');
+});
+
+
+test('historical profile and export copy translate fully, including dynamic archive coverage',()=>{
+ const {api}=setup();
+ const texts=['查看个人打工档案','打工档案内容','官方纪录','历史表现','历史五维图','历史五项场均与全队四分之一场均对比','根据本地保存的战绩统计，不代表官方完整生涯。','本地记录 · 日期未提供','本地记录 · 2026-10-02 — 2026-11-01（UTC+8）','已保存 561 场 · 有效 540 场 · 21 场未计入','包含通过与失败场次；掉线、结算不完整和暂不支持的记录不计入。','100% 表示这些对局的全队均分，不是全体玩家平均水平。图形反映队内分担情况，受地图、武器和队友分工影响。','全部本地记录 · 队内分担情况','本地已保存战绩，非官方完整生涯；100% 为队内均分，不代表全体玩家平均或综合评分。'];
+ for(const text of texts){
+   for(const locale of ['en','inkling'])assert.doesNotMatch(api.t(text,locale),/[\u3400-\u9fff]/,locale+': '+text);
+   for(const locale of ['zh-TW','ja'])assert.notEqual(api.t(text,locale),text,locale+': '+text);
+ }
+ assert.match(api.t(texts[9],'en'),/561 saved jobs · 540 included · 21 excluded/);
 });

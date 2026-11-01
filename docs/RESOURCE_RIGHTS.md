@@ -42,3 +42,9 @@
 - 查询哈希和兼容模块的枚举有独立的逐项来源记录，见 [兼容模块说明](../packages/splatnet3-compat/README.md)；本文件不替代其许可材料。
 
 本轮没有向维护者或 Nintendo 发消息，也没有将本项目的私人资料提交到上游 issue。
+
+## Inkipedia 打工数据表
+
+核对日期：2026-11-01。新增离线资料选取 [Salmon Run Next Wave data](https://splatoonwiki.org/w/index.php?title=Salmon_Run_Next_Wave_data&oldid=738411) 的血量、打工武器参数、段位 IDV 与配额表（修订版 738411）。根据 [Inkipedia 版权政策](https://splatoonwiki.org/wiki/Inkipedia:Copyrights)，表格整理及说明译文以 **CC BY-SA 4.0** 提供，保留 Inkipedia contributors 署名、原文及历史链接、许可链接和修改说明。
+
+本项目节选打工数据，移除对战参数及无关章节，重排表格并翻译说明；未打包 wiki 图片、字体或网页程序；图标使用原表对应的游戏图片，首次查看时从 Inkipedia 下载并缓存在本地。图片不适用文字表格的 CC BY-SA 许可，版权仍归任天堂等原权利人；远程加载不代表另获授权。各图片的文件页列于随附 notice，供核对来源与各自的权利说明。该数据及改编说明的许可与应用代码的 AGPL 分开，游戏原始名称等权利仍属于原权利人。随前端打包的 [reference-NOTICE.txt](../dist/reference-NOTICE.txt) 记录具体边界，资料页提供可见署名与链接。原表未知值保留；滚筒 DPS 按伤害与间隔核对横挥、纵挥含义，电动马达滚筒经日文攻略＆検証 Wiki 与サーモンランNW乱獲Wiki交叉核对，按横挥 200 伤害 / 66 帧、纵挥 300 伤害 / 85 帧重新计算为 181.8 / 211.8 DPS，修订来源与原值记录在 notice，不冒充实时或经任天堂确认的数据。

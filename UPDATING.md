@@ -1,4 +1,4 @@
-# 网页一键更新（0.4.0）
+# 网页一键更新（0.4.1）
 
 ## 玩家怎么用
 
@@ -14,9 +14,9 @@
 
 ## 公开版和可选凭据
 
-0.4.0 优先匿名访问固定仓库 `Awewlife/Salmon-review`。公开发行版不要求 GitHub 账号或令牌；此前保存的过期令牌不会阻止匿名检查和下载。
+0.4.0 起优先匿名访问固定仓库 `Awewlife/Salmon-review`。公开发行版不要求 GitHub 账号或令牌；此前保存的过期令牌不会阻止匿名检查和下载。
 
-**从旧私有版迁移时，使用 0.4.0 完整安装包启动一次。** 沿用原 Compose 项目名和数据卷，不要删除原实例。旧版更新组件会拒绝已公开的仓库，不能依靠它完成首次公开版升级。
+**从旧私有版迁移时，使用 0.4.0 或更新的完整安装包启动一次。** 沿用原 Compose 项目名和数据卷，不要删除原实例。旧版更新组件会拒绝已公开的仓库，不能依靠它完成首次公开版升级。
 
 仅在私有测试或匿名 API 访问受到限流时，才展开“可选 GitHub 凭据”。使用自己的凭据，按界面要求验证并保存；不要使用维护者的令牌。私有仓库还要求账号本身具有仓库读取权限，仅创建令牌不能获得访问权。
 
@@ -51,7 +51,7 @@ python scripts/package-release.py --platform linux/arm64 --sources <已校验的
 
 签名用于限定可信发布者，不替代测试。实际测试命令：`npm run check`、两种架构容器内 `node --test tests/*.test.js`、`tests/installer.Tests.ps1`（PowerShell 5.1 / 7）、`node --test tests/macos-installer.test.js`（Mac）、`tests/run-bundle-docker.ps1`。容器运行单元测试时同时把源码 `tests/` 和 `release/` 只读挂载到 `/app/tests`、`/app/release`。最后一项创建专用 `salmon-bundle-test` 项目，验证真实容器替换、数据保留及中断恢复；仅清理该测试项目。发布前还需在真实 Intel / M 系列 Mac 验证下载后首次启动、登录同步、导出及更新数据保留。
 
-**分发材料：** `splatnet3-types` 已替换为带来源记录的本地模块，`tr46` 的 MIT 正文及版权声明已补齐。打包前运行 `scripts/collect-release-sources.py --image salmon-review:0.4.0 --output <仓库外目录>`；系统、Node 和原生库版本必须与源码锁定清单一致，文件缺失或哈希不符时停止打包。字体行为保持不变，第三方权利和源码重建说明见 `THIRD_PARTY_NOTICES.md` 与 `licenses/SOURCE-BUILD.md`。
+**分发材料：** `splatnet3-types` 已替换为带来源记录的本地模块，`tr46` 的 MIT 正文及版权声明已补齐。打包前运行 `scripts/collect-release-sources.py --image salmon-review:0.4.1 --output <仓库外目录>`；系统、Node 和原生库版本必须与源码锁定清单一致，文件缺失或哈希不符时停止打包。字体行为保持不变，第三方权利和源码重建说明见 `THIRD_PARTY_NOTICES.md` 与 `licenses/SOURCE-BUILD.md`。
 
 GitHub Actions 在两种架构的原生 Linux runner 上构建，合并后只上传草稿附件，不持有更新签名私钥，也不自动公开仓库或发布草稿。不带私钥打包时生成 `unsigned-update.json` 和 `unsigned-update-arm64.json` 供本地签署：使用 `node scripts/sign-update.mjs <unsigned文件> <私钥文件> <对应update文件>`，然后重新生成总校验和。没有对应架构签名清单的版本不会被该架构的网页列为可安装更新。
 

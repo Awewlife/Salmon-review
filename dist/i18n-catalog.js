@@ -1,6 +1,63 @@
 // UI translations authored for Salmon Review. Game-name sources: docs/LOCALIZATION.md.
 window.SalmonLocaleCatalog={
   "messages": {
+    "个人档案新增历史五维图，支持最近 100 场与全部历史或前 100 场对比。": ["個人檔案新增歷史五維圖，支援最近 100 場與全部歷史或前 100 場對比。", "Your profile now includes a history radar chart and comparisons of the latest 100 jobs with all history or the preceding 100.", "プロフィールに履歴のレーダーチャートを追加。直近100回を全履歴やその前の100回と比較できます。"],
+    "历史对比支持指数／场均表切换和图片导出，对照使用紫色虚线。": ["歷史對比支援指數／場均表切換和圖片匯出，對照使用紫色虛線。", "History comparisons support index and average tables, image export and a purple dashed comparison line.", "履歴の比較は指数・平均の表切替と画像出力に対応し、比較対象を紫の破線で表示します。"],
+    "新增打工数据速查，离线查看鲑鱼血量、武器伤害及危险度与交蛋配额。": ["新增打工資料速查，離線查看鮭魚血量、武器傷害及危險度與交蛋配額。", "New offline handbook for Salmonid HP, weapon damage, hazard levels and quotas.", "シャケの体力、ブキのダメージ、キケン度と納品ノルマをオフラインで確認できるデータ集を追加しました。"],
+    "请求受限时按实际剩余时间等待，战绩同步与官方纪录刷新共用等待时间。": ["請求受限時按實際剩餘時間等待，戰績同步與官方紀錄更新共用等待時間。", "Rate limits now use the remaining wait time, shared by job sync and official-record refresh.", "リクエスト制限では残りの待機時間を使用し、リザルトの同期と公式記録の更新で共有します。"],
+    "整理多语言界面说明，更新依赖安全修复与资料许可。": ["整理多語言介面說明，更新相依套件安全修正與資料授權。", "Clearer multilingual UI text, dependency security fixes and updated data notices.", "多言語の説明を整理し、依存ライブラリの安全性修正と資料のライセンス表示を更新しました。"],
+
+    "对照范围": ["對照範圍", "Comparison baseline", "比較対象"],
+    "对比全部历史": ["對比全部歷史", "Compare with all history", "全履歴と比較"],
+    "对比前 100 场": ["對比前 100 場", "Compare with previous 100", "その前の100回と比較"],
+    "前 {0} 场": ["前 {0} 場", "Previous {0} jobs", "その前の{0}回"],
+    "前 {0} 场 · {1} 场有效结算 · {2}": ["前 {0} 場 · {1} 場有效結算 · {2}", "Previous {0} jobs · {1} valid jobs · {2}", "その前の{0}回 · 集計対象{1}回 · {2}"],
+    "两组有效场次互不重叠；差值反映队内分担变化，不代表能力提升或下降。": ["兩組有效場次互不重疊；差值反映隊內分擔變化，不代表能力提升或下降。", "The two samples do not overlap. Differences reflect team roles, not a gain or loss of skill.", "両方の集計対象は重複しません。差はチーム内の役割の変化であり、実力の向上・低下を示すものではありません。"],
+    "尚无更早的有效场次，暂时无法与前 100 场对比。": ["尚無更早的有效場次，暫時無法與前 100 場對比。", "No earlier valid jobs are available to compare with the latest 100.", "さらに前の有効な記録がないため、その前の100回とは比較できません。"],
+    "前段仅有 {0} 场有效结算，按实际场数比较。": ["前段僅有 {0} 場有效結算，按實際場數比較。", "Only {0} earlier valid jobs are available; the comparison uses that actual count.", "前の期間の有効な記録は{0}回のみです。実際の回数で比較します。"],
+    "最近场次与前段场次五维对比": ["最近場次與前段場次五維對比", "Radar comparison of recent and preceding jobs", "直近とその前のバイトのレーダー比較"],
+    "两组数据共用刻度；绿色实线为近期，紫色虚线为对照。": ["兩組資料共用刻度；綠色實線為近期，紫色虛線為對照。", "Both series share one scale: solid green for recent jobs, dashed purple for the baseline.", "両系列は同じ目盛りです。緑の実線は直近、紫の破線は比較対象です。"],
+    "两组场均对比": ["兩組場均對比", "Per-job average comparison", "両期間の1バイト平均の比較"],
+    "两组指数对比": ["兩組指數對比", "Index comparison", "両期間の指数の比較"],
+    "前 100 场指紧邻最近 100 场之前的有效结算，最多取 100 场，不足时使用实际场数。": ["前 100 場指緊鄰最近 100 場之前的有效結算，最多取 100 場，不足時使用實際場數。", "Previous 100 means the valid jobs immediately before the latest 100, using up to 100 or the actual count if fewer.", "その前の100回は、直近100回のすぐ前にある有効なリザルトです。最大100回とし、不足する場合は実際の回数を使います。"],
+    "本地记录 · {0}": ["本地紀錄 · {0}", "Local records · {0}", "ローカル記録 · {0}"],
+    "全部历史": ["全部歷史", "All history", "全履歴"],
+    "近期对比": ["近期對比", "Recent comparison", "最近との比較"],
+    "历史图显示方式": ["歷史圖顯示方式", "History chart mode", "履歴グラフの表示"],
+    "对比表显示方式": ["對比表顯示方式", "Comparison table mode", "比較表の表示"],
+    "指数": ["指數", "Index", "指数"],
+    "场均数据": ["場均資料", "Per-job averages", "1バイト平均"],
+    "差值": ["差值", "Difference", "差"],
+    "100% 均分基准": ["100% 均分基準", "100% equal-share baseline", "100% 均等配分基準"],
+    "最近 {0} 场": ["最近 {0} 場", "Latest {0} jobs", "直近{0}回"],
+    "最近 {0} 场 · {1}": ["最近 {0} 場 · {1}", "Latest {0} jobs · {1}", "直近{0}回 · {1}"],
+    "全部历史 · {0} 场有效结算 · {1}": ["全部歷史 · {0} 場有效結算 · {1}", "All history · {0} valid jobs · {1}", "全履歴 · 集計対象{0}回 · {1}"],
+    "{0} 个百分点": ["{0} 個百分點", "{0} pp", "{0}ポイント"],
+    "均已封顶": ["均已封頂", "Both at cap", "両方とも上限"],
+    "全部历史包含最近场次；差值反映队内分担变化，不代表能力提升或下降。": ["全部歷史包含最近場次；差值反映隊內分擔變化，不代表能力提升或下降。", "All history includes recent jobs. Differences reflect team roles, not a gain or loss of skill.", "全履歴には最近のバイトも含みます。差はチーム内の役割の変化であり、実力の向上・低下を示すものではありません。"],
+    "近期样本与全部历史相同，不能据此判断表现是否稳定。": ["近期樣本與全部歷史相同，不能據此判斷表現是否穩定。", "The recent and historical samples are identical; this does not demonstrate stable performance.", "最近と全履歴の集計対象は同じです。パフォーマンスが安定しているとは判断できません。"],
+    "生存指数最高 200%；达到上限时，请结合实际被救援场均判断。": ["生存指數最高 200%；達到上限時，請結合實際被救援場均判斷。", "Survival is capped at 200%. At the cap, also check actual times rescued per job.", "生存指数の上限は200%です。上限に達した場合は、実際の被救助数の平均も確認してください。"],
+    "最近场次与全部历史五维对比": ["最近場次與全部歷史五維對比", "Radar comparison of recent jobs and all history", "最近のバイトと全履歴のレーダー比較"],
+    "两组数据共用刻度；绿色为近期，蓝灰虚线为全部历史。": ["兩組資料共用刻度；綠色為近期，藍灰虛線為全部歷史。", "Both series share one scale: green for recent jobs, dashed blue-grey for all history.", "両系列は同じ目盛りです。緑は最近、青灰色の破線は全履歴です。"],
+    "近期与历史场均对比": ["近期與歷史場均對比", "Recent and historical per-job averages", "最近と全履歴の1バイト平均の比較"],
+    "近期与历史指数对比": ["近期與歷史指數對比", "Recent and historical indices", "最近と全履歴の指数の比較"],
+    "最近 100 场指最近的有效结算，包含通过和失败；掉线及数据不完整的场次不计入。": ["最近 100 場指最近的有效結算，包含通過和失敗；斷線及資料不完整的場次不計入。", "Latest 100 means valid completed jobs, cleared or failed. Disconnects and incomplete records are excluded.", "直近100回はクリア・失敗を含む有効なリザルトです。切断やデータ不足のバイトは除外します。"],
+    "已生成对比图片（含图例和对比表）。": ["已產生對比圖片（含圖例和對比表）。", "Comparison image ready, including legend and table.", "凡例と比較表を含む比較画像を作成しました。"],
+    "计算说明": ["計算說明", "How it is calculated", "計算方法"],
+    "查看个人打工档案": ["查看個人打工檔案", "View Salmon Run profile", "バイトプロフィールを表示"],
+    "打工档案内容": ["打工檔案內容", "Profile sections", "プロフィールの表示内容"],
+    "官方纪录": ["官方紀錄", "Official records", "公式記録"],
+    "历史表现": ["歷史表現", "Historical performance", "過去のパフォーマンス"],
+    "历史五维图": ["歷史五維圖", "Historical radar chart", "過去のレーダーチャート"],
+    "历史五项场均与全队四分之一场均对比": ["歷史五項場均與全隊四分之一場均對比", "Historical per-job averages versus one quarter of team averages", "過去の5項目の1バイト平均とチーム平均の4分の1を比較"],
+    "根据本地保存的战绩统计，不代表官方完整生涯。": ["根據本地儲存的戰績統計，不代表官方完整生涯。", "Based on locally saved jobs, not your complete official career.", "ローカル保存されたバイトの集計です。公式の全期間記録ではありません。"],
+    "本地记录 · 日期未提供": ["本地紀錄 · 日期未提供", "Local records · dates unavailable", "ローカル記録 · 日付なし"],
+    "本地记录 · {0} — {1}（UTC+8）": ["本地紀錄 · {0} — {1}（UTC+8）", "Local records · {0} — {1} (UTC+8)", "ローカル記録 · {0} — {1}（UTC+8）"],
+    "已保存 {0} 场 · 有效 {1} 场 · {2} 场未计入": ["已儲存 {0} 場 · 有效 {1} 場 · {2} 場未計入", "{0} saved jobs · {1} included · {2} excluded", "保存 {0} 回 · 集計対象 {1} 回 · 対象外 {2} 回"],
+    "包含通过与失败场次；掉线、结算不完整和暂不支持的记录不计入。": ["包含通過與失敗場次；斷線、結算不完整和暫不支援的紀錄不計入。", "Includes cleared and failed jobs; excludes disconnects, incomplete results and unsupported records.", "クリア・失敗の両方を含みます。切断、リザルト不足、未対応の記録は集計対象外です。"],
+    "100% 表示这些对局的全队均分，不是全体玩家平均水平。图形反映队内分担情况，受地图、武器和队友分工影响。": ["100% 表示這些對局的全隊均分，不是全體玩家平均水準。圖形反映隊內分擔情況，受地圖、武器和隊友分工影響。", "100% is an equal team share in these jobs, not the average across all players. This chart reflects team roles and varies with stages, weapons and teammates.", "100%は対象バイトでのチーム4人の均等配分であり、全プレイヤーの平均ではありません。グラフはチーム内の役割を表し、ステージ・ブキ・仲間との役割分担によって変わります。"],
+    "全部本地记录 · 队内分担情况": ["全部本地紀錄 · 隊內分擔情況", "All local records · team contribution profile", "全ローカル記録 · チーム内の役割"],
+    "本地已保存战绩，非官方完整生涯；100% 为队内均分，不代表全体玩家平均或综合评分。": ["本地已儲存戰績，非官方完整生涯；100% 為隊內均分，不代表全體玩家平均或綜合評分。", "Local records, not your full career. 100% is an equal team share, not a global average or overall score.", "ローカル保存の記録です。全生涯記録ではありません。100%はチーム内の均等配分で、全体平均や総合評価ではありません。"],
     "工作台": [
       "工作臺",
       "Workspace",
@@ -442,7 +499,7 @@ window.SalmonLocaleCatalog={
       "チームの25%・100%基準"
     ],
     "项目": [
-      "專案",
+      "項目",
       "Metric",
       "項目"
     ],
@@ -546,11 +603,7 @@ window.SalmonLocaleCatalog={
       "No stage records provided by SplatNet yet.",
       "公式のステージ記録はまだありません。"
     ],
-    "直接展示官方累计纪录，不受本地保存场次数量影响；头目击倒采用官方口径。": [
-      "直接展示官方累計紀錄，不受本地儲存場次數量影響；頭目擊倒採用官方口徑。",
-      "Official totals, independent of locally saved jobs. King defeats follow SplatNet's definition.",
-      "公式の累計記録です。ローカルの保存件数に依存せず、オカシラ討伐数も公式の集計に従います。"
-    ],
+    "来自鱿鱼圈 3 的累计纪录，包含未保存在本机的场次。": ["來自魷魚圈 3 的累計紀錄，包含未儲存在本機的場次。", "Lifetime records from SplatNet 3, including jobs not saved on this device.", "イカリング3の累計記録です。この端末に保存されていないバイトも含みます。"],
     "连接任天堂账号后获取官方生涯击倒数和各地图历史最高分。": [
       "連線任天堂帳號後獲取官方生涯擊倒數和各地圖歷史最高分。",
       "Connect your Nintendo Account to fetch career defeats and stage records.",
@@ -1486,16 +1539,8 @@ window.SalmonLocaleCatalog={
       "Personal results · team total ÷ 4",
       "個人結果・今回のチーム合計の25%と比較"
     ],
-    "本场个人搬蛋之和与波次交蛋之和相差 {0} 颗，按原始字段分别展示。": [
-      "本場個人搬蛋之和與波次交蛋之和相差 {0} 顆，按原始欄位分別展示。",
-      "Personal and wave Golden Egg totals differ by {0}; both original values are shown.",
-      "個人とWAVEの金イクラ合計に{0}個の差があります。それぞれ元の値を表示します。"
-    ],
-    "团队击倒 {0} 只；四名队员个人击杀合计 {1} 只。两种原始统计口径可能不同，总览采用此处团队击倒数。": [
-      "團隊擊倒 {0} 只；四名隊員個人擊殺合計 {1} 只。兩種原始統計口徑可能不同，總覽採用此處團隊擊倒數。",
-      "Team breakdown: {0} defeats; player sum: {1}. The source definitions may differ; the overview uses the team breakdown.",
-      "敵の内訳では{0}体、4人の個人結果合計では{1}体です。元の集計基準が異なる場合があり、一覧は敵の内訳を使用します。"
-    ],
+    "本场个人搬蛋合计与各波交蛋合计相差 {0} 颗，均保留鱿鱼圈记录的数值。": ["本場個人搬蛋合計與各波交蛋合計相差 {0} 顆，均保留魷魚圈記錄的數值。", "Player Golden Egg totals differ from wave totals by {0}; both values are shown as recorded in SplatNet.", "個人の金イクラ合計と各WAVEの納品合計に{0}個の差があります。どちらもイカリングの記録どおりに表示しています。"],
+    "巨大鲑鱼明细记录团队击倒 {0} 只，四名队员结算合计 {1} 只。总览显示巨大鲑鱼明细的合计。": ["巨大鮭魚明細記錄團隊擊倒 {0} 隻，四名隊員結算合計 {1} 隻。總覽顯示巨大鮭魚明細的合計。", "Boss details record {0} team defeats; the four player results total {1}. The overview uses the total from boss details.", "オオモノの内訳はチーム合計{0}体、4人の個人リザルトの合計は{1}体です。一覧にはオオモノの内訳の合計を表示します。"],
     "暂时无法读取本机纪录，请稍后重试。": [
       "暫時無法讀取本機紀錄，請稍後重試。",
       "Local records unavailable. Please retry later.",
@@ -1541,11 +1586,7 @@ window.SalmonLocaleCatalog={
       "Public releases can be checked and downloaded without a GitHub token.",
       "公開リリースの確認とダウンロードにGitHubトークンは不要です。"
     ],
-    "补齐对应源码与许可附件，固定镜像依赖并更新系统安全补丁。": [
-      "補齊對應原始碼與許可附件，固定映象依賴並更新系統安全補丁。",
-      "Added corresponding source and license materials; pinned image dependencies and updated security patches.",
-      "対応ソースとライセンス資料を補完し、依存関係を固定してセキュリティ更新を適用。"
-    ],
+    "发行版附带源码与许可证，并包含安全更新。": ["發行版附帶原始碼與授權條款，並包含安全更新。", "Releases include source code, licenses and security updates.", "リリースにはソースコード、ライセンス、安全性の更新が含まれます。"],
     "旧私有版请使用 0.4.0 完整安装包过渡一次，沿用原项目名和数据卷。": [
       "舊私有版請使用 0.4.0 完整安裝包過渡一次，沿用原專案名和資料卷。",
       "Private-version users should migrate once with the full 0.4.0 installer, preserving the project name and data volumes.",
@@ -1836,11 +1877,7 @@ window.SalmonLocaleCatalog={
       "Select nxapi job-detail and shift-summary JSON files. Multiple files are supported. Jobs without summaries wait for classification; duplicates are skipped.",
       "nxapiのバイト詳細・シフト概要JSONを選択してください。複数選択可能。概要のない記録も保存して分類を待ち、重複は除外します。"
     ],
-    "准备好玩喷喷的任天堂账号，按照下面三步操作。密码只在任天堂页面输入。": [
-      "準備好玩噴噴的任天堂帳號，按照下面三步操作。密碼只在任天堂頁面輸入。",
-      "Use your Splatoon Nintendo Account and follow these three steps. Enter passwords only on Nintendo's page.",
-      "Splatoonで使うニンテンドーアカウントで以下の3手順を進めてください。パスワードは任天堂のページだけに入力します。"
-    ],
+    "使用游玩 Splatoon 3 的任天堂账号，按以下三步连接。密码只在任天堂页面输入。": ["使用遊玩 Splatoon 3 的任天堂帳號，按以下三步連接。密碼只在任天堂頁面輸入。", "Connect the Nintendo Account you use for Splatoon 3 in the three steps below. Enter your password only on Nintendo’s website.", "Splatoon 3で使用しているニンテンドーアカウントを、以下の3ステップで連携します。パスワードは任天堂のページにのみ入力してください。"],
     "先点上方“开始连接”，再打开生成的登录链接，登录你用于游玩 Splatoon 3 的账号。": [
       "先點上方“開始連線”，再開啟生成的登入連結，登入你用於遊玩 Splatoon 3 的帳號。",
       "Start connection above, open the generated link and sign in with your Splatoon 3 account.",
@@ -1906,11 +1943,7 @@ window.SalmonLocaleCatalog={
       "nxapi handles sign-in and refresh; no client ID setup is needed. Credentials stay in the local volume. Authentication sends short-lived tokens to a third-party authentication service.",
       "ログインと更新はnxapiが処理し、クライアントID設定は不要です。認証情報はローカルボリュームに保存します。認証時には外部認証サービスへ短期トークンを送信します。"
     ],
-    "容器运行时生效。上游认证或接口异常时自动暂停；仍可查看已保存的战绩。": [
-      "容器執行時生效。上游認證或介面異常時自動暫停；仍可檢視已儲存的戰績。",
-      "Active while containers run. Upstream authentication or API errors pause sync; saved records remain available.",
-      "コンテナー稼働中に有効。認証やAPI異常時は同期を一時停止しますが、保存済み記録は閲覧できます。"
-    ],
+    "程序运行期间自动同步；登录或战绩服务异常时暂停，已保存的战绩仍可查看。": ["程式執行期間自動同步；登入或戰績服務異常時暫停，已儲存的戰績仍可查看。", "Jobs sync automatically while the app is running. Sync pauses if sign-in or the results service fails; saved jobs remain available.", "アプリの起動中に自動同期します。ログインやリザルトの取得に問題がある場合は停止しますが、保存済みの記録は閲覧できます。"],
     "检查本地服务、战绩读取、同步与更新状态，导出不含账号凭据和战绩明细的诊断报告。": [
       "檢查本地服務、戰績讀取、同步與更新狀態，匯出不含帳號憑據和戰績明細的診斷報告。",
       "Check local service, records, sync and updates. Export diagnostics without credentials or job details.",
@@ -1926,11 +1959,7 @@ window.SalmonLocaleCatalog={
       "Backups contain raw jobs and shift summaries, not credentials or image cache. Restore merges the same account without overwriting existing jobs. Backups contain nicknames; store them carefully.",
       "バックアップには元の記録とシフト概要を含み、認証情報や画像キャッシュは含みません。同じアカウントの記録を上書きせず統合します。ニックネームを含むため大切に保管してください。"
     ],
-    "缺少排班、结算字段不完整或未支持的模式会保留原始数据；不会按零分参与均值。": [
-      "缺少排班、結算欄位不完整或未支援的模式會保留原始資料；不會按零分參與均值。",
-      "Unclassified, incomplete and unsupported records are retained, never counted as zero in averages.",
-      "未分類・不完全・未対応モードの元データも保持し、平均に0として含めません。"
-    ],
+    "缺少排班信息、结算不完整或暂不支持的模式仍会保存，但不计入场均。": ["缺少排班資訊、結算不完整或暫不支援的模式仍會儲存，但不計入場均。", "Jobs with missing shift details, incomplete results or unsupported modes are saved but excluded from averages.", "シフト情報の不足、不完全なリザルト、未対応モードの記録も保存されますが、平均には含まれません。"],
     "请先选择 JSON 文件。": [
       "請先選擇 JSON 檔案。",
       "Select JSON files first.",
@@ -2026,11 +2055,7 @@ window.SalmonLocaleCatalog={
       "GitHub token (local storage only)",
       "GitHubトークン（ローカルのみ保存）"
     ],
-    "凭据保存在本机更新卷，页面不会回显；退出只删除本机凭据，不会影响战绩或任天堂账号。检查公开发行版时优先匿名访问，旧凭据失效不会阻止匿名下载；私有测试版仍需有效权限。": [
-      "憑據儲存在本機更新卷，頁面不會回顯；退出只刪除本機憑據，不會影響戰績或任天堂帳號。檢查公開發行版時優先匿名訪問，舊憑據失效不會阻止匿名下載；私有測試版仍需有效許可權。",
-      "Credentials stay in the local update volume and are never displayed. Removing them does not affect records or Nintendo sign-in. Public releases prefer anonymous access; private builds require valid permissions.",
-      "認証情報はローカル更新ボリュームに保存し再表示しません。削除しても記録や任天堂の連携に影響しません。公開版は匿名アクセスを優先し、非公開版は有効な権限が必要です。"
-    ],
+    "凭据仅保存在本机，不会在页面显示；移除后不会影响战绩或任天堂账号。公开版通常无需凭据；私有测试版需要访问权限。": ["憑據僅儲存在本機，不會在頁面顯示；移除後不會影響戰績或任天堂帳號。公開版通常無需憑據；私人測試版需要存取權限。", "Credentials stay on this device and are not displayed. Removing them does not affect jobs or your Nintendo Account. Public releases normally need no credentials; private test releases require access.", "認証情報はこの端末にのみ保存され、画面には表示されません。削除しても記録やニンテンドーアカウントには影響しません。公開版は通常認証不要ですが、非公開テスト版にはアクセス権限が必要です。"],
     "更新前会自动备份本机战绩、设置和登录凭据。新版通过检查后恢复使用；安装失败则尝试恢复旧版。备份只留在本机，不会上传。不要在更新过程中删除容器或数据卷。": [
       "更新前會自動備份本機戰績、設定和登入憑據。新版通過檢查後恢復使用；安裝失敗則嘗試恢復舊版。備份只留在本機，不會上傳。不要在更新過程中刪除容器或資料卷。",
       "Before updating, local records, settings and credentials are backed up. The new version must pass checks; failure triggers rollback. Backups stay local. Do not delete containers or volumes during updates.",
@@ -2606,11 +2631,7 @@ window.SalmonLocaleCatalog={
       "Recorded",
       "記録済み"
     ],
-    "{0} 场结算字段不全 · 暂不统计": [
-      "{0} 場結算欄位不全 · 暫不統計",
-      "{0} jobs with incomplete results · excluded",
-      "結果が不完全な{0}回・集計対象外"
-    ],
+    "{0} 场结算不完整 · 未计入统计": ["{0} 場結算不完整 · 未計入統計", "{0} incomplete results · excluded from statistics", "リザルトが不完全な{0}回 · 集計対象外"],
     "本期已保存 {0} / {1} 场；其中 {2} 场参与统计。队友识别按已确认连续的片段计算，不跨缺口；第 x 场为包含掉线局的本地记录顺序。": [
       "本期已儲存 {0} / {1} 場；其中 {2} 場參與統計。隊友識別按已確認連續的片段計算，不跨缺口；第 x 場為包含掉線局的本地記錄順序。",
       "Saved {0} / {1} jobs; {2} included in statistics. Teammate streaks use confirmed consecutive records without crossing gaps. Job numbers include disconnected records.",
@@ -2811,11 +2832,7 @@ window.SalmonLocaleCatalog={
       "No jobs selected",
       "バイト未選択"
     ],
-    "查看数值与口径": [
-      "檢視數值與口徑",
-      "Values and definitions",
-      "数値と集計方法"
-    ],
+    "查看数值与计算说明": ["查看數值與計算說明", "View values and calculations", "数値と計算方法を見る"],
     "金鲑鱼卵": [
       "金鮭魚卵",
       "Golden Eggs",
@@ -2901,11 +2918,7 @@ window.SalmonLocaleCatalog={
       "Reconnect your account",
       "アカウントの再連携が必要です"
     ],
-    "上游暂时禁止认证": [
-      "上游暫時禁止認證",
-      "Authentication is temporarily unavailable upstream",
-      "連携先で認証が一時停止されています"
-    ],
+    "登录服务暂不接受认证": ["登入服務暫不接受認證", "The sign-in service is temporarily not accepting authentication", "ログインサービスが一時的に認証を停止しています"],
     "请求受限，请遵守等待时间": [
       "請求受限，請遵守等待時間",
       "Rate limited. Wait before retrying",
@@ -2916,11 +2929,7 @@ window.SalmonLocaleCatalog={
       "The last task encountered a network error",
       "前回の処理で通信エラーが発生しました"
     ],
-    "上游接口异常或版本不兼容": [
-      "上游介面異常或版本不相容",
-      "Upstream API error or incompatible version",
-      "連携先APIのエラー、またはバージョンの非互換です"
-    ],
+    "在线服务响应异常或需要更新程序": ["線上服務回應異常或需要更新程式", "Unexpected service response or an app update is required", "オンラインサービスの応答に問題があるか、アプリの更新が必要です"],
     "上次任务中断": [
       "上次任務中斷",
       "The last task was interrupted",
@@ -3151,10 +3160,10 @@ window.SalmonLocaleCatalog={
       "Check incomplete",
       "確認未完了"
     ],
-    "版本 {0} · 已保存 {1} 场 · {2}。{3}{4}。{5}{6}上次成功：{7}。{8}连接状态未向上游重新验证。": [
-      "版本 {0} · 已儲存 {1} 場 · {2}。{3}{4}。{5}{6}上次成功：{7}。{8}連線狀態未向上遊重新驗證。",
-      "Version {0} · {1} saved jobs · {2}. {3}{4}. {5}{6}Last success: {7}. {8}Account connection has not been revalidated upstream.",
-      "バージョン{0}・{1}回保存済み・{2}。{3}{4}。{5}{6}前回成功：{7}。{8}連携先への接続状態の再確認は行っていません。"
+    "版本 {0} · 已保存 {1} 场 · {2}。{3}{4}。{5}{6}上次成功：{7}。{8}本次检查未验证登录是否仍有效。": [
+      "版本 {0} · 已儲存 {1} 場 · {2}。{3}{4}。{5}{6}上次成功：{7}。{8}本次檢查未驗證登入是否仍有效。",
+      "Version {0} · {1} saved jobs · {2}. {3}{4}. {5}{6}Last success: {7}. {8}This check did not verify whether your sign-in is still valid.",
+      "バージョン{0}・{1}回保存済み・{2}。{3}{4}。{5}{6}前回成功：{7}。{8}今回のチェックではログインが現在も有効かどうかは確認していません。"
     ],
     "已保存账号连接": [
       "已儲存帳號連線",
@@ -3306,11 +3315,7 @@ window.SalmonLocaleCatalog={
       "Please reconnect your account",
       "アカウントを再連携してください"
     ],
-    "上游接口异常，需要检查版本": [
-      "上游介面異常，需要檢查版本",
-      "Upstream API error; check the version",
-      "連携先APIでエラーが発生しました。バージョンを確認してください"
-    ],
+    "在线服务响应异常，请检查是否有新版": ["線上服務回應異常，請檢查是否有新版", "Unexpected service response; check for an app update", "オンラインサービスの応答に問題があります。アプリの更新を確認してください"],
     "请求受限，已延后": [
       "請求受限，已延後",
       "Rate limited; retry postponed",
@@ -3516,16 +3521,8 @@ window.SalmonLocaleCatalog={
       "Waiting for valid jobs",
       "有効なバイト記録待ち"
     ],
-    "调整队员名片比例和昵称排版，长名字自动适应宽度，并提供本地字体回退。": [
-      "調整隊員名片比例和暱稱排版，長名字自動適應寬度，並提供本地字型回退。",
-      "Improved Splashtag proportions and nickname layout, with automatic fitting for long names and a local fallback font.",
-      "ネームプレートの比率と名前の配置を改善。長い名前の幅を自動調整し、ローカルの代替フォントを使用できます。"
-    ],
-    "更新同步依赖兼容层，保留原有登录状态与打工同步功能。": [
-      "更新同步依賴相容層，保留原有登入狀態與打工同步功能。",
-      "Updated the sync compatibility layer while preserving existing sign-in and job synchronization.",
-      "同期の互換レイヤーを更新し、既存のログイン状態とバイト同期を維持しました。"
-    ],
+    "调整队员名片排版，长昵称自动缩放；专用字体无法加载时使用系统字体。": ["調整隊員名片排版，長暱稱自動縮放；專用字型無法載入時使用系統字型。", "Improved player-card layout. Long nicknames resize to fit; system fonts are used if the custom font cannot load.", "ネームプレートの配置を調整しました。長いニックネームは縮小し、専用フォントを読み込めない場合はシステムフォントで表示します。"],
+    "改善战绩同步，更新后无需重新登录。": ["改善戰績同步，更新後無需重新登入。", "Improved job sync without requiring you to sign in again after updating.", "リザルトの同期を改善しました。更新後の再ログインは不要です。"],
     "补齐第三方许可材料，并增加发行打包校验。": [
       "補齊第三方許可材料，並增加發行打包校驗。",
       "Completed third-party notices and added release-package validation.",
@@ -3666,11 +3663,7 @@ window.SalmonLocaleCatalog={
       "The authorization link is invalid or expired. Start connecting again.",
       "認証リンクが無効、または期限切れです。連携を最初からやり直してください。"
     ],
-    "上游暂时禁止认证，已暂停自动同步；可继续浏览或导入记录。": [
-      "上游暫時禁止認證，已暫停自動同步；可繼續瀏覽或匯入記錄。",
-      "Upstream authentication is temporarily unavailable. Auto-sync is paused; you can still browse or import records.",
-      "連携先の認証が一時停止されています。自動同期は停止しましたが、記録の閲覧やインポートは可能です。"
-    ],
+    "登录服务暂不接受认证，已暂停自动同步；可继续浏览或导入记录。": ["登入服務暫不接受認證，已暫停自動同步；可繼續瀏覽或匯入紀錄。", "The sign-in service is temporarily not accepting authentication. Auto-sync is paused; you can still browse or import jobs.", "ログインサービスが一時的に認証を停止したため、自動同期を停止しました。記録の閲覧やインポートは可能です。"],
     "请求频率受限，已延后同步。": [
       "請求頻率受限，已延後同步。",
       "Rate limited. Sync has been postponed.",
@@ -3681,11 +3674,7 @@ window.SalmonLocaleCatalog={
       "Network temporarily unavailable. Retry later.",
       "一時的に通信できません。後で再試行してください。"
     ],
-    "上游接口异常或版本不兼容，已暂停自动同步。": [
-      "上游介面異常或版本不相容，已暫停自動同步。",
-      "Upstream API error or incompatible version. Auto-sync is paused.",
-      "連携先APIのエラー、または非互換のため、自動同期を停止しました。"
-    ],
+    "在线服务响应异常或需要更新程序，已暂停自动同步。": ["線上服務回應異常或需要更新程式，已暫停自動同步。", "Auto-sync is paused because of an unexpected service response or a required app update.", "オンラインサービスの応答に問題があるか、アプリの更新が必要なため、自動同期を停止しました。"],
     "服务重启或任务超时，已保存的记录保留；可重新同步继续。": [
       "服務重啟或任務超時，已儲存的記錄保留；可重新同步繼續。",
       "Service restarted or task timed out. Saved records are retained; sync again to continue.",
@@ -3956,11 +3945,7 @@ window.SalmonLocaleCatalog={
       "Automatic recovery did not complete. The old container and backup are retained. Do not delete data volumes. Export diagnostics and contact the maintainer.",
       "自動復元が完了しませんでした。旧コンテナーとバックアップは保持されています。データボリュームを削除せず、診断情報を出力して管理者に連絡してください。"
     ],
-    "鱿鱼语仅支持 PNG，避免导出字体文件。": [
-      "魷魚語僅支援 PNG，避免匯出字型檔案。",
-      "Inkling exports use PNG only; no font file is included.",
-      "イカ語の書き出しはPNGのみです。フォントファイルは含まれません。"
-    ]
+    "鱿鱼语仅支持 PNG 导出。": ["魷魚語僅支援 PNG 匯出。", "Inkling supports PNG export only.", "イカ語の書き出しはPNGのみです。"]
   },
   "terms": {
     "铁球鱼": [

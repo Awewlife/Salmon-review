@@ -2,6 +2,7 @@ import path from 'node:path';
 import {fork} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {classify,messages} from './errors.js';
+import {retryDeadline} from './rate-limit.js';
 export function workerCall(input,onEvent=()=>{},timeoutMs=15*60*1000){
   return new Promise((resolve,reject)=>{
     const child=fork(fileURLToPath(new URL('./worker.js',import.meta.url)),[],{execArgv:[],stdio:['ignore','ignore','ignore','ipc'],env:{...process.env,DEBUG:'',NODE_OPTIONS:''}});
@@ -35,6 +36,11 @@ export class Tasks{
     this.store.set('nextAttempt',rateLimitedUntil);this.store.set('manualNextAttempt',rateLimitedUntil);
   }
   status(){const last=this.store.db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 1').get()??null;return {active:this.active,last,lastSuccess:this.store.get('lastSuccess'),...this.retryTimes(last),autoMinutes:this.store.get('autoMinutes',0),paused:this.store.get('paused',null)}}
+  deferRateLimit(error){
+    const until=Math.max(this.retryTimes().rateLimitedUntil,retryDeadline(error));
+    for(const key of ['rateLimitedUntil','nextAttempt','manualNextAttempt','careerNextAttempt'])this.store.set(key,until);
+    return until;
+  }
   start({automatic=false}={}){
     if(this.active||this.authBusy||this.updateLocked)throw new Error('busy');
     if(!this.account.read()||this.store.get('paused')==='auth_required')throw new Error('auth_required');
@@ -66,10 +72,12 @@ export class Tasks{
     }catch(error){
       const code=classify(error),failures=this.store.get('failures',0)+1;this.store.set('failures',failures);
       this.store.db.prepare("UPDATE runs SET state='failed',finished=?,error=? WHERE id=?").run(new Date().toISOString(),code,id);
-      const wait=code==='rate_limited'?Math.max(15*60,Number(error.retryAfter)||0):Math.min(6*3600,300*2**Math.min(failures-1,6));
-      this.store.set('nextAttempt',Date.now()+wait*1000);
-      this.store.set('manualNextAttempt',Date.now()+(['network','interrupted','auth_required'].includes(code)?5000:wait*1000));
-      if(code==='rate_limited')this.store.set('rateLimitedUntil',this.store.get('nextAttempt'));
+      if(code==='rate_limited')this.deferRateLimit(error);
+      else{
+        const wait=Math.min(6*3600,300*2**Math.min(failures-1,6));
+        this.store.set('nextAttempt',Date.now()+wait*1000);
+        this.store.set('manualNextAttempt',Date.now()+(['network','interrupted','auth_required'].includes(code)?5000:wait*1000));
+      }
       if(!['network','rate_limited','interrupted'].includes(code))this.store.set('paused',code);
       console.warn(JSON.stringify({event:'sync_failed',id,code,message:messages[code]}));
     }finally{this.active=false}
@@ -80,12 +88,12 @@ export class Tasks{
       // Older injected sync runners do not implement this action.
       if(!value?.format)throw new Error('upstream');
       this.store.saveCareer(value);return this.store.career();
-    }catch(error){const code=classify(error);this.store.set('careerError',{code,message:code==='upstream'?'官方生涯纪录获取失败，请稍后重试。':messages[code],at:new Date().toISOString()});if(code==='rate_limited')this.store.set('careerNextAttempt',Date.now()+15*60*1000);throw error}
+    }catch(error){const code=classify(error);this.store.set('careerError',{code,message:code==='upstream'?'官方生涯纪录获取失败，请稍后重试。':messages[code],at:new Date().toISOString()});if(code==='rate_limited')this.deferRateLimit(error);throw error}
   }
   async refreshCareer(){
     if(this.active||this.authBusy||this.updateLocked||this.account.pending)throw new Error('busy');
     if(!this.account.read())throw new Error('auth_required');
-    if(Date.now()<this.store.get('careerNextAttempt',0))throw new Error('cooldown');
+    if(Date.now()<Math.max(this.store.get('careerNextAttempt',0),this.retryTimes().rateLimitedUntil))throw new Error('cooldown');
     this.active=true;this.store.set('careerNextAttempt',Date.now()+30000);
     this.completion=this.updateCareer();
     try{return await this.completion}finally{this.active=false}
