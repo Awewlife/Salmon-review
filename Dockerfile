@@ -1,6 +1,6 @@
 FROM node:22.23.2-bookworm-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS prepared
 RUN apt-get update -qq && apt-get install -y --no-install-recommends --only-upgrade \
-    perl-base=5.36.0-7+deb12u4 libpcre2-8-0=10.42-1+deb12u2 tzdata=2026c-0+deb12u1 \
+    perl-base=5.36.0-7+deb12u4 libpcre2-8-0=10.42-1+deb12u2 tzdata=2026f-0+deb12u1 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production BIND_ADDRESS=0.0.0.0 PORT=8787 DATA_DIR=/data

@@ -17,7 +17,7 @@ Use the application source ZIP matching the image's
 `org.opencontainers.image.revision` label. On a machine with Docker:
 
 ```sh
-docker build --platform linux/amd64 --build-arg VCS_REF=<commit> -t salmon-review:0.4.0 .
+docker build --platform linux/amd64 --build-arg VCS_REF=<commit> -t salmon-review:0.4.1 .
 ```
 
 For Apple Silicon, use `--platform linux/arm64` and package with the same
@@ -102,7 +102,7 @@ Do not retain an old lock merely because an archive has the same filename.
 Collect and verify the locked files before packaging:
 
 ```sh
-python scripts/collect-release-sources.py --image salmon-review:0.4.0 --output ../source-cache
+python scripts/collect-release-sources.py --image salmon-review:0.4.1 --output ../source-cache
 python scripts/package-release.py --sources ../source-cache --output ../release
 ```
 
